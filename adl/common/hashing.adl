@@ -1,0 +1,20 @@
+module common.hashing {
+
+union Algorithm {
+    BcryptParams bcrypt;
+    Argon2idParams argon2id;
+};
+
+struct BcryptParams {
+    Word8 cost = 10;
+};
+
+struct Argon2idParams {
+    Word32 memory = 65536;
+    Word32 iterations = 3;
+    Word8 parallelism = 2;
+    Word32 saltLength = 16;
+    Word32 keyLength = 32;
+};
+
+};

@@ -1,0 +1,12 @@
+{
+  "http_bind_addr": "0.0.0.0:8081",
+  "db": {
+    "host": "localhost",
+    "port": 5432,
+    "dbname": "appdb",
+    "user": "postgres",
+    "password": "xyzzy"
+  },
+  "jwt_access_secret": "shouldbetrulysecretbutnotrightnow",
+  "jwt_refresh_secret": "nottomentionthisone"
+}
