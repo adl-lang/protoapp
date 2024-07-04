@@ -1,0 +1,50 @@
+{
+  "Loader": {
+    "Searchdir": [
+      "adl"
+    ],
+    "MergeAdlext": "adl-go",
+    "BundleMaps": [
+      {
+        "AdlModuleNamePrefix": "sys",
+        "GoModPath": "github.com/adl-lang/goadl_rt/v3",
+        "AdlSrc": "file://../goadl/goadlc/adl/stdlib_go/"
+      },
+      {
+        "AdlModuleNamePrefix": "common",
+        "GoModPath": "github.com/adl-lang/goadl_common",
+        "AdlSrc": "file://adl"
+      }
+    ],
+    "Files": [
+      "adl/protoapp/**/*.adl"
+    ]
+  },
+  "Mod": {
+    "GoModFile": "./go/server/go.mod"
+  },
+  "GoTypes": {
+    "NoGoFmt": false,
+    "GoAdlPath": "github.com/adl-lang/goadl_rt/v3",
+    "ExcludeAst": false,
+    "Outputdir": "./go/server"
+  },
+  "GoApis": [
+    {
+      "ApiStruct": {
+        "moduleName": "protoapp.apis.ui",
+        "name": "ApiRequests"
+      },
+      "Outputdir": "./go/server",
+      "GoAdlCommonImport": "github.com/adl-lang/goadl_common"
+    },
+    {
+      "ApiStruct": {
+        "moduleName": "protoapp.apis.cap",
+        "name": "ApiRequests"
+      },
+      "Outputdir": "./go/server",
+      "GoAdlCommonImport": "github.com/adl-lang/goadl_common"
+    }
+  ]
+}

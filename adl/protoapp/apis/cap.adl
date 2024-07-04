@@ -1,0 +1,151 @@
+module protoapp.apis.cap {
+
+import common.http.Unit;
+import common.capability.HttpPost;
+import common.capability.HttpGet;
+import common.capability.CapabilityApi;
+import common.time.Instant;
+import common.strings.StringNE;
+import common.strings.StringML;
+import common.strings.Password;
+
+import protoapp.db.AppUserId;
+import protoapp.db.MessageId;
+
+struct ApiRequests {
+
+  /// AWS default compatible health check
+  HttpGet<Unit> healthy = {
+    "path": "/"
+  };
+
+  /// Test the server is live
+  HttpPost<Unit, Unit> ping = {
+    "path": "/ping"
+  };
+
+  /// Login a user
+  ///
+  /// The response will set an httpOnly cookie containing the refresh token
+  HttpPost<LoginReq, LoginResp> login = {
+    "path": "/login"
+  };
+
+  /// Clear the `refreshToken` cookie.
+  HttpPost<Unit, Unit> logout = {
+    "path": "/logout"
+  };
+
+  /// Enpoints requiring an AccessToken
+  CapabilityApi<AccessToken,Capability,AccessApiRequests> accessTokenApi = {
+    "service": {}
+  };
+
+  /// Enpoints requiring a RefreshToken
+  ///
+  /// This is a simple refresh model, hence the Unit as the S type.
+  /// If a more complex model (eg. with user blacklisting) was required the S payload would be different
+  CapabilityApi<RefreshToken,Unit,RefreshApiRequests> refreshTokenApi = {
+    "service": {}
+  };
+};
+
+struct AccessApiRequests {
+  /// Post a message to the noticeboard
+  HttpPost<NewMessageReq, MessageId> newMessage = {
+    "path": "/messages/new"
+  };
+
+  /// Get recent noticeboard messages
+  HttpPost<RecentMessagesReq, Paginated<Message> > recentMessages = {
+    "path": "/messages/recent"
+  };
+
+  /// Gets the logged in user details
+  // NOTE: Fails with 401 if the token is invalid or user does not exist
+  HttpGet<UserProfile> whoAmI = {
+    "path": "/whoami"
+  };
+};
+
+struct RefreshApiRequests {
+  /// Get a refreshed access token
+  ///
+  /// If the refresh token is not provided in the request body, then it will
+  /// be read from the refrestToken cookie in the request.
+  HttpPost<RefreshReq, RefreshResp> refresh = {
+    "path": "/refresh"
+  };
+};
+
+type AccessToken = StringNE;
+type RefreshToken = StringNE;
+struct Capability {
+  String user_id;
+  Vector<String> roles;
+};
+
+struct LoginReq {
+  StringNE email;
+  Password password;
+};
+
+union LoginResp {
+  LoginTokens tokens;
+  Void invalid_credentials;
+};
+
+struct RefreshReq {
+  Nullable<StringNE> refresh_token = null;
+};
+
+union RefreshResp {
+  StringNE access_token;
+  Void invalid_refresh_token;
+};
+
+struct LoginTokens {
+  StringNE access_jwt;
+  StringNE refresh_jwt;
+};
+
+struct NewMessageReq {
+  StringML message;
+};
+
+struct RecentMessagesReq {
+  // Pagination offset
+  Word32 offset = 0;
+
+  // Max number of items to return
+  Word32 limit = 20;
+};
+
+struct Message {
+  MessageId id;
+  Instant posted_at;
+  String user_fullname;
+  StringML message;
+};
+
+struct UserProfile {
+  AppUserId id;
+  String fullname;
+  String email;
+  Bool is_admin;
+};
+
+/// A holder for paginated results
+struct Paginated<T> {
+
+  /// The paginated items
+  Vector<T> items;
+
+  /// The offset used for this query
+  Word32 current_offset;
+
+  /// The size of the entire date set
+  Word32 total_count;
+};
+
+};

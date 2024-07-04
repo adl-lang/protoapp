@@ -1,0 +1,27 @@
+{
+  "Loader": {
+    "Searchdir": [
+      "adl"
+    ],
+    "MergeAdlext": "adl-go",
+    "BundleMaps": [
+      {
+        "AdlModuleNamePrefix": "sys",
+        "GoModPath": "github.com/adl-lang/goadl_rt/v3",
+        "AdlSrc": "file://../goadl/goadlc/adl/stdlib_go/"
+      }
+    ],
+    "Files": [
+      "adl/common/**/*.adl"
+    ]
+  },
+  "Mod": {
+    "GoModFile": "./go/common/go.mod"
+  },
+  "GoTypes": {
+    "NoGoFmt": false,
+    "GoAdlPath": "github.com/adl-lang/goadl_rt/v3",
+    "ExcludeAst": false,
+    "Outputdir": "./go/common"
+  }
+}
