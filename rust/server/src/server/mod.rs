@@ -16,6 +16,7 @@ mod handler;
 mod handler_2;
 mod jwt;
 pub mod passwords;
+mod poem_adl_interop;
 
 #[cfg(test)]
 pub mod tests;
