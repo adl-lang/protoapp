@@ -118,15 +118,15 @@ where
 }
 
 #[derive(Clone)]
-struct AccessTokenCheck {
+struct AccessTokenChecker {
     jwt_access_secret: String,
 }
 
-pub fn new_access_token_check(jwt_access_secret: String) -> DynJwtSecurityCheck {
-    Arc::new(Box::new(AccessTokenCheck { jwt_access_secret }))
+pub fn new_access_token_checker(jwt_access_secret: String) -> DynJwtSecurityCheck {
+    Arc::new(Box::new(AccessTokenChecker { jwt_access_secret }))
 }
 
-impl JwtSecurityCheck for AccessTokenCheck {
+impl JwtSecurityCheck for AccessTokenChecker {
     fn check_security(
         &self,
         security: &HttpSecurity,

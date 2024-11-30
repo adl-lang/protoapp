@@ -185,10 +185,11 @@ async fn refresh(
     match i.refresh_token.or(refresh_jwt_from_cookie) {
         None => Ok(RefreshResp::InvalidRefreshToken),
         Some(refresh_jwt) => {
-            let claims = match jwt::decode_refresh(&app_state.config, &refresh_jwt) {
-                Ok(claims) => claims,
-                Err(_) => return Ok(RefreshResp::InvalidRefreshToken),
-            };
+            let claims =
+                match jwt::decode_refresh(&app_state.config.jwt_refresh_secret, &refresh_jwt) {
+                    Ok(claims) => claims,
+                    Err(_) => return Ok(RefreshResp::InvalidRefreshToken),
+                };
             let user_id: AppUserId = DbKey(claims.sub.clone(), PhantomData);
             let user = db::get_user_with_id(&app_state.db_pool, &user_id).await?;
             let user = match user {
@@ -410,7 +411,7 @@ fn claims_from_bearer_token(
     req: &Request<Body>,
 ) -> HandlerResult<jwt::AccessClaims> {
     if let Some(jwt) = get_bearer_token(req) {
-        let claims = jwt::decode_access(cfg, &jwt).map_err(|e| {
+        let claims = jwt::decode_access(&cfg.jwt_access_secret, &jwt).map_err(|e| {
             log::error!("failed to validate jwt: {}", e);
             HandlerError::HttpError(StatusCode::FORBIDDEN)
         })?;
