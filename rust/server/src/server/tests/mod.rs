@@ -5,7 +5,7 @@ use crate::server::tests::helpers::{
     create_test_user, login_user, server_auth_get, server_auth_request, server_public_request,
     test_server_config, DbTestEnv,
 };
-use crate::server::OServer;
+use crate::server::{AppState, OServer};
 
 mod helpers;
 
@@ -18,7 +18,7 @@ async fn schema_setup() {
 #[tokio::test]
 async fn server_ping() {
     let mut db = DbTestEnv::new().await;
-    let oserver = OServer::spawn(test_server_config(), db.pool.clone());
+    let oserver = OServer::spawn(AppState::new(test_server_config(), db.pool.clone()));
 
     let ping = apis::ui::ApiRequests::def_ping();
     server_public_request(ping, &Unit {}).await;
@@ -30,7 +30,7 @@ async fn server_ping() {
 #[tokio::test]
 async fn server_login() {
     let mut db = DbTestEnv::new().await;
-    let oserver = OServer::spawn(test_server_config(), db.pool.clone());
+    let oserver = OServer::spawn(AppState::new(test_server_config(), db.pool.clone()));
 
     let u1 = create_test_user_joe(&mut db).await;
 
@@ -103,7 +103,7 @@ async fn server_login() {
 #[tokio::test]
 async fn server_user_profile() {
     let mut db = DbTestEnv::new().await;
-    let oserver = OServer::spawn(test_server_config(), db.pool.clone());
+    let oserver = OServer::spawn(AppState::new(test_server_config(), db.pool.clone()));
 
     let u1 = create_test_user_joe(&mut db).await;
     let u1_jwt = login_user(&u1).await;
@@ -120,7 +120,7 @@ async fn server_user_profile() {
 #[tokio::test]
 async fn server_messages() {
     let mut db = DbTestEnv::new().await;
-    let oserver = OServer::spawn(test_server_config(), db.pool.clone());
+    let oserver = OServer::spawn(AppState::new(test_server_config(), db.pool.clone()));
 
     let u1 = create_test_user_joe(&mut db).await;
     let u2 = create_test_user_sarah(&mut db).await;
