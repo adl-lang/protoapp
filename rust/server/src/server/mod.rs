@@ -13,6 +13,7 @@ type Error = Box<dyn std::error::Error + Send + Sync + 'static>;
 
 pub mod db;
 mod handler;
+mod handler_2;
 mod jwt;
 pub mod passwords;
 
@@ -25,29 +26,8 @@ pub struct AppState {
     pub db_pool: Arc<PgPool>,
 }
 
-pub async fn run(config: ServerConfig) {
-    let db = &config.db;
-
-    let db_connection_url = format!(
-        "postgres://{}:{}@{}:{}/{}",
-        db.user, db.password, db.host, db.port, db.dbname
-    );
-    let db_pool: PgPool = PgPoolOptions::new()
-        .max_connections(5)
-        .connect(&db_connection_url)
-        .await
-        .expect("db connection should work");
-
-    // Run any migrations
-    log::info!("Running sqlx migrations...");
-    sqlx::migrate!()
-        .run(&db_pool)
-        .await
-        .expect("migrations should run correctly");
-    log::info!("sqlx migrations completed");
-
-    let (_never, shutdown) = tokio::sync::oneshot::channel::<()>();
-    OServer::run(config, db_pool, shutdown).await;
+pub async fn run(_config: ServerConfig) {
+    let _ = handler_2::main().await;
 }
 
 pub struct OServer {
