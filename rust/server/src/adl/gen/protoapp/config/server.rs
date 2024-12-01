@@ -7,6 +7,9 @@ use serde::Serialize;
 pub struct ServerConfig {
   pub db: DbConnectionConfig,
 
+  #[serde(default="ServerConfig::def_db_connection_pool_size")]
+  pub db_connection_pool_size: u32,
+
   #[serde(default="ServerConfig::def_jwt_issuer")]
   pub jwt_issuer: String,
 
@@ -28,6 +31,7 @@ impl ServerConfig {
   pub fn new(db: DbConnectionConfig, jwt_access_secret: String, jwt_refresh_secret: String) -> ServerConfig {
     ServerConfig {
       db: db,
+      db_connection_pool_size: ServerConfig::def_db_connection_pool_size(),
       jwt_issuer: ServerConfig::def_jwt_issuer(),
       jwt_access_secret: jwt_access_secret,
       jwt_access_expiry_secs: ServerConfig::def_jwt_access_expiry_secs(),
@@ -35,6 +39,10 @@ impl ServerConfig {
       jwt_refresh_expiry_secs: ServerConfig::def_jwt_refresh_expiry_secs(),
       http_bind_addr: ServerConfig::def_http_bind_addr(),
     }
+  }
+
+  pub fn def_db_connection_pool_size() -> u32 {
+    20_u32
   }
 
   pub fn def_jwt_issuer() -> String {

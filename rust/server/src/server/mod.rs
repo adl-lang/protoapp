@@ -36,7 +36,7 @@ pub async fn run(config: ServerConfig) {
         db.user, db.password, db.host, db.port, db.dbname
     );
     let db_pool: PgPool = PgPoolOptions::new()
-        .max_connections(10)
+        .max_connections(config.db_connection_pool_size)
         .connect(&db_connection_url)
         .await
         .expect("db connection should work");

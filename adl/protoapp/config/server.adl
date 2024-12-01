@@ -2,6 +2,7 @@ module protoapp.config.server {
 
 struct ServerConfig {
     DbConnectionConfig db;
+    Word32 db_connection_pool_size = 20;
 
     String jwt_issuer = "adl-protoapp.link";
 
