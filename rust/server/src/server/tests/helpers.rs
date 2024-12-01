@@ -134,6 +134,7 @@ pub fn test_server_config() -> ServerConfig {
             user: "postgres".to_owned(),
             password: "xyzzy".to_owned(),
         },
+        db_connection_pool_size: ServerConfig::def_db_connection_pool_size(),
         jwt_issuer: "adl-protoapp.link".to_owned(),
         jwt_access_secret: "treyweyetry".to_owned(),
         jwt_access_expiry_secs: 300,

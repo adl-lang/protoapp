@@ -4,6 +4,7 @@ use poem::{EndpointExt, Route};
 use crate::adl::gen::common::http::Unit;
 use crate::adl::gen::protoapp::apis::ui::{
     ApiRequests, LoginReq, LoginResp, LoginTokens, Message, Paginated, RecentMessagesReq,
+    RefreshReq, RefreshResp,
 };
 use crate::adl::gen::protoapp::config::server::ServerConfig;
 use crate::adl::gen::protoapp::db::{AppUser, AppUserId};
@@ -21,6 +22,8 @@ pub fn build_routes(state: AppState) -> Box<dyn DynEndpoint<Output = poem::Respo
     let ep = Route::new()
         .adl_post(ApiRequests::def_ping(), ping)
         .adl_post(ApiRequests::def_login(), login)
+        .adl_post(ApiRequests::def_refresh(), refresh)
+        .adl_post(ApiRequests::def_logout(), logout)
         .adl_post(ApiRequests::def_new_message(), new_message)
         .adl_post(ApiRequests::def_recent_messages(), recent_messages)
         .data(state)
@@ -52,6 +55,14 @@ async fn login(ctx: ReqContext, i: LoginReq) -> HandlerResult<LoginResp> {
             }
         }
     }
+}
+
+async fn refresh(_ctx: ReqContext, _i: RefreshReq) -> HandlerResult<RefreshResp> {
+    todo!()
+}
+
+async fn logout(_ctx: ReqContext, _i: Unit) -> HandlerResult<Unit> {
+    todo!()
 }
 
 fn access_jwt_from_user(cfg: &ServerConfig, user_id: &AppUserId, user: &AppUser) -> String {
