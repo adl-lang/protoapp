@@ -33,6 +33,7 @@ export async function genRustSeaQuerySchema(
 
   const writer = new FileWriter(params.outputFile, false);
   writer.write('// This file is generated from the schema definition\n');
+  writer.write('#![allow(unused)]\n');
   writer.write('\n');
   writer.write('use super::types::ColumnSpec;\n');
   writer.write('use sea_query::{Alias, DynIden, IntoIden};\n');

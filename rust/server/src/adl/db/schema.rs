@@ -1,4 +1,5 @@
 // This file is generated from the schema definition
+#![allow(unused)]
 
 use super::types::ColumnSpec;
 use sea_query::{Alias, DynIden, IntoIden};
