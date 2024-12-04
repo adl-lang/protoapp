@@ -49,6 +49,7 @@ export class ServiceBase {
     if (authToken) {
       headers["Authorization"] = "Bearer " + authToken;
     }
+    headers["Content-Type"] = "application/json";
     const httpReq: HttpRequest = {
       url: this.baseUrl + path,
       headers,

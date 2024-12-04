@@ -148,7 +148,7 @@ async fn login_with_cookies(
     let ctx = get_adl_request_context(req, &ApiRequests::def_login().security)?;
     let eresp = login(ctx, i.0).await;
     if let Ok(LoginResp::Tokens(tokens)) = &eresp {
-        let mut cookie = Cookie::new(REFRESH_TOKEN, tokens.refresh_jwt.clone());
+        let mut cookie = Cookie::new_with_str(REFRESH_TOKEN, tokens.refresh_jwt.clone());
         cookie.set_http_only(true);
         cookies.add(cookie);
     }
@@ -162,11 +162,10 @@ async fn refresh_with_cookies(
     mut i: Json<RefreshReq>,
 ) -> poem::Result<Json<RefreshResp>> {
     let ctx = get_adl_request_context(req, &ApiRequests::def_refresh().security)?;
+    let token_from_cookie = cookies.get(REFRESH_TOKEN).map(|c| c.value_str().to_owned());
 
-    // If there's no refresh token in the request, try getting it from the cookie
-    let refresh_token =
-        i.0.refresh_token
-            .or(cookies.get(REFRESH_TOKEN).map(|c| c.value_str().to_owned()));
+    // If there's no refresh token in the request, use the one from the cookie
+    let refresh_token = i.0.refresh_token.or(token_from_cookie);
 
     let eresp = refresh(ctx, RefreshReq { refresh_token }).await;
     eresp.map(|v| Json(v)).map_err(|e| poem::Error::from(e))
