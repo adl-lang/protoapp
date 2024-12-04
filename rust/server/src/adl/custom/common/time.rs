@@ -5,7 +5,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 /**
  * A custom implementation for the ADL declaration common.time.Instant:
  *
- *     newtype Instant = Int64;
+ * newtype Instant = Int64;
  */
 #[derive(Clone, Eq, Hash, PartialEq)]
 pub struct Instant(pub SystemTime);

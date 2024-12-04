@@ -27,22 +27,29 @@ type ReqContext = AdlReqContext<AppState>;
 pub fn build_routes(state: AppState) -> Box<dyn DynEndpoint<Output = poem::Response>> {
     let access_token_checker = new_access_token_checker(state.config.jwt_access_secret.clone());
 
-    let ep = Route::new()
-        // Standard ADL implemented methods
+    let routes = Route::new();
+
+    // Add standard ADL implemented methods
+    let routes = routes
         .adl_get(ApiRequests::def_healthy(), healthy)
-        .adl_post(ApiRequests::def_ping(), ping)
         .adl_get(ApiRequests::def_who_am_i(), who_am_i)
+        .adl_post(ApiRequests::def_ping(), ping)
         .adl_post(ApiRequests::def_new_message(), new_message)
-        .adl_post(ApiRequests::def_recent_messages(), recent_messages)
-        // Methods that need custom implementations in order to deal with cookies
+        .adl_post(ApiRequests::def_recent_messages(), recent_messages);
+
+    // Add methods need custom implementations in order to deal with cookies
+    let routes = routes
         .at(ApiRequests::def_login().path, post(login_with_cookies))
         .at(ApiRequests::def_refresh().path, post(refresh_with_cookies))
-        .at(ApiRequests::def_logout().path, post(logout_with_cookies))
+        .at(ApiRequests::def_logout().path, post(logout_with_cookies));
+
+    // Add system state and required middleware
+    let routes = routes
         .data(state)
         .data(access_token_checker)
         .with(CookieSession::new(CookieConfig::default().secure(false)));
 
-    Box::new(ToDynEndpoint(ep))
+    Box::new(ToDynEndpoint(routes))
 }
 
 async fn ping(_ctx: ReqContext, _i: Unit) -> HandlerResult<Unit> {

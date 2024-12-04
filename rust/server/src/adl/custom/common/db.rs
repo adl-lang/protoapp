@@ -8,7 +8,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
  * string primary key. A custom implementation for the ADL
  * declaration common.db.DbKey:
  *
- *        newtype DbKey<T>= String;
+ * newtype DbKey<T>= String;
  */
 #[derive(Clone)]
 pub struct DbKey<T>(pub String, pub PhantomData<T>);
