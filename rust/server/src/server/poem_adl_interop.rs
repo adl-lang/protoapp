@@ -8,8 +8,8 @@ use std::future::Future;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use crate::adl::gen::common::http::HttpPost;
 use crate::adl::gen::common::http::HttpSecurity;
+use crate::adl::gen::common::http::{HttpGet, HttpPost};
 
 use super::jwt;
 
@@ -41,6 +41,15 @@ pub trait RouteExt {
         I: Send + Sync + DeserializeOwned + 'static,
         O: Send + Sync + Serialize + 'static,
         FO: Future<Output = HandlerResult<O>> + Send + 'static;
+
+    /**
+     * Add a handler for an ADL specified HttpGet endpoint
+     */
+    fn adl_get<S, O, FO>(self, req: HttpGet<O>, f: fn(AdlReqContext<S>) -> FO) -> Self
+    where
+        S: Send + Sync + Clone + 'static,
+        O: Send + Sync + Serialize + 'static,
+        FO: Future<Output = HandlerResult<O>> + Send + 'static;
 }
 
 impl RouteExt for Route {
@@ -52,6 +61,20 @@ impl RouteExt for Route {
         FO: Future<Output = HandlerResult<O>> + Send + 'static,
     {
         let endpoint = AdlPost {
+            req,
+            handler: f,
+            phantom: PhantomData,
+        };
+        self.at(endpoint.req.path.clone(), endpoint)
+    }
+
+    fn adl_get<S, O, FO>(self, req: HttpGet<O>, f: fn(AdlReqContext<S>) -> FO) -> Self
+    where
+        S: Send + Sync + Clone + 'static,
+        O: Send + Sync + Serialize + 'static,
+        FO: Future<Output = HandlerResult<O>> + Send + 'static,
+    {
+        let endpoint = AdlGet {
             req,
             handler: f,
             phantom: PhantomData,
@@ -87,18 +110,50 @@ where
 {
     type Output = Response;
     async fn call(&self, mut req: Request) -> poem::Result<Self::Output> {
-        let jwt_checker = req
-            .data::<DynJwtSecurityCheck>()
-            .expect("JwtChecker should be configured");
-        let state = req.data::<S>().expect("State should be configured").clone();
-        let auth_header = req.header("Authorization");
-        let claims = jwt_checker.check_security(&self.req.security, auth_header)?;
         let mut body = RequestBody::new(req.take_body());
+        let ctx = get_adl_request_context(&req, &self.req.security)?;
         let i: Json<I> = Json::from_request(&req, &mut body).await?;
-        let ctx = AdlReqContext { state, claims };
         let o = (self.handler)(ctx, i.0).await?;
         Ok(Json(o).into_response())
     }
+}
+
+//---------------------------------------------------------------------------
+
+pub struct AdlGet<S, O, FO> {
+    req: HttpGet<O>,
+    handler: fn(AdlReqContext<S>) -> FO,
+    phantom: PhantomData<S>,
+}
+
+impl<S, O, FO> Endpoint for AdlGet<S, O, FO>
+where
+    S: Send + Sync + Clone + 'static,
+    O: Send + Sync + Serialize + 'static,
+    FO: Future<Output = HandlerResult<O>> + Send,
+{
+    type Output = Response;
+    async fn call(&self, req: Request) -> poem::Result<Self::Output> {
+        let ctx = get_adl_request_context(&req, &self.req.security)?;
+        let o = (self.handler)(ctx).await?;
+        Ok(Json(o).into_response())
+    }
+}
+
+//---------------------------------------------------------------------------
+
+pub fn get_adl_request_context<S: Send + Sync + Clone + 'static>(
+    req: &poem::Request,
+    security: &HttpSecurity,
+) -> poem::Result<AdlReqContext<S>> {
+    let jwt_checker = req
+        .data::<DynJwtSecurityCheck>()
+        .expect("JwtChecker should be configured");
+    let state = req.data::<S>().expect("State should be configured").clone();
+    let auth_header = req.header("Authorization");
+    let claims = jwt_checker.check_security(security, auth_header)?;
+    let ctx = AdlReqContext { state, claims };
+    Ok(ctx)
 }
 
 #[derive(Clone)]
@@ -138,6 +193,7 @@ impl JwtSecurityCheck for AccessTokenChecker {
         if request_allowed {
             Ok(claims)
         } else {
+            log::error!("request without valid jwt claims");
             Err(forbidden())
         }
     }
@@ -155,7 +211,7 @@ fn claims_from_bearer_token(
     return Ok(claims);
 }
 
-fn forbidden() -> HandlerError {
+pub fn forbidden() -> HandlerError {
     HandlerError::Poem(poem::Error::from_status(StatusCode::FORBIDDEN))
 }
 

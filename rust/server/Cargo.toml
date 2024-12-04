@@ -23,8 +23,8 @@ serde_json = "1.0.96"
 time = "0.3.28"
 tokio = { version = "1.27.0", features = ["full"] }
 argon2 = "0.5.2"
-cookie = "0.18.1"
-poem = "3.1.5"
+poem = { version = "3.1.5", features = ["session","cookie"] }
 
 [dev-dependencies]
 reqwest = { version = "0.11.18", features = ["json"]}
+test-log = { version = "0.2.16", features = []}
