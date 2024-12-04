@@ -50,23 +50,23 @@ pub async fn run(config: ServerConfig) {
     log::info!("sqlx migrations completed");
 
     let app_state = AppState::new(config, db_pool);
-    OServer::run(app_state).await;
+    let ep = handler::build_routes(app_state.clone());
+    let addr = &app_state.config.http_bind_addr;
+    let server = poem::Server::new(TcpListener::bind(addr)).run(ep);
+    log::info!("Listening on http://{}", addr);
+    let _ = server.await;
 }
 
+/**
+ * A server wrapper supporting clean shutdown via an
+ * async channel. Useful for automated testined
+ */
 pub struct OServer {
     shutdown: oneshot::Sender<()>,
     joinhandle: JoinHandle<()>,
 }
 
 impl OServer {
-    pub async fn run(app_state: AppState) -> () {
-        let ep = handler::build_routes(app_state.clone());
-        let addr = &app_state.config.http_bind_addr;
-        let server = poem::Server::new(TcpListener::bind(addr)).run(ep);
-        log::info!("Listening on http://{}", addr);
-        let _ = server.await;
-    }
-
     pub fn spawn(app_state: AppState) -> Self {
         let (shutdown, shutdown_notify) = oneshot::channel::<()>();
         let joinhandle = tokio::spawn(Self::start(app_state, shutdown_notify));

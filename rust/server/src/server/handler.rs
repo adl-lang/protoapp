@@ -106,7 +106,38 @@ async fn logout(_ctx: ReqContext, _i: Unit) -> HandlerResult<Unit> {
     Ok(Unit {})
 }
 
-const REFRESH_TOKEN: &str = "refreshToken";
+async fn new_message(ctx: ReqContext, i: NewMessageReq) -> HandlerResult<MessageId> {
+    let user_id = user_from_claims(&ctx.claims)?;
+    let message_id = db::new_message(&ctx.state.db_pool, &user_id, &i.message).await?;
+    Ok(message_id)
+}
+
+async fn recent_messages(
+    ctx: ReqContext,
+    i: RecentMessagesReq,
+) -> HandlerResult<Paginated<Message>> {
+    let messages = db::recent_messages(&ctx.state.db_pool, i.offset, i.limit).await?;
+    let total_count = db::message_count(&ctx.state.db_pool).await?;
+    Ok(Paginated {
+        items: messages,
+        current_offset: i.offset,
+        total_count,
+    })
+}
+
+async fn who_am_i(ctx: ReqContext) -> HandlerResult<UserProfile> {
+    let user_id = user_from_claims(&ctx.claims)?;
+    let user = db::get_user_with_id(&ctx.state.db_pool, &user_id).await?;
+    match user {
+        Some((user_id, user)) => Ok(UserProfile {
+            id: user_id.clone(),
+            fullname: user.fullname,
+            email: user.email,
+            is_admin: user.is_admin,
+        }),
+        None => Err(forbidden()),
+    }
+}
 
 #[handler]
 async fn login_with_cookies(
@@ -153,44 +184,13 @@ async fn logout_with_cookies(
     eresp.map(|v| Json(v)).map_err(|e| poem::Error::from(e))
 }
 
+const REFRESH_TOKEN: &str = "refreshToken";
+
 fn access_jwt_from_user(cfg: &ServerConfig, user_id: &AppUserId, user: &AppUser) -> String {
     if user.is_admin {
         jwt::create_admin_access(&cfg, user_id.0.clone())
     } else {
         jwt::create_user_access(&cfg, user_id.0.clone())
-    }
-}
-
-async fn new_message(ctx: ReqContext, i: NewMessageReq) -> HandlerResult<MessageId> {
-    let user_id = user_from_claims(&ctx.claims)?;
-    let message_id = db::new_message(&ctx.state.db_pool, &user_id, &i.message).await?;
-    Ok(message_id)
-}
-
-async fn recent_messages(
-    ctx: ReqContext,
-    i: RecentMessagesReq,
-) -> HandlerResult<Paginated<Message>> {
-    let messages = db::recent_messages(&ctx.state.db_pool, i.offset, i.limit).await?;
-    let total_count = db::message_count(&ctx.state.db_pool).await?;
-    Ok(Paginated {
-        items: messages,
-        current_offset: i.offset,
-        total_count,
-    })
-}
-
-async fn who_am_i(ctx: ReqContext) -> HandlerResult<UserProfile> {
-    let user_id = user_from_claims(&ctx.claims)?;
-    let user = db::get_user_with_id(&ctx.state.db_pool, &user_id).await?;
-    match user {
-        Some((user_id, user)) => Ok(UserProfile {
-            id: user_id.clone(),
-            fullname: user.fullname,
-            email: user.email,
-            is_admin: user.is_admin,
-        }),
-        None => Err(forbidden()),
     }
 }
 
