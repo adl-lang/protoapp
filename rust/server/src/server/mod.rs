@@ -1,4 +1,5 @@
 use poem::listener::TcpListener;
+use routing::build_routes;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::sync::Arc;
 use tokio::{sync::oneshot, task::JoinHandle};
@@ -6,10 +7,11 @@ use tokio::{sync::oneshot, task::JoinHandle};
 use crate::adl::gen::protoapp::config::server::ServerConfig;
 
 pub mod db;
-mod handler;
+mod handlers;
 mod jwt;
 pub mod passwords;
 mod poem_adl_interop;
+mod routing;
 
 #[cfg(test)]
 pub mod tests;
@@ -50,7 +52,7 @@ pub async fn run(config: ServerConfig) {
     log::info!("sqlx migrations completed");
 
     let app_state = AppState::new(config, db_pool);
-    let ep = handler::build_routes(app_state.clone());
+    let ep = build_routes(app_state.clone());
     let addr = &app_state.config.http_bind_addr;
     let server = poem::Server::new(TcpListener::bind(addr)).run(ep);
     log::info!("Listening on http://{}", addr);
@@ -83,7 +85,7 @@ impl OServer {
     }
 
     async fn start(app_state: AppState, shutdown: oneshot::Receiver<()>) {
-        let ep = handler::build_routes(app_state.clone());
+        let ep = build_routes(app_state.clone());
         let addr = &app_state.config.http_bind_addr;
 
         let server = poem::Server::new(TcpListener::bind(addr)).run_with_graceful_shutdown(

@@ -1,7 +1,6 @@
-use poem::endpoint::{DynEndpoint, ToDynEndpoint};
+use poem::handler;
 use poem::web::cookie::{Cookie, CookieJar};
 use poem::web::Json;
-use poem::{handler, post, EndpointExt, Route};
 
 use crate::adl::custom::common::db::DbKey;
 use crate::adl::gen::common::http::Unit;
@@ -16,51 +15,20 @@ use crate::server::poem_adl_interop::get_adl_request_context;
 
 use super::jwt::AccessClaims;
 use super::passwords::verify_password;
-use super::poem_adl_interop::{
-    forbidden, new_access_token_checker, AdlReqContext, HandlerResult, RouteExt,
-};
+use super::poem_adl_interop::{forbidden, AdlReqContext, HandlerResult};
 use super::{db, jwt, AppState};
-use poem::session::{CookieConfig, CookieSession};
 
 type ReqContext = AdlReqContext<AppState>;
 
-pub fn build_routes(state: AppState) -> Box<dyn DynEndpoint<Output = poem::Response>> {
-    let access_token_checker = new_access_token_checker(state.config.jwt_access_secret.clone());
-
-    let routes = Route::new();
-
-    // Add standard ADL implemented methods
-    let routes = routes
-        .adl_get(ApiRequests::def_healthy(), healthy)
-        .adl_get(ApiRequests::def_who_am_i(), who_am_i)
-        .adl_post(ApiRequests::def_ping(), ping)
-        .adl_post(ApiRequests::def_new_message(), new_message)
-        .adl_post(ApiRequests::def_recent_messages(), recent_messages);
-
-    // Add methods need custom implementations in order to deal with cookies
-    let routes = routes
-        .at(ApiRequests::def_login().path, post(login_with_cookies))
-        .at(ApiRequests::def_refresh().path, post(refresh_with_cookies))
-        .at(ApiRequests::def_logout().path, post(logout_with_cookies));
-
-    // Add system state and required middleware
-    let routes = routes
-        .data(state)
-        .data(access_token_checker)
-        .with(CookieSession::new(CookieConfig::default().secure(false)));
-
-    Box::new(ToDynEndpoint(routes))
-}
-
-async fn ping(_ctx: ReqContext, _i: Unit) -> HandlerResult<Unit> {
+pub async fn ping(_ctx: ReqContext, _i: Unit) -> HandlerResult<Unit> {
     Ok(Unit {})
 }
 
-async fn healthy(_ctx: ReqContext) -> HandlerResult<Unit> {
+pub async fn healthy(_ctx: ReqContext) -> HandlerResult<Unit> {
     Ok(Unit {})
 }
 
-async fn login(ctx: ReqContext, i: LoginReq) -> HandlerResult<LoginResp> {
+pub async fn login(ctx: ReqContext, i: LoginReq) -> HandlerResult<LoginResp> {
     // Lookup the user details
     let user = db::get_user_with_email(&ctx.state.db_pool, &i.email).await?;
     match user {
@@ -81,7 +49,7 @@ async fn login(ctx: ReqContext, i: LoginReq) -> HandlerResult<LoginResp> {
     }
 }
 
-async fn refresh(ctx: ReqContext, i: RefreshReq) -> HandlerResult<RefreshResp> {
+pub async fn refresh(ctx: ReqContext, i: RefreshReq) -> HandlerResult<RefreshResp> {
     match i.refresh_token {
         None => Ok(RefreshResp::InvalidRefreshToken),
         Some(refresh_jwt) => {
@@ -102,17 +70,17 @@ async fn refresh(ctx: ReqContext, i: RefreshReq) -> HandlerResult<RefreshResp> {
     }
 }
 
-async fn logout(_ctx: ReqContext, _i: Unit) -> HandlerResult<Unit> {
+pub async fn logout(_ctx: ReqContext, _i: Unit) -> HandlerResult<Unit> {
     Ok(Unit {})
 }
 
-async fn new_message(ctx: ReqContext, i: NewMessageReq) -> HandlerResult<MessageId> {
+pub async fn new_message(ctx: ReqContext, i: NewMessageReq) -> HandlerResult<MessageId> {
     let user_id = user_from_claims(&ctx.claims)?;
     let message_id = db::new_message(&ctx.state.db_pool, &user_id, &i.message).await?;
     Ok(message_id)
 }
 
-async fn recent_messages(
+pub async fn recent_messages(
     ctx: ReqContext,
     i: RecentMessagesReq,
 ) -> HandlerResult<Paginated<Message>> {
@@ -125,7 +93,7 @@ async fn recent_messages(
     })
 }
 
-async fn who_am_i(ctx: ReqContext) -> HandlerResult<UserProfile> {
+pub async fn who_am_i(ctx: ReqContext) -> HandlerResult<UserProfile> {
     let user_id = user_from_claims(&ctx.claims)?;
     let user = db::get_user_with_id(&ctx.state.db_pool, &user_id).await?;
     match user {
@@ -140,7 +108,7 @@ async fn who_am_i(ctx: ReqContext) -> HandlerResult<UserProfile> {
 }
 
 #[handler]
-async fn login_with_cookies(
+pub async fn login_with_cookies(
     req: &poem::Request,
     cookies: &CookieJar,
     i: Json<LoginReq>,
@@ -156,7 +124,7 @@ async fn login_with_cookies(
 }
 
 #[handler]
-async fn refresh_with_cookies(
+pub async fn refresh_with_cookies(
     req: &poem::Request,
     cookies: &CookieJar,
     mut i: Json<RefreshReq>,
@@ -172,7 +140,7 @@ async fn refresh_with_cookies(
 }
 
 #[handler]
-async fn logout_with_cookies(
+pub async fn logout_with_cookies(
     req: &poem::Request,
     cookies: &CookieJar,
     mut i: Json<Unit>,
