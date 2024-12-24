@@ -55,6 +55,13 @@ struct ApiRequests {
     "security" : "token"
   };
 
+  /// Update an existing message.
+  /// Only works for the creator and for admins 
+  HttpPost<UpdateMessageReq, Unit> updateMessage = {
+    "path": "/messages/update",
+    "security" : "token"
+  };
+
   /// Get recent noticeboard messages
   HttpPost<RecentMessagesReq, Paginated<Message> > recentMessages = {
     "path": "/messages/recent",
@@ -94,6 +101,11 @@ struct LoginTokens {
 };
 
 struct NewMessageReq {
+  StringML message;
+};
+
+struct UpdateMessageReq {
+  MessageId id;
   StringML message;
 };
 
