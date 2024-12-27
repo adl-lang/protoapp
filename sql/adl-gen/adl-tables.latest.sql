@@ -1,4 +1,4 @@
--- Schema auto-generated from adl modules: protoapp.db, common.adminui.db
+-- Schema auto-generated from adl modules: protoapp.db
 --
 -- column comments show original ADL types
 
@@ -17,21 +17,6 @@ create table message(
   posted_by text not null,             -- AppUserId
   message text not null,               -- StringML
   primary key(id)
-);
-
-create table meta_adl_decl(
-  module_name text not null,           -- ModuleName
-  name text not null,                  -- String
-  decl jsonb not null,                 -- Decl
-  primary key(module_name,name)
-);
-
-create table meta_table(
-  name text not null,                  -- String
-  description text not null,           -- String
-  decl_module_name text not null,      -- ModuleName
-  decl_name text not null,             -- String
-  primary key(name)
 );
 
 create index app_user_1_idx on app_user(email);

@@ -73,11 +73,9 @@ async function main() {
       mergeAdlExts: ['adl-pg'],
       adlModules: [
         "protoapp.db",
-        "common.adminui.db",
       ],
       createFile:  repo + "/sql/adl-gen/adl-tables.latest.sql",
       viewsFile:  repo + "/sql/adl-gen/adl-views.latest.sql",
-      metadataFile: repo + "/sql/adl-gen/adl-metadata.latest.sql",
     });
 
     // Make the first migrations these two files. Once there is a live 
@@ -90,10 +88,6 @@ async function main() {
     Deno.copyFile(
      repo + "/sql/adl-gen/adl-views.latest.sql",
      repo + "/rust/server/migrations/00000000000030_adl-views.latest.sql",
-    );
-    Deno.copyFile(
-     repo + "/sql/adl-gen/adl-metadata.latest.sql",
-     repo + "/rust/server/migrations/00000000000040_adl-metadata.latest.sql",
     );
   }
 }
