@@ -56,14 +56,6 @@ pub struct ApiRequests {
   pub new_message: HttpPost<NewMessageReq, MessageId>,
 
   /**
-   * Update an existing message.
-   * Only works for the creator and for admins 
-   */
-  #[serde(default="ApiRequests::def_update_message")]
-  #[serde(rename="updateMessage")]
-  pub update_message: HttpPost<UpdateMessageReq, Unit>,
-
-  /**
    * Get recent noticeboard messages
    */
   #[serde(default="ApiRequests::def_recent_messages")]
@@ -87,7 +79,6 @@ impl ApiRequests {
       refresh: ApiRequests::def_refresh(),
       logout: ApiRequests::def_logout(),
       new_message: ApiRequests::def_new_message(),
-      update_message: ApiRequests::def_update_message(),
       recent_messages: ApiRequests::def_recent_messages(),
       who_am_i: ApiRequests::def_who_am_i(),
     }
@@ -115,10 +106,6 @@ impl ApiRequests {
 
   pub fn def_new_message() -> HttpPost<NewMessageReq, MessageId> {
     HttpPost::<NewMessageReq, MessageId>{path : "/messages/new".to_string(), security : HttpSecurity::Token, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
-  }
-
-  pub fn def_update_message() -> HttpPost<UpdateMessageReq, Unit> {
-    HttpPost::<UpdateMessageReq, Unit>{path : "/messages/update".to_string(), security : HttpSecurity::Token, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_recent_messages() -> HttpPost<RecentMessagesReq, Paginated<Message>> {
@@ -206,22 +193,6 @@ pub struct NewMessageReq {
 impl NewMessageReq {
   pub fn new(message: StringML) -> NewMessageReq {
     NewMessageReq {
-      message: message,
-    }
-  }
-}
-
-#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
-pub struct UpdateMessageReq {
-  pub id: MessageId,
-
-  pub message: StringML,
-}
-
-impl UpdateMessageReq {
-  pub fn new(id: MessageId, message: StringML) -> UpdateMessageReq {
-    UpdateMessageReq {
-      id: id,
       message: message,
     }
   }

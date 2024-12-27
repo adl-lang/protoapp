@@ -35,11 +35,6 @@ export interface ApiRequests {
    */
   newMessage: common_http.HttpPost<NewMessageReq, protoapp_db.MessageId>;
   /**
-   * Update an existing message.
-   * Only works for the creator and for admins 
-   */
-  updateMessage: common_http.HttpPost<UpdateMessageReq, common_http.Unit>;
-  /**
    * Get recent noticeboard messages
    */
   recentMessages: common_http.HttpPost<RecentMessagesReq, Paginated<Message>>;
@@ -57,7 +52,6 @@ export function makeApiRequests(
     refresh?: common_http.HttpPost<RefreshReq, RefreshResp>,
     logout?: common_http.HttpPost<common_http.Unit, common_http.Unit>,
     newMessage?: common_http.HttpPost<NewMessageReq, protoapp_db.MessageId>,
-    updateMessage?: common_http.HttpPost<UpdateMessageReq, common_http.Unit>,
     recentMessages?: common_http.HttpPost<RecentMessagesReq, Paginated<Message>>,
     whoAmI?: common_http.HttpGet<UserProfile>,
   }
@@ -69,14 +63,13 @@ export function makeApiRequests(
     refresh: input.refresh === undefined ? {path : "/refresh", security : {kind : "public"}, rateLimit : null, reqType : texprRefreshReq(), respType : texprRefreshResp()} : input.refresh,
     logout: input.logout === undefined ? {path : "/logout", security : {kind : "public"}, rateLimit : null, reqType : common_http.texprUnit(), respType : common_http.texprUnit()} : input.logout,
     newMessage: input.newMessage === undefined ? {path : "/messages/new", security : {kind : "token"}, rateLimit : null, reqType : texprNewMessageReq(), respType : protoapp_db.texprMessageId()} : input.newMessage,
-    updateMessage: input.updateMessage === undefined ? {path : "/messages/update", security : {kind : "token"}, rateLimit : null, reqType : texprUpdateMessageReq(), respType : common_http.texprUnit()} : input.updateMessage,
     recentMessages: input.recentMessages === undefined ? {path : "/messages/recent", security : {kind : "token"}, rateLimit : null, reqType : texprRecentMessagesReq(), respType : texprPaginated(texprMessage())} : input.recentMessages,
     whoAmI: input.whoAmI === undefined ? {path : "/whoami", security : {kind : "token"}, rateLimit : null, respType : texprUserProfile()} : input.whoAmI,
   };
 }
 
 const ApiRequests_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"ApiRequests","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"AWS default compatible health check\n"}],"default":{"kind":"just","value":{"path":"/","security":"public"}},"name":"healthy","serializedName":"healthy","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpGet"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Test the server is live\n"}],"default":{"kind":"just","value":{"path":"/ping","security":"public"}},"name":"ping","serializedName":"ping","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Login a user\n\nThe response will set an httpOnly cookie containing the refresh token\n"}],"default":{"kind":"just","value":{"path":"/login","security":"public"}},"name":"login","serializedName":"login","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"LoginReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"LoginResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Get a refreshed access token\n\nIf the refresh token is not provided in the request body, then it will\nbe read from the refrestToken cookie in the request.\n"}],"default":{"kind":"just","value":{"path":"/refresh","security":"public"}},"name":"refresh","serializedName":"refresh","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RefreshReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RefreshResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Clear the `refreshToken` cookie.\n"}],"default":{"kind":"just","value":{"path":"/logout","security":"public"}},"name":"logout","serializedName":"logout","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Post a message to the noticeboard\n"}],"default":{"kind":"just","value":{"path":"/messages/new","security":"token"}},"name":"newMessage","serializedName":"newMessage","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"NewMessageReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.db","name":"MessageId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Update an existing message.\nOnly works for the creator and for admins \n"}],"default":{"kind":"just","value":{"path":"/messages/update","security":"token"}},"name":"updateMessage","serializedName":"updateMessage","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UpdateMessageReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Get recent noticeboard messages\n"}],"default":{"kind":"just","value":{"path":"/messages/recent","security":"token"}},"name":"recentMessages","serializedName":"recentMessages","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RecentMessagesReq"}}},{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"Message"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"Paginated"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Gets the logged in user details\n"}],"default":{"kind":"just","value":{"path":"/whoami","security":"token"}},"name":"whoAmI","serializedName":"whoAmI","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserProfile"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpGet"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.ui"};
+  {"decl":{"annotations":[],"name":"ApiRequests","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"AWS default compatible health check\n"}],"default":{"kind":"just","value":{"path":"/","security":"public"}},"name":"healthy","serializedName":"healthy","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpGet"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Test the server is live\n"}],"default":{"kind":"just","value":{"path":"/ping","security":"public"}},"name":"ping","serializedName":"ping","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Login a user\n\nThe response will set an httpOnly cookie containing the refresh token\n"}],"default":{"kind":"just","value":{"path":"/login","security":"public"}},"name":"login","serializedName":"login","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"LoginReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"LoginResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Get a refreshed access token\n\nIf the refresh token is not provided in the request body, then it will\nbe read from the refrestToken cookie in the request.\n"}],"default":{"kind":"just","value":{"path":"/refresh","security":"public"}},"name":"refresh","serializedName":"refresh","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RefreshReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RefreshResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Clear the `refreshToken` cookie.\n"}],"default":{"kind":"just","value":{"path":"/logout","security":"public"}},"name":"logout","serializedName":"logout","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Post a message to the noticeboard\n"}],"default":{"kind":"just","value":{"path":"/messages/new","security":"token"}},"name":"newMessage","serializedName":"newMessage","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"NewMessageReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.db","name":"MessageId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Get recent noticeboard messages\n"}],"default":{"kind":"just","value":{"path":"/messages/recent","security":"token"}},"name":"recentMessages","serializedName":"recentMessages","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RecentMessagesReq"}}},{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"Message"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"Paginated"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Gets the logged in user details\n"}],"default":{"kind":"just","value":{"path":"/whoami","security":"token"}},"name":"whoAmI","serializedName":"whoAmI","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserProfile"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpGet"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.ui"};
 
 export const snApiRequests: ADL.ScopedName = {moduleName:"protoapp.apis.ui", name:"ApiRequests"};
 
@@ -234,32 +227,6 @@ export function texprNewMessageReq(): ADL.ATypeExpr<NewMessageReq> {
   return {value : {typeRef : {kind: "reference", value : snNewMessageReq}, parameters : []}};
 }
 
-export interface UpdateMessageReq {
-  id: protoapp_db.MessageId;
-  message: common_strings.StringML;
-}
-
-export function makeUpdateMessageReq(
-  input: {
-    id: protoapp_db.MessageId,
-    message: common_strings.StringML,
-  }
-): UpdateMessageReq {
-  return {
-    id: input.id,
-    message: input.message,
-  };
-}
-
-const UpdateMessageReq_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"UpdateMessageReq","type_":{"kind":"struct_","value":{"fields":[{"annotations":[],"default":{"kind":"nothing"},"name":"id","serializedName":"id","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.db","name":"MessageId"}}}},{"annotations":[],"default":{"kind":"nothing"},"name":"message","serializedName":"message","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringML"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.ui"};
-
-export const snUpdateMessageReq: ADL.ScopedName = {moduleName:"protoapp.apis.ui", name:"UpdateMessageReq"};
-
-export function texprUpdateMessageReq(): ADL.ATypeExpr<UpdateMessageReq> {
-  return {value : {typeRef : {kind: "reference", value : snUpdateMessageReq}, parameters : []}};
-}
-
 export interface RecentMessagesReq {
   offset: number;
   limit: number;
@@ -399,7 +366,6 @@ export const _AST_MAP: { [key: string]: ADL.ScopedDecl } = {
   "protoapp.apis.ui.RefreshResp" : RefreshResp_AST,
   "protoapp.apis.ui.LoginTokens" : LoginTokens_AST,
   "protoapp.apis.ui.NewMessageReq" : NewMessageReq_AST,
-  "protoapp.apis.ui.UpdateMessageReq" : UpdateMessageReq_AST,
   "protoapp.apis.ui.RecentMessagesReq" : RecentMessagesReq_AST,
   "protoapp.apis.ui.Message" : Message_AST,
   "protoapp.apis.ui.UserProfile" : UserProfile_AST,
