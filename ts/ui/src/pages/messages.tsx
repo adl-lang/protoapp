@@ -40,7 +40,9 @@ export function Messages() {
             <Typography sx={{ fontSize: 14 }} color="text.secondary" gutterBottom>
               <b>{m.user_fullname}</b> ({posted_at.toLocaleDateString()} {posted_at.toLocaleTimeString()})
             </Typography>
+            <Box sx={{whiteSpace: "pre-wrap"}}>
             {m.message}
+            </Box>
           </CardContent>
         </Card>
       )

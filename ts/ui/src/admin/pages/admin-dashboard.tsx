@@ -7,7 +7,7 @@ import { createVEditor } from "@/components/forms/model/veditor/adlfactory";
 import { AdlForm, useAdlFormState } from "@/components/forms/mui/form";
 import { Modal } from "@/components/forms/mui/modal";
 import { VEditor } from "@/components/forms/mui/veditor";
-import { createUiFactory } from "@/components/forms/utils";
+import { createUiFactory } from "@/components/forms/factory";
 import { useApiWithToken } from "@/hooks/use-app-state";
 import { AdlRequestError, ServiceBase } from "@/service/service-base";
 import * as ADL from "@adllang/adl-runtime";
