@@ -1,20 +1,54 @@
-A demonstration 3 tier application using ADL as the "typing glue".
+This respository implements a trivial messaging web application, using [ADL] as the "typing glue". The protoapp stack consists of:
+
+- postgresql for the relational store
+- rust+poet+sqlx for the application server
+- typescript+react for the web user interface
+
+The intention is that this repo can be used as a template for new projects.
+
+[ADL]:https://github.com/adl-lang/adl
+
+# Overview
+
+[ADL] is a framework for building cross language data models. In this repo we use ADL to define
+
+* a relational [database schema](./adl/protoapp/db.adl)
+* a client/server [http based API](./adl/protoapp/apis/ui.adl)
+
+From these, we generate:
+
+* the [postgres SQL](./sql/adl-gen/adl-tables.latest.sql) for the db schema
+* the rust [db schema binding](./rust/server/src/adl/db/schema.rs)
+* the rust [api binding](./rust/server/src/adl/gen/protoapp/apis/ui.rs) (used [here](,/rust/server/src/server/routing.rs))
+* the typescript [api binding](./ts/ui/src/adl-gen/protoapp/apis/ui.ts) (used [here](./ts/ui/src/service/index.ts))
+
+Atop this we have hand written rust code to implement the api atop the database model, and hand written typescript code implementing
+the web browser single page application in terms of the rust api.
 
 # Local setup
 
 Install docker and rust/cargo for your platform. Then install deno, node, pnpm, and adl into a repo
-local directory by running the local setup script:
+local directory by sourcing the local setup script:
 
 ```bash
 . deno/local-setup.sh
+```
 
+Check installed tool versions with:
+
+```
 deno --version
 node --version
 adlc show --version 
 ```
 
+# Local development
 
-# Run locally
+When you've changed any ADL, regenerate rust/typescript/sql code with
+
+```bash
+deno task genadl
+```
 
 Start postgres using docker:
 
