@@ -38,16 +38,16 @@ type ExecutingRequest = {
   req?: unknown,
 }
 
-interface CompletedRequest<I, O> {
+interface CompletedRequest {
   startedAt: Date,
   endpoint: Endpoint,
   req?: unknown,
   durationMs: number,
-  resp: CompletedResponse<O>,
+  resp: CompletedResponse,
 }
 
-type CompletedResponse<O>
-  = { success: true, value: O }
+type CompletedResponse
+  = { success: true, value: unknown }
   | { success: false, httpStatus: number, responseBody: string }
   ;
 
@@ -68,7 +68,7 @@ export function ApiWorkbench() {
   }, [authState] );
     
   const [currentRequest, setCurrentRequest] = useState<ExecutingRequest>();
-  const [prevRequests, setPrevRequests] = useState<CompletedRequest<unknown, unknown>[]>([]);
+  const [prevRequests, setPrevRequests] = useState<CompletedRequest[]>([]);
   const [modal, setModal] = useState<ModalState | undefined>();
   const newRequestButtonRef = useRef<HTMLDivElement | null>(null);
 
@@ -112,7 +112,7 @@ export function ApiWorkbench() {
     });
   }
 
-  async function reexecuteCompleted<I, O>(completed: CompletedRequest<I, O>) {
+  async function reexecuteCompleted(completed: CompletedRequest) {
     setModal({state:'create-request', endpoint:completed.endpoint, initial: completed.req});
   }
 
@@ -284,10 +284,10 @@ function ExecutingRequest<I, O>(props: {
 }
 
 
-function CompletedRequest<I, O>(props: {
-  value: CompletedRequest<I, O>;
+function CompletedRequest(props: {
+  value: CompletedRequest;
   jsonI?: Json,
-  reexecute(cr: CompletedRequest<I, O>): void;
+  reexecute(cr: CompletedRequest): void;
   remove(): void;
 }) {
   const { endpoint, resp } = props.value;
@@ -349,9 +349,9 @@ async function executeGetRequest<O>(
   jwt: string | undefined,
   endpoint: HttpGetEndpoint<O>,
   startedAt: Date,
-): Promise<CompletedRequest<undefined, O>> {
+): Promise<CompletedRequest> {
 
-  let resp: CompletedResponse<O>;
+  let resp: CompletedResponse;
   try {
     const value = await service.requestAdl("get", endpoint.path, undefined, endpoint.jsonBindingO, jwt);
     resp = { success: true, value };
@@ -379,9 +379,9 @@ async function executePostRequest<I, O>(
   endpoint: HttpPostEndpoint<I,O>,
   req: I,
   startedAt: Date,
-): Promise<CompletedRequest<I, O>> {
+): Promise<CompletedRequest> {
 
-  let resp: CompletedResponse<O>;
+  let resp: CompletedResponse;
   try {
     const reqbody = endpoint.jsonBindingI.toJson(req);
     const value = await service.requestAdl("post", endpoint.path, reqbody, endpoint.jsonBindingO, jwt);
