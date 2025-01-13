@@ -77,7 +77,7 @@ export function ApiWorkbench() {
     const startedAt = new Date();
     setCurrentRequest({ startedAt, endpoint, req: undefined });
     const jwt = authState.kind == 'auth' ? authState.auth.jwt : undefined;
-    const completed = await executeGetRequest(api, jwt, endpoint, startedAt);
+    const completed = await executeRequest(api, jwt, endpoint, startedAt);
     if( completed.resp.success) {
       updateAppState(appState, endpoint, completed.resp.value);
     }
@@ -94,7 +94,8 @@ export function ApiWorkbench() {
     const startedAt = new Date();
     setCurrentRequest({ startedAt, endpoint, req });
     const jwt = authState.kind == 'auth' ? authState.auth.jwt : undefined;
-    const completed = await executePostRequest(api, jwt, endpoint, req, startedAt);
+    const reqbody = endpoint.jsonBindingI.toJson(req);
+    const completed = await executeRequest(api, jwt, endpoint, startedAt, req, reqbody);
     if( completed.resp.success) {
       updateAppState(appState, endpoint, completed.resp.value);
     }
@@ -344,47 +345,18 @@ function MyJsonView(props: {
   );
 }
 
-async function executeGetRequest<O>(
+async function executeRequest<I>(
   service: ServiceBase,
   jwt: string | undefined,
-  endpoint: HttpGetEndpoint<O>,
+  endpoint: Endpoint,
   startedAt: Date,
+  req?: I,
+  reqbody?: Json,
 ): Promise<CompletedRequest> {
 
   let resp: CompletedResponse;
   try {
-    const value = await service.requestAdl("get", endpoint.path, undefined, endpoint.jsonBindingO, jwt);
-    resp = { success: true, value };
-  } catch (e: unknown) {
-    if (e instanceof AdlRequestError) {
-      resp = { success: false, httpStatus: e.respStatus, responseBody: e.respBody };
-    } else if (e instanceof Error) {
-      resp = { success: false, httpStatus: 999, responseBody: 'internal Error: ' + e };
-    } else {
-      resp = { success: false, httpStatus: 999, responseBody: 'unknown error' };
-    }
-  }
-
-  return {
-    startedAt,
-    endpoint,
-    durationMs: new Date().getTime() - startedAt.getTime(),
-    resp,
-  }
-}
-
-async function executePostRequest<I, O>(
-  service: ServiceBase,
-  jwt: string | undefined,
-  endpoint: HttpPostEndpoint<I,O>,
-  req: I,
-  startedAt: Date,
-): Promise<CompletedRequest> {
-
-  let resp: CompletedResponse;
-  try {
-    const reqbody = endpoint.jsonBindingI.toJson(req);
-    const value = await service.requestAdl("post", endpoint.path, reqbody, endpoint.jsonBindingO, jwt);
+    const value = await service.requestAdl(endpoint.kind, endpoint.path, reqbody, endpoint.jsonBindingO, jwt);
     resp = { success: true, value };
   } catch (e: unknown) {
     if (e instanceof AdlRequestError) {
