@@ -1,4 +1,4 @@
-import { HttpSecurity, snHttpPost, texprHttpPost } from "@/adl-gen/common/http";
+import { HttpSecurity, snHttpGet, snHttpPost, texprHttpGet, texprHttpPost } from "@/adl-gen/common/http";
 import * as API from "@/adl-gen/protoapp/apis/ui";
 import { RESOLVER } from "@/adl-gen/resolver";
 import * as AST from "@/adl-gen/sys/adlast";
@@ -8,7 +8,7 @@ import { AdlForm, useAdlFormState } from "@/components/forms/mui/form";
 import { Modal } from "@/components/forms/mui/modal";
 import { VEditor } from "@/components/forms/mui/veditor";
 import { createUiFactory } from "@/components/forms/factory";
-import { AppState, AuthState, useApiWithToken, useAppState } from "@/hooks/use-app-state";
+import { AppState, useAppState } from "@/hooks/use-app-state";
 import { AdlRequestError, ServiceBase } from "@/service/service-base";
 import * as ADL from "@adllang/adl-runtime";
 import { Json, JsonBinding, createJsonBinding, scopedNamesEqual } from "@adllang/adl-runtime";
@@ -34,14 +34,14 @@ interface CreateRequest<I> {
 
 interface ExecutingRequest<I, O> {
   startedAt: Date,
-  endpoint: HttpPostEndpoint<I, O>,
+  endpoint: HttpEndpoint<I, O>,
   req: I,
 }
 
 interface CompletedRequest<I, O> {
   startedAt: Date,
   durationMs: number,
-  endpoint: HttpPostEndpoint<I, O>,
+  endpoint: HttpEndpoint<I, O>,
   req: I,
   resp: CompletedResponse<O>,
 }
@@ -72,7 +72,7 @@ export function ApiWorkbench() {
   const [modal, setModal] = useState<ModalState | undefined>();
   const newRequestButtonRef = useRef<HTMLDivElement | null>(null);
 
-  async function execute<I, O>(endpoint: HttpPostEndpoint<I, O>, req: I) {
+  async function execute<I, O>(endpoint: HttpEndpoint<I, O>, req: I) {
     setModal(undefined);
     const startedAt = new Date();
     setCurrentRequest({ startedAt, endpoint, req });
@@ -165,9 +165,9 @@ function ModalChooseEndpoint(props: {
 }
 
 function ModalCreateRequest<I, O>(props: {
-  endpoint: HttpPostEndpoint<I, O>,
+  endpoint: HttpEndpoint<I, O>,
   cancel: () => void,
-  execute: (endpoint: HttpPostEndpoint<I, O>, req: I) => void,
+  execute: (endpoint: HttpEndpoint<I, O>, req: I) => void,
   initial: I | undefined,
 }) {
   const state = useAdlFormState({
@@ -181,11 +181,15 @@ function ModalCreateRequest<I, O>(props: {
   return (
     <Modal onClickBackground={() => props.cancel()}>
       <div>
-        <div>Parameters for {props.endpoint.name}:</div>
+        <div>{props.endpoint.name}</div>
         <Divider sx={{ marginTop: "10px", marginBottom: "10px" }} />
-        <AdlForm
-          state={state}
-        />
+        {methodHasReqBody(props.endpoint.method) &&
+          <>
+            <AdlForm
+              state={state}
+            />
+          </>
+        }
         <Button
           onClick={() => {
             if (value.isValid) {
@@ -216,10 +220,14 @@ function ExecutingRequestView<I, O>(props: {
         <b>{endpoint.name}</b>
       </Box>
       <Divider />
-      <Box sx={{ margin: "10px" }}>
-        <MyJsonView data={jsonI} />
-      </Box>
-      <Divider />
+      {methodHasReqBody(props.value.endpoint.method) &&
+        <>
+          <Box sx={{ margin: "10px" }}>
+            <MyJsonView data={jsonI} />
+          </Box>
+          <Divider />
+        </>
+      }
       <CircularProgress sx={{ margin: "10px" }} size="20px" />
     </Card>
   );
@@ -255,10 +263,14 @@ function CompletedRequestView<I, O>(props: {
         </Box>
       </Box>
       <Divider />
-      <Box sx={{ margin: "10px" }}>
-        <MyJsonView data={jsonI} />
-      </Box>
-      <Divider />
+      {methodHasReqBody(props.value.endpoint.method) &&
+        <>
+          <Box sx={{ margin: "10px" }}>
+            <MyJsonView data={jsonI} />
+          </Box>
+          <Divider />
+        </>
+      }
       <Box sx={{ margin: "10px" }}>
         {resp.success
           ? <MyJsonView data={jsonO} />
@@ -287,12 +299,12 @@ function MyJsonView(props: {
   );
 }
 
-async function executeRequest<I, O>(service: ServiceBase, jwt: string | undefined, endpoint: HttpPostEndpoint<I, O>, req: I, startedAt: Date): Promise<CompletedRequest<I, O>> {
+async function executeRequest<I, O>(service: ServiceBase, jwt: string | undefined, endpoint: HttpEndpoint<I, O>, req: I, startedAt: Date): Promise<CompletedRequest<I, O>> {
 
   let resp: CompletedResponse<O>;
   try {
     const reqbody = endpoint.jsonBindingI.toJson(req);
-    const value = await service.requestAdl("post", endpoint.path, reqbody, endpoint.jsonBindingO, jwt);
+    const value = await service.requestAdl(endpoint.method, endpoint.path, reqbody, endpoint.jsonBindingO, jwt);
     resp = { success: true, value };
   } catch (e: unknown) {
     if (e instanceof AdlRequestError) {
@@ -314,7 +326,7 @@ async function executeRequest<I, O>(service: ServiceBase, jwt: string | undefine
   }
 }
 
-function updateAppState<I, O>(appState: AppState, endpoint: HttpPostEndpoint<I, O>, req: I, resp: O) {
+function updateAppState<I, O>(appState: AppState, endpoint: HttpEndpoint<I, O>, _req: I, resp: O) {
   // All the endpoint handling is generic except for here, where we update the auth state when the
   // login or logout endpoints are called.
   switch (endpoint.name) {
@@ -323,13 +335,15 @@ function updateAppState<I, O>(appState: AppState, endpoint: HttpPostEndpoint<I, 
   }
 }
 
-type Endpoint = HttpPostEndpoint<unknown, unknown>;
+type Endpoint = HttpEndpoint<unknown, unknown>;
+type Method = 'get' | 'post';
 
-interface HttpPostEndpoint<I, O> {
+interface HttpEndpoint<I, O> {
   name: string;
   path: string;
-  security: HttpSecurity,
-  docString: string,
+  method: Method;
+  security: HttpSecurity;
+  docString: string;
   veditorI: VEditor<I>;
   veditorO: VEditor<O>;
   jsonBindingI: JsonBinding<I>;
@@ -348,14 +362,45 @@ function getEndpoints<API>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<API>
 
   const endpoints: Endpoint[] = [];
   for (const f of struct.fields) {
-    if (f.typeExpr.typeRef.kind === 'reference' && scopedNamesEqual(f.typeExpr.typeRef.value, snHttpPost)) {
+    if (f.typeExpr.typeRef.kind === 'reference' && scopedNamesEqual(f.typeExpr.typeRef.value, snHttpGet)) {
+      endpoints.push(getHttpGetEndpoint(resolver, f))
+    } else if (f.typeExpr.typeRef.kind === 'reference' && scopedNamesEqual(f.typeExpr.typeRef.value, snHttpPost)) {
       endpoints.push(getHttpPostEndpoint(resolver, f))
     }
   }
   return endpoints;
 }
 
-function getHttpPostEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field): HttpPostEndpoint<I, O> {
+function getHttpGetEndpoint<O>(resolver: ADL.DeclResolver, field: AST.Field): HttpEndpoint<null, O> {
+  if (field.default.kind !== 'just') {
+    throw new Error("API endpoint must have a default value");
+  }
+  const texprI = ADL.texprVoid();
+  const texprO = ADL.makeATypeExpr<O>(field.typeExpr.parameters[0]);
+
+  const jb = createJsonBinding(resolver, texprHttpGet(texprO));
+  const httpGet = jb.fromJson(field.default.value);
+
+  const veditorI = createVEditor(texprI, resolver, UI_FACTORY);
+  const veditorO = createVEditor(texprO, resolver, UI_FACTORY);
+  const jsonBindingI = createJsonBinding(resolver, texprI);
+  const jsonBindingO = createJsonBinding(resolver, texprO);
+
+  const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
+  return {
+    name: field.name,
+    path: httpGet.path,
+    method: 'get',
+    docString,
+    security: httpGet.security,
+    veditorI,
+    veditorO,
+    jsonBindingI,
+    jsonBindingO,
+  }
+}
+
+function getHttpPostEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field): HttpEndpoint<I, O> {
   if (field.default.kind !== 'just') {
     throw new Error("API endpoint must have a default value");
   }
@@ -374,12 +419,20 @@ function getHttpPostEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field)
   return {
     name: field.name,
     path: httpPost.path,
+    method: 'post',
     docString,
     security: httpPost.security,
     veditorI,
     veditorO,
     jsonBindingI,
     jsonBindingO,
+  }
+}
+
+function methodHasReqBody(method: Method): boolean {
+  switch (method) {
+    case 'get': return false;
+    case 'post': return true;
   }
 }
 
