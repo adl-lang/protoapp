@@ -146,6 +146,7 @@ type ServerConfig struct {
 
 type _ServerConfig struct {
 	Db                      DbConnectionConfig `json:"db"`
+	Db_connection_pool_size uint32             `json:"db_connection_pool_size"`
 	Jwt_issuer              string             `json:"jwt_issuer"`
 	Jwt_access_secret       string             `json:"jwt_access_secret"`
 	Jwt_access_expiry_secs  uint32             `json:"jwt_access_expiry_secs"`
@@ -157,6 +158,7 @@ type _ServerConfig struct {
 
 func MakeAll_ServerConfig(
 	db DbConnectionConfig,
+	db_connection_pool_size uint32,
 	jwt_issuer string,
 	jwt_access_secret string,
 	jwt_access_expiry_secs uint32,
@@ -168,6 +170,7 @@ func MakeAll_ServerConfig(
 	return ServerConfig{
 		_ServerConfig{
 			Db:                      db,
+			Db_connection_pool_size: db_connection_pool_size,
 			Jwt_issuer:              jwt_issuer,
 			Jwt_access_secret:       jwt_access_secret,
 			Jwt_access_expiry_secs:  jwt_access_expiry_secs,
@@ -187,6 +190,7 @@ func Make_ServerConfig(
 	ret := ServerConfig{
 		_ServerConfig{
 			Db:                      db,
+			Db_connection_pool_size: ((*ServerConfig)(nil)).Default_db_connection_pool_size(),
 			Jwt_issuer:              ((*ServerConfig)(nil)).Default_jwt_issuer(),
 			Jwt_access_secret:       jwt_access_secret,
 			Jwt_access_expiry_secs:  ((*ServerConfig)(nil)).Default_jwt_access_expiry_secs(),
@@ -199,6 +203,9 @@ func Make_ServerConfig(
 	return ret
 }
 
+func (*ServerConfig) Default_db_connection_pool_size() uint32 {
+	return 20
+}
 func (*ServerConfig) Default_jwt_issuer() string {
 	return "adl-protoapp.link"
 }

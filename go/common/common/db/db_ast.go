@@ -326,6 +326,20 @@ func AST_DbTable() adlast.ScopedDecl {
 						),
 						customtypes.MapMap[adlast.ScopedName, any]{},
 					),
+					adlast.MakeAll_Field(
+						"id_prefix",
+						"id_prefix",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_primitive(
+								"String",
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_just[any](
+							"",
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
 				},
 			),
 		),

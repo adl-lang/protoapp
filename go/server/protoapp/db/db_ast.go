@@ -57,8 +57,8 @@ func AST_AppUser() adlast.ScopedDecl {
 						customtypes.MapMap[adlast.ScopedName, any]{},
 					),
 					adlast.MakeAll_Field(
-						"isAdmin",
-						"isAdmin",
+						"is_admin",
+						"is_admin",
 						adlast.MakeAll_TypeExpr(
 							adlast.Make_TypeRef_primitive(
 								"Bool",
@@ -189,7 +189,7 @@ func AST_AppUserTable() adlast.ScopedDecl {
 				types.Make_Maybe_nothing[any](),
 			),
 		),
-		customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("common.db", "DbTable"): map[string]interface{}{"extra_sql": []interface{}{"grant select on app_user to admin_user;"}, "indexes": []interface{}{[]interface{}{"email"}}, "uniqueness_constraints": []interface{}{[]interface{}{"email"}}}},
+		customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("common.db", "DbTable"): map[string]interface{}{"id_prefix": "U-", "indexes": []interface{}{[]interface{}{"email"}}, "uniqueness_constraints": []interface{}{[]interface{}{"email"}}}},
 	)
 	return adlast.Make_ScopedDecl("protoapp.db", decl)
 }
@@ -368,7 +368,7 @@ func AST_MessageTable() adlast.ScopedDecl {
 				types.Make_Maybe_nothing[any](),
 			),
 		),
-		customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("common.db", "DbTable"): map[string]interface{}{"extra_sql": []interface{}{"grant all on message to admin_user;"}, "indexes": []interface{}{[]interface{}{"posted_at"}}}},
+		customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("common.db", "DbTable"): map[string]interface{}{"id_prefix": "M-", "indexes": []interface{}{[]interface{}{"posted_at"}}}},
 	)
 	return adlast.Make_ScopedDecl("protoapp.db", decl)
 }

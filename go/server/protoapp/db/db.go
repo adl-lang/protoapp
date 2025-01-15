@@ -14,21 +14,21 @@ type AppUser struct {
 type _AppUser struct {
 	Fullname        strings2.StringNE `json:"fullname"`
 	Email           strings2.StringNE `json:"email"`
-	IsAdmin         bool              `json:"isAdmin"`
+	Is_admin        bool              `json:"is_admin"`
 	Hashed_password strings2.StringNE `json:"hashed_password"`
 }
 
 func MakeAll_AppUser(
 	fullname strings2.StringNE,
 	email strings2.StringNE,
-	isadmin bool,
+	is_admin bool,
 	hashed_password strings2.StringNE,
 ) AppUser {
 	return AppUser{
 		_AppUser{
 			Fullname:        fullname,
 			Email:           email,
-			IsAdmin:         isadmin,
+			Is_admin:        is_admin,
 			Hashed_password: hashed_password,
 		},
 	}
@@ -37,13 +37,13 @@ func MakeAll_AppUser(
 func Make_AppUser(
 	fullname strings2.StringNE,
 	email strings2.StringNE,
-	isadmin bool,
+	is_admin bool,
 ) AppUser {
 	ret := AppUser{
 		_AppUser{
 			Fullname:        fullname,
 			Email:           email,
-			IsAdmin:         isadmin,
+			Is_admin:        is_admin,
 			Hashed_password: ((*AppUser)(nil)).Default_hashed_password(),
 		},
 	}

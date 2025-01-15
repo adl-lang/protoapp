@@ -83,7 +83,7 @@ func (ps *publicSvr) Login(ctx context.Context, req cap.LoginReq) (cap.LoginResp
 		return cap.Make_LoginResp_invalid_credentials(), nil
 	}
 	role := ""
-	if user.Value.IsAdmin {
+	if user.Value.Is_admin {
 		role = "admin"
 	}
 	accesstoken, err := ps.cfg.CreateAccessToken(user.Id, role)

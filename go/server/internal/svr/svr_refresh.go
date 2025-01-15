@@ -53,7 +53,7 @@ func (rs *refreshSvr) Refresh(ctx context.Context, cp http2.Unit, req cap.Refres
 		return cap.Make_RefreshResp_invalid_refresh_token(), nil
 	}
 	role := ""
-	if user.Value.IsAdmin {
+	if user.Value.Is_admin {
 		role = "admin"
 	}
 	accesstoken, err := rs.access_tokener.CreateAccessToken(claims.Sub, role)

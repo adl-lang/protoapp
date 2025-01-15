@@ -15,14 +15,17 @@ type ApiRequests struct {
 }
 
 type _ApiRequests struct {
-	Healthy        http.HttpGet[http.Unit]                              `json:"healthy"`
-	Ping           http.HttpPost[http.Unit, http.Unit]                  `json:"ping"`
-	Login          http.HttpPost[LoginReq, LoginResp]                   `json:"login"`
-	Refresh        http.HttpPost[RefreshReq, RefreshResp]               `json:"refresh"`
-	Logout         http.HttpPost[http.Unit, http.Unit]                  `json:"logout"`
-	NewMessage     http.HttpPost[NewMessageReq, db.MessageId]           `json:"newMessage"`
-	RecentMessages http.HttpPost[RecentMessagesReq, Paginated[Message]] `json:"recentMessages"`
-	WhoAmI         http.HttpGet[UserProfile]                            `json:"whoAmI"`
+	Healthy         http.HttpGet[http.Unit]                                     `json:"healthy"`
+	Ping            http.HttpPost[http.Unit, http.Unit]                         `json:"ping"`
+	Login           http.HttpPost[LoginReq, LoginResp]                          `json:"login"`
+	Refresh         http.HttpPost[RefreshReq, RefreshResp]                      `json:"refresh"`
+	Logout          http.HttpPost[http.Unit, http.Unit]                         `json:"logout"`
+	New_message     http.HttpPost[NewMessageReq, db.MessageId]                  `json:"new_message"`
+	Recent_messages http.HttpPost[RecentMessagesReq, Paginated[Message]]        `json:"recent_messages"`
+	Who_am_i        http.HttpGet[UserWithId]                                    `json:"who_am_i"`
+	Create_user     http.HttpPost[UserDetails, db.AppUserId]                    `json:"create_user"`
+	Update_user     http.HttpPost[WithId[db.AppUserId, UserDetails], http.Unit] `json:"update_user"`
+	Query_users     http.HttpPost[QueryUsersReq, Paginated[UserWithId]]         `json:"query_users"`
 }
 
 func MakeAll_ApiRequests(
@@ -31,20 +34,26 @@ func MakeAll_ApiRequests(
 	login http.HttpPost[LoginReq, LoginResp],
 	refresh http.HttpPost[RefreshReq, RefreshResp],
 	logout http.HttpPost[http.Unit, http.Unit],
-	newmessage http.HttpPost[NewMessageReq, db.MessageId],
-	recentmessages http.HttpPost[RecentMessagesReq, Paginated[Message]],
-	whoami http.HttpGet[UserProfile],
+	new_message http.HttpPost[NewMessageReq, db.MessageId],
+	recent_messages http.HttpPost[RecentMessagesReq, Paginated[Message]],
+	who_am_i http.HttpGet[UserWithId],
+	create_user http.HttpPost[UserDetails, db.AppUserId],
+	update_user http.HttpPost[WithId[db.AppUserId, UserDetails], http.Unit],
+	query_users http.HttpPost[QueryUsersReq, Paginated[UserWithId]],
 ) ApiRequests {
 	return ApiRequests{
 		_ApiRequests{
-			Healthy:        healthy,
-			Ping:           ping,
-			Login:          login,
-			Refresh:        refresh,
-			Logout:         logout,
-			NewMessage:     newmessage,
-			RecentMessages: recentmessages,
-			WhoAmI:         whoami,
+			Healthy:         healthy,
+			Ping:            ping,
+			Login:           login,
+			Refresh:         refresh,
+			Logout:          logout,
+			New_message:     new_message,
+			Recent_messages: recent_messages,
+			Who_am_i:        who_am_i,
+			Create_user:     create_user,
+			Update_user:     update_user,
+			Query_users:     query_users,
 		},
 	}
 }
@@ -52,14 +61,17 @@ func MakeAll_ApiRequests(
 func Make_ApiRequests() ApiRequests {
 	ret := ApiRequests{
 		_ApiRequests{
-			Healthy:        ((*ApiRequests)(nil)).Default_healthy(),
-			Ping:           ((*ApiRequests)(nil)).Default_ping(),
-			Login:          ((*ApiRequests)(nil)).Default_login(),
-			Refresh:        ((*ApiRequests)(nil)).Default_refresh(),
-			Logout:         ((*ApiRequests)(nil)).Default_logout(),
-			NewMessage:     ((*ApiRequests)(nil)).Default_newMessage(),
-			RecentMessages: ((*ApiRequests)(nil)).Default_recentMessages(),
-			WhoAmI:         ((*ApiRequests)(nil)).Default_whoAmI(),
+			Healthy:         ((*ApiRequests)(nil)).Default_healthy(),
+			Ping:            ((*ApiRequests)(nil)).Default_ping(),
+			Login:           ((*ApiRequests)(nil)).Default_login(),
+			Refresh:         ((*ApiRequests)(nil)).Default_refresh(),
+			Logout:          ((*ApiRequests)(nil)).Default_logout(),
+			New_message:     ((*ApiRequests)(nil)).Default_new_message(),
+			Recent_messages: ((*ApiRequests)(nil)).Default_recent_messages(),
+			Who_am_i:        ((*ApiRequests)(nil)).Default_who_am_i(),
+			Create_user:     ((*ApiRequests)(nil)).Default_create_user(),
+			Update_user:     ((*ApiRequests)(nil)).Default_update_user(),
+			Query_users:     ((*ApiRequests)(nil)).Default_query_users(),
 		},
 	}
 	return ret
@@ -181,7 +193,7 @@ func (*ApiRequests) Default_logout() http.HttpPost[http.Unit, http.Unit] {
 		)),
 	)
 }
-func (*ApiRequests) Default_newMessage() http.HttpPost[NewMessageReq, db.MessageId] {
+func (*ApiRequests) Default_new_message() http.HttpPost[NewMessageReq, db.MessageId] {
 	return http.MakeAll_HttpPost[NewMessageReq, db.MessageId](
 		"/messages/new",
 		http.Make_HttpSecurity_token(),
@@ -206,7 +218,7 @@ func (*ApiRequests) Default_newMessage() http.HttpPost[NewMessageReq, db.Message
 		)),
 	)
 }
-func (*ApiRequests) Default_recentMessages() http.HttpPost[RecentMessagesReq, Paginated[Message]] {
+func (*ApiRequests) Default_recent_messages() http.HttpPost[RecentMessagesReq, Paginated[Message]] {
 	return http.MakeAll_HttpPost[RecentMessagesReq, Paginated[Message]](
 		"/messages/recent",
 		http.Make_HttpSecurity_token(),
@@ -241,19 +253,129 @@ func (*ApiRequests) Default_recentMessages() http.HttpPost[RecentMessagesReq, Pa
 		)),
 	)
 }
-func (*ApiRequests) Default_whoAmI() http.HttpGet[UserProfile] {
-	return http.MakeAll_HttpGet[UserProfile](
+func (*ApiRequests) Default_who_am_i() http.HttpGet[UserWithId] {
+	return http.MakeAll_HttpGet[UserWithId](
 		"/whoami",
 		http.Make_HttpSecurity_token(),
 		nil,
-		adlast.Make_ATypeExpr[UserProfile](adlast.MakeAll_TypeExpr(
+		adlast.Make_ATypeExpr[UserWithId](adlast.MakeAll_TypeExpr(
 			adlast.Make_TypeRef_reference(
 				adlast.MakeAll_ScopedName(
 					"protoapp.apis.ui",
-					"UserProfile",
+					"UserWithId",
 				),
 			),
 			[]adlast.TypeExpr{},
+		)),
+	)
+}
+func (*ApiRequests) Default_create_user() http.HttpPost[UserDetails, db.AppUserId] {
+	return http.MakeAll_HttpPost[UserDetails, db.AppUserId](
+		"/users/create",
+		http.Make_HttpSecurity_tokenWithRole(
+			"admin",
+		),
+		nil,
+		adlast.Make_ATypeExpr[UserDetails](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.ui",
+					"UserDetails",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+		adlast.Make_ATypeExpr[db.AppUserId](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.db",
+					"AppUserId",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+	)
+}
+func (*ApiRequests) Default_update_user() http.HttpPost[WithId[db.AppUserId, UserDetails], http.Unit] {
+	return http.MakeAll_HttpPost[WithId[db.AppUserId, UserDetails], http.Unit](
+		"/users/update",
+		http.Make_HttpSecurity_tokenWithRole(
+			"admin",
+		),
+		nil,
+		adlast.Make_ATypeExpr[WithId[db.AppUserId, UserDetails]](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.ui",
+					"WithId",
+				),
+			),
+			[]adlast.TypeExpr{
+				adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"protoapp.db",
+							"AppUserId",
+						),
+					),
+					[]adlast.TypeExpr{},
+				),
+				adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"protoapp.apis.ui",
+							"UserDetails",
+						),
+					),
+					[]adlast.TypeExpr{},
+				),
+			},
+		)),
+		adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"common.http",
+					"Unit",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+	)
+}
+func (*ApiRequests) Default_query_users() http.HttpPost[QueryUsersReq, Paginated[UserWithId]] {
+	return http.MakeAll_HttpPost[QueryUsersReq, Paginated[UserWithId]](
+		"/users/query",
+		http.Make_HttpSecurity_tokenWithRole(
+			"admin",
+		),
+		nil,
+		adlast.Make_ATypeExpr[QueryUsersReq](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.ui",
+					"QueryUsersReq",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+		adlast.Make_ATypeExpr[Paginated[UserWithId]](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.ui",
+					"Paginated",
+				),
+			),
+			[]adlast.TypeExpr{
+				adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"protoapp.apis.ui",
+							"UserWithId",
+						),
+					),
+					[]adlast.TypeExpr{},
+				),
+			},
 		)),
 	)
 }
@@ -493,20 +615,58 @@ func Make_NewMessageReq(
 	return ret
 }
 
+type PageReq struct {
+	_PageReq
+}
+
+type _PageReq struct {
+	Offset uint64 `json:"offset"`
+	Limit  uint64 `json:"limit"`
+}
+
+func MakeAll_PageReq(
+	offset uint64,
+	limit uint64,
+) PageReq {
+	return PageReq{
+		_PageReq{
+			Offset: offset,
+			Limit:  limit,
+		},
+	}
+}
+
+func Make_PageReq() PageReq {
+	ret := PageReq{
+		_PageReq{
+			Offset: ((*PageReq)(nil)).Default_offset(),
+			Limit:  ((*PageReq)(nil)).Default_limit(),
+		},
+	}
+	return ret
+}
+
+func (*PageReq) Default_offset() uint64 {
+	return 0
+}
+func (*PageReq) Default_limit() uint64 {
+	return 20
+}
+
 type Paginated[T any] struct {
 	_Paginated[T]
 }
 
 type _Paginated[T any] struct {
 	Items          []T    `json:"items"`
-	Current_offset uint32 `json:"current_offset"`
-	Total_count    uint32 `json:"total_count"`
+	Current_offset uint64 `json:"current_offset"`
+	Total_count    uint64 `json:"total_count"`
 }
 
 func MakeAll_Paginated[T any](
 	items []T,
-	current_offset uint32,
-	total_count uint32,
+	current_offset uint64,
+	total_count uint64,
 ) Paginated[T] {
 	return Paginated[T]{
 		_Paginated[T]{
@@ -519,8 +679,8 @@ func MakeAll_Paginated[T any](
 
 func Make_Paginated[T any](
 	items []T,
-	current_offset uint32,
-	total_count uint32,
+	current_offset uint64,
+	total_count uint64,
 ) Paginated[T] {
 	ret := Paginated[T]{
 		_Paginated[T]{
@@ -532,42 +692,67 @@ func Make_Paginated[T any](
 	return ret
 }
 
-type RecentMessagesReq struct {
-	_RecentMessagesReq
+type QueryUsersReq struct {
+	_QueryUsersReq
 }
 
-type _RecentMessagesReq struct {
-	Offset uint32 `json:"offset"`
-	Limit  uint32 `json:"limit"`
+type _QueryUsersReq struct {
+	Page PageReq `json:"page"`
 }
 
-func MakeAll_RecentMessagesReq(
-	offset uint32,
-	limit uint32,
-) RecentMessagesReq {
-	return RecentMessagesReq{
-		_RecentMessagesReq{
-			Offset: offset,
-			Limit:  limit,
+func MakeAll_QueryUsersReq(
+	page PageReq,
+) QueryUsersReq {
+	return QueryUsersReq{
+		_QueryUsersReq{
+			Page: page,
 		},
 	}
 }
 
-func Make_RecentMessagesReq() RecentMessagesReq {
-	ret := RecentMessagesReq{
-		_RecentMessagesReq{
-			Offset: ((*RecentMessagesReq)(nil)).Default_offset(),
-			Limit:  ((*RecentMessagesReq)(nil)).Default_limit(),
+func Make_QueryUsersReq() QueryUsersReq {
+	ret := QueryUsersReq{
+		_QueryUsersReq{
+			Page: ((*QueryUsersReq)(nil)).Default_page(),
 		},
 	}
 	return ret
 }
 
-func (*RecentMessagesReq) Default_offset() uint32 {
-	return 0
+func (*QueryUsersReq) Default_page() PageReq {
+	return MakeAll_PageReq(
+		0,
+		20,
+	)
 }
-func (*RecentMessagesReq) Default_limit() uint32 {
-	return 20
+
+type RecentMessagesReq struct {
+	_RecentMessagesReq
+}
+
+type _RecentMessagesReq struct {
+	Page PageReq `json:"page"`
+}
+
+func MakeAll_RecentMessagesReq(
+	page PageReq,
+) RecentMessagesReq {
+	return RecentMessagesReq{
+		_RecentMessagesReq{
+			Page: page,
+		},
+	}
+}
+
+func Make_RecentMessagesReq(
+	page PageReq,
+) RecentMessagesReq {
+	ret := RecentMessagesReq{
+		_RecentMessagesReq{
+			Page: page,
+		},
+	}
+	return ret
 }
 
 type RefreshReq struct {
@@ -695,26 +880,23 @@ func HandleWithErr_RefreshResp[T any](
 	panic("unhandled branch in : RefreshResp")
 }
 
-type UserProfile struct {
-	_UserProfile
+type User struct {
+	_User
 }
 
-type _UserProfile struct {
-	Id       db.AppUserId `json:"id"`
-	Fullname string       `json:"fullname"`
-	Email    string       `json:"email"`
-	Is_admin bool         `json:"is_admin"`
+type _User struct {
+	Fullname strings2.StringNE     `json:"fullname"`
+	Email    strings2.EmailAddress `json:"email"`
+	Is_admin bool                  `json:"is_admin"`
 }
 
-func MakeAll_UserProfile(
-	id db.AppUserId,
-	fullname string,
-	email string,
+func MakeAll_User(
+	fullname strings2.StringNE,
+	email strings2.EmailAddress,
 	is_admin bool,
-) UserProfile {
-	return UserProfile{
-		_UserProfile{
-			Id:       id,
+) User {
+	return User{
+		_User{
 			Fullname: fullname,
 			Email:    email,
 			Is_admin: is_admin,
@@ -722,18 +904,96 @@ func MakeAll_UserProfile(
 	}
 }
 
-func Make_UserProfile(
-	id db.AppUserId,
-	fullname string,
-	email string,
+func Make_User(
+	fullname strings2.StringNE,
+	email strings2.EmailAddress,
 	is_admin bool,
-) UserProfile {
-	ret := UserProfile{
-		_UserProfile{
-			Id:       id,
+) User {
+	ret := User{
+		_User{
 			Fullname: fullname,
 			Email:    email,
 			Is_admin: is_admin,
+		},
+	}
+	return ret
+}
+
+type UserDetails struct {
+	_UserDetails
+}
+
+type _UserDetails struct {
+	Fullname strings2.StringNE     `json:"fullname"`
+	Email    strings2.EmailAddress `json:"email"`
+	Is_admin bool                  `json:"is_admin"`
+	Password strings2.Password     `json:"password"`
+}
+
+func MakeAll_UserDetails(
+	fullname strings2.StringNE,
+	email strings2.EmailAddress,
+	is_admin bool,
+	password strings2.Password,
+) UserDetails {
+	return UserDetails{
+		_UserDetails{
+			Fullname: fullname,
+			Email:    email,
+			Is_admin: is_admin,
+			Password: password,
+		},
+	}
+}
+
+func Make_UserDetails(
+	fullname strings2.StringNE,
+	email strings2.EmailAddress,
+	is_admin bool,
+	password strings2.Password,
+) UserDetails {
+	ret := UserDetails{
+		_UserDetails{
+			Fullname: fullname,
+			Email:    email,
+			Is_admin: is_admin,
+			Password: password,
+		},
+	}
+	return ret
+}
+
+type UserWithId = WithId[db.AppUserId, User]
+
+type WithId[I any, T any] struct {
+	_WithId[I, T]
+}
+
+type _WithId[I any, T any] struct {
+	Id    I `json:"id"`
+	Value T `json:"value"`
+}
+
+func MakeAll_WithId[I any, T any](
+	id I,
+	value T,
+) WithId[I, T] {
+	return WithId[I, T]{
+		_WithId[I, T]{
+			Id:    id,
+			Value: value,
+		},
+	}
+}
+
+func Make_WithId[I any, T any](
+	id I,
+	value T,
+) WithId[I, T] {
+	ret := WithId[I, T]{
+		_WithId[I, T]{
+			Id:    id,
+			Value: value,
 		},
 	}
 	return ret
