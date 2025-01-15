@@ -25,16 +25,21 @@ type publicSvr struct {
 	pswdHasher hashing.Hasher
 	tokenApi   *tokenSvr
 	refreshApi *refreshSvr
+	userApi    *userSvr
 }
 
 // GetAccessTokenApi implements cap.ApiRequests_Service.
-func (ps *publicSvr) GetAccessTokenApi() cap.AccessApiRequests_Service[string, cap.Capability] {
+func (ps *publicSvr) GetAccessTokenApi() cap.AccessApiRequests_Service[cap.AccessToken, cap.Capability] {
 	return ps.tokenApi
 }
 
 // GetRefreshTokenApi implements cap.ApiRequests_Service.
-func (ps *publicSvr) GetRefreshTokenApi() cap.RefreshApiRequests_Service[string, http.Unit] {
+func (ps *publicSvr) GetRefreshTokenApi() cap.RefreshApiRequests_Service[cap.RefreshToken, http.Unit] {
 	return ps.refreshApi
+}
+
+func (ps *publicSvr) GetUserApi() cap.UserApiRequests_Service[cap.AdminAccessToken, cap.Capability] {
+	return ps.userApi
 }
 
 // Healthy implements cap.ApiRequests_Service.

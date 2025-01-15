@@ -16,6 +16,7 @@ type ApiRequests_Service interface {
 	Logout(ctx context.Context, req http2.Unit) (http2.Unit, error)
 	GetAccessTokenApi() AccessApiRequests_Service[AccessToken, Capability]
 	GetRefreshTokenApi() RefreshApiRequests_Service[RefreshToken, http2.Unit]
+	GetUserApi() UserApiRequests_Service[AdminAccessToken, Capability]
 }
 
 func Register_ApiRequests(
@@ -23,6 +24,7 @@ func Register_ApiRequests(
 	srv ApiRequests_Service,
 	accesstokenapi_capr capability.CapabilityRetriever[AccessToken, Capability],
 	refreshtokenapi_capr capability.CapabilityRetriever[RefreshToken, http2.Unit],
+	userapi_capr capability.CapabilityRetriever[AdminAccessToken, Capability],
 ) {
 	reqs := Make_ApiRequests()
 	capability.AdlGet(mux, reqs.Healthy, srv.Healthy)
@@ -41,12 +43,18 @@ func Register_ApiRequests(
 		reqs.RefreshTokenApi,
 		refreshtokenapi_capr,
 	)
+	Register_UserApiRequests(
+		mux,
+		srv.GetUserApi(),
+		reqs.UserApi,
+		userapi_capr,
+	)
 }
 
 type AccessApiRequests_Service[C any, S any] interface {
 	NewMessage(ctx context.Context, cp S, req NewMessageReq) (db.MessageId, error)
 	RecentMessages(ctx context.Context, cp S, req RecentMessagesReq) (Paginated[Message], error)
-	WhoAmI(ctx context.Context, cp S) (UserProfile, error)
+	Who_am_i(ctx context.Context, cp S) (UserWithId, error)
 }
 
 func Register_AccessApiRequests[C any, S any](
@@ -58,7 +66,7 @@ func Register_AccessApiRequests[C any, S any](
 	reqs := api.Service
 	capability.AdlCapPost(mux, reqs.NewMessage, srv.NewMessage, api, capr)
 	capability.AdlCapPost(mux, reqs.RecentMessages, srv.RecentMessages, api, capr)
-	capability.AdlCapGet(mux, reqs.WhoAmI, srv.WhoAmI, api, capr)
+	capability.AdlCapGet(mux, reqs.Who_am_i, srv.Who_am_i, api, capr)
 }
 
 type RefreshApiRequests_Service[C any, S any] interface {
@@ -73,4 +81,22 @@ func Register_RefreshApiRequests[C any, S any](
 ) {
 	reqs := api.Service
 	capability.AdlCapPost(mux, reqs.Refresh, srv.Refresh, api, capr)
+}
+
+type UserApiRequests_Service[C any, S any] interface {
+	Create_user(ctx context.Context, cp S, req UserDetails) (db.AppUserId, error)
+	Update_user(ctx context.Context, cp S, req WithId[db.AppUserId, UserDetails]) (http2.Unit, error)
+	Query_users(ctx context.Context, cp S, req QueryUsersReq) (Paginated[UserWithId], error)
+}
+
+func Register_UserApiRequests[C any, S any](
+	mux *http.ServeMux,
+	srv UserApiRequests_Service[C, S],
+	api capability.CapabilityApi[C, S, UserApiRequests],
+	capr capability.CapabilityRetriever[C, S],
+) {
+	reqs := api.Service
+	capability.AdlCapPost(mux, reqs.Create_user, srv.Create_user, api, capr)
+	capability.AdlCapPost(mux, reqs.Update_user, srv.Update_user, api, capr)
+	capability.AdlCapPost(mux, reqs.Query_users, srv.Query_users, api, capr)
 }

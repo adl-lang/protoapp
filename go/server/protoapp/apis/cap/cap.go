@@ -18,19 +18,19 @@ type AccessApiRequests struct {
 type _AccessApiRequests struct {
 	NewMessage     capability.HttpPost[NewMessageReq, db.MessageId]           `json:"newMessage"`
 	RecentMessages capability.HttpPost[RecentMessagesReq, Paginated[Message]] `json:"recentMessages"`
-	WhoAmI         capability.HttpGet[UserProfile]                            `json:"whoAmI"`
+	Who_am_i       capability.HttpGet[UserWithId]                             `json:"who_am_i"`
 }
 
 func MakeAll_AccessApiRequests(
 	newmessage capability.HttpPost[NewMessageReq, db.MessageId],
 	recentmessages capability.HttpPost[RecentMessagesReq, Paginated[Message]],
-	whoami capability.HttpGet[UserProfile],
+	who_am_i capability.HttpGet[UserWithId],
 ) AccessApiRequests {
 	return AccessApiRequests{
 		_AccessApiRequests{
 			NewMessage:     newmessage,
 			RecentMessages: recentmessages,
-			WhoAmI:         whoami,
+			Who_am_i:       who_am_i,
 		},
 	}
 }
@@ -40,7 +40,7 @@ func Make_AccessApiRequests() AccessApiRequests {
 		_AccessApiRequests{
 			NewMessage:     ((*AccessApiRequests)(nil)).Default_newMessage(),
 			RecentMessages: ((*AccessApiRequests)(nil)).Default_recentMessages(),
-			WhoAmI:         ((*AccessApiRequests)(nil)).Default_whoAmI(),
+			Who_am_i:       ((*AccessApiRequests)(nil)).Default_who_am_i(),
 		},
 	}
 	return ret
@@ -104,15 +104,15 @@ func (*AccessApiRequests) Default_recentMessages() capability.HttpPost[RecentMes
 		)),
 	)
 }
-func (*AccessApiRequests) Default_whoAmI() capability.HttpGet[UserProfile] {
-	return capability.MakeAll_HttpGet[UserProfile](
+func (*AccessApiRequests) Default_who_am_i() capability.HttpGet[UserWithId] {
+	return capability.MakeAll_HttpGet[UserWithId](
 		"/whoami",
 		nil,
-		adlast.Make_ATypeExpr[UserProfile](adlast.MakeAll_TypeExpr(
+		adlast.Make_ATypeExpr[UserWithId](adlast.MakeAll_TypeExpr(
 			adlast.Make_TypeRef_reference(
 				adlast.MakeAll_ScopedName(
 					"protoapp.apis.cap",
-					"UserProfile",
+					"UserWithId",
 				),
 			),
 			[]adlast.TypeExpr{},
@@ -120,19 +120,22 @@ func (*AccessApiRequests) Default_whoAmI() capability.HttpGet[UserProfile] {
 	)
 }
 
-type AccessToken = strings2.StringNE
+type AccessToken strings2.StringNE
+
+type AdminAccessToken strings2.StringNE
 
 type ApiRequests struct {
 	_ApiRequests
 }
 
 type _ApiRequests struct {
-	Healthy         capability.HttpGet[http.Unit]                                         `json:"healthy"`
-	Ping            capability.HttpPost[http.Unit, http.Unit]                             `json:"ping"`
-	Login           capability.HttpPost[LoginReq, LoginResp]                              `json:"login"`
-	Logout          capability.HttpPost[http.Unit, http.Unit]                             `json:"logout"`
-	AccessTokenApi  capability.CapabilityApi[AccessToken, Capability, AccessApiRequests]  `json:"accessTokenApi"`
-	RefreshTokenApi capability.CapabilityApi[RefreshToken, http.Unit, RefreshApiRequests] `json:"refreshTokenApi"`
+	Healthy         capability.HttpGet[http.Unit]                                           `json:"healthy"`
+	Ping            capability.HttpPost[http.Unit, http.Unit]                               `json:"ping"`
+	Login           capability.HttpPost[LoginReq, LoginResp]                                `json:"login"`
+	Logout          capability.HttpPost[http.Unit, http.Unit]                               `json:"logout"`
+	AccessTokenApi  capability.CapabilityApi[AccessToken, Capability, AccessApiRequests]    `json:"accessTokenApi"`
+	RefreshTokenApi capability.CapabilityApi[RefreshToken, http.Unit, RefreshApiRequests]   `json:"refreshTokenApi"`
+	UserApi         capability.CapabilityApi[AdminAccessToken, Capability, UserApiRequests] `json:"userApi"`
 }
 
 func MakeAll_ApiRequests(
@@ -142,6 +145,7 @@ func MakeAll_ApiRequests(
 	logout capability.HttpPost[http.Unit, http.Unit],
 	accesstokenapi capability.CapabilityApi[AccessToken, Capability, AccessApiRequests],
 	refreshtokenapi capability.CapabilityApi[RefreshToken, http.Unit, RefreshApiRequests],
+	userapi capability.CapabilityApi[AdminAccessToken, Capability, UserApiRequests],
 ) ApiRequests {
 	return ApiRequests{
 		_ApiRequests{
@@ -151,6 +155,7 @@ func MakeAll_ApiRequests(
 			Logout:          logout,
 			AccessTokenApi:  accesstokenapi,
 			RefreshTokenApi: refreshtokenapi,
+			UserApi:         userapi,
 		},
 	}
 }
@@ -164,6 +169,7 @@ func Make_ApiRequests() ApiRequests {
 			Logout:          ((*ApiRequests)(nil)).Default_logout(),
 			AccessTokenApi:  ((*ApiRequests)(nil)).Default_accessTokenApi(),
 			RefreshTokenApi: ((*ApiRequests)(nil)).Default_refreshTokenApi(),
+			UserApi:         ((*ApiRequests)(nil)).Default_userApi(),
 		},
 	}
 	return ret
@@ -334,14 +340,14 @@ func (*ApiRequests) Default_accessTokenApi() capability.CapabilityApi[AccessToke
 					},
 				)),
 			),
-			capability.MakeAll_HttpGet[UserProfile](
+			capability.MakeAll_HttpGet[UserWithId](
 				"/whoami",
 				nil,
-				adlast.Make_ATypeExpr[UserProfile](adlast.MakeAll_TypeExpr(
+				adlast.Make_ATypeExpr[UserWithId](adlast.MakeAll_TypeExpr(
 					adlast.Make_TypeRef_reference(
 						adlast.MakeAll_ScopedName(
 							"protoapp.apis.cap",
-							"UserProfile",
+							"UserWithId",
 						),
 					),
 					[]adlast.TypeExpr{},
@@ -394,6 +400,128 @@ func (*ApiRequests) Default_refreshTokenApi() capability.CapabilityApi[RefreshTo
 						),
 					),
 					[]adlast.TypeExpr{},
+				)),
+			),
+		),
+	)
+}
+func (*ApiRequests) Default_userApi() capability.CapabilityApi[AdminAccessToken, Capability, UserApiRequests] {
+	return capability.MakeAll_CapabilityApi[AdminAccessToken, Capability, UserApiRequests](
+		capability.MakeAll_CapabilityDefn[AdminAccessToken, Capability](
+			adlast.Make_ATypeExpr[AdminAccessToken](adlast.MakeAll_TypeExpr(
+				adlast.Make_TypeRef_reference(
+					adlast.MakeAll_ScopedName(
+						"protoapp.apis.cap",
+						"AdminAccessToken",
+					),
+				),
+				[]adlast.TypeExpr{},
+			)),
+			adlast.Make_ATypeExpr[Capability](adlast.MakeAll_TypeExpr(
+				adlast.Make_TypeRef_reference(
+					adlast.MakeAll_ScopedName(
+						"protoapp.apis.cap",
+						"Capability",
+					),
+				),
+				[]adlast.TypeExpr{},
+			)),
+		),
+		"",
+		MakeAll_UserApiRequests(
+			capability.MakeAll_HttpPost[UserDetails, db.AppUserId](
+				"/users/create",
+				nil,
+				adlast.Make_ATypeExpr[UserDetails](adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"protoapp.apis.cap",
+							"UserDetails",
+						),
+					),
+					[]adlast.TypeExpr{},
+				)),
+				adlast.Make_ATypeExpr[db.AppUserId](adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"protoapp.db",
+							"AppUserId",
+						),
+					),
+					[]adlast.TypeExpr{},
+				)),
+			),
+			capability.MakeAll_HttpPost[WithId[db.AppUserId, UserDetails], http.Unit](
+				"/users/update",
+				nil,
+				adlast.Make_ATypeExpr[WithId[db.AppUserId, UserDetails]](adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"protoapp.apis.cap",
+							"WithId",
+						),
+					),
+					[]adlast.TypeExpr{
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"protoapp.db",
+									"AppUserId",
+								),
+							),
+							[]adlast.TypeExpr{},
+						),
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"protoapp.apis.cap",
+									"UserDetails",
+								),
+							),
+							[]adlast.TypeExpr{},
+						),
+					},
+				)),
+				adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"common.http",
+							"Unit",
+						),
+					),
+					[]adlast.TypeExpr{},
+				)),
+			),
+			capability.MakeAll_HttpPost[QueryUsersReq, Paginated[UserWithId]](
+				"/users/query",
+				nil,
+				adlast.Make_ATypeExpr[QueryUsersReq](adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"protoapp.apis.cap",
+							"QueryUsersReq",
+						),
+					),
+					[]adlast.TypeExpr{},
+				)),
+				adlast.Make_ATypeExpr[Paginated[UserWithId]](adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"protoapp.apis.cap",
+							"Paginated",
+						),
+					),
+					[]adlast.TypeExpr{
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"protoapp.apis.cap",
+									"UserWithId",
+								),
+							),
+							[]adlast.TypeExpr{},
+						),
+					},
 				)),
 			),
 		),
@@ -669,6 +797,44 @@ func Make_NewMessageReq(
 	return ret
 }
 
+type PageReq struct {
+	_PageReq
+}
+
+type _PageReq struct {
+	Offset uint64 `json:"offset"`
+	Limit  uint64 `json:"limit"`
+}
+
+func MakeAll_PageReq(
+	offset uint64,
+	limit uint64,
+) PageReq {
+	return PageReq{
+		_PageReq{
+			Offset: offset,
+			Limit:  limit,
+		},
+	}
+}
+
+func Make_PageReq() PageReq {
+	ret := PageReq{
+		_PageReq{
+			Offset: ((*PageReq)(nil)).Default_offset(),
+			Limit:  ((*PageReq)(nil)).Default_limit(),
+		},
+	}
+	return ret
+}
+
+func (*PageReq) Default_offset() uint64 {
+	return 0
+}
+func (*PageReq) Default_limit() uint64 {
+	return 20
+}
+
 type Paginated[T any] struct {
 	_Paginated[T]
 }
@@ -706,6 +872,40 @@ func Make_Paginated[T any](
 		},
 	}
 	return ret
+}
+
+type QueryUsersReq struct {
+	_QueryUsersReq
+}
+
+type _QueryUsersReq struct {
+	Page PageReq `json:"page"`
+}
+
+func MakeAll_QueryUsersReq(
+	page PageReq,
+) QueryUsersReq {
+	return QueryUsersReq{
+		_QueryUsersReq{
+			Page: page,
+		},
+	}
+}
+
+func Make_QueryUsersReq() QueryUsersReq {
+	ret := QueryUsersReq{
+		_QueryUsersReq{
+			Page: ((*QueryUsersReq)(nil)).Default_page(),
+		},
+	}
+	return ret
+}
+
+func (*QueryUsersReq) Default_page() PageReq {
+	return MakeAll_PageReq(
+		0,
+		20,
+	)
 }
 
 type RecentMessagesReq struct {
@@ -923,28 +1123,25 @@ func HandleWithErr_RefreshResp[T any](
 	panic("unhandled branch in : RefreshResp")
 }
 
-type RefreshToken = strings2.StringNE
+type RefreshToken strings2.StringNE
 
-type UserProfile struct {
-	_UserProfile
+type User struct {
+	_User
 }
 
-type _UserProfile struct {
-	Id       db.AppUserId `json:"id"`
-	Fullname string       `json:"fullname"`
-	Email    string       `json:"email"`
-	Is_admin bool         `json:"is_admin"`
+type _User struct {
+	Fullname strings2.StringNE     `json:"fullname"`
+	Email    strings2.EmailAddress `json:"email"`
+	Is_admin bool                  `json:"is_admin"`
 }
 
-func MakeAll_UserProfile(
-	id db.AppUserId,
-	fullname string,
-	email string,
+func MakeAll_User(
+	fullname strings2.StringNE,
+	email strings2.EmailAddress,
 	is_admin bool,
-) UserProfile {
-	return UserProfile{
-		_UserProfile{
-			Id:       id,
+) User {
+	return User{
+		_User{
 			Fullname: fullname,
 			Email:    email,
 			Is_admin: is_admin,
@@ -952,18 +1149,233 @@ func MakeAll_UserProfile(
 	}
 }
 
-func Make_UserProfile(
-	id db.AppUserId,
-	fullname string,
-	email string,
+func Make_User(
+	fullname strings2.StringNE,
+	email strings2.EmailAddress,
 	is_admin bool,
-) UserProfile {
-	ret := UserProfile{
-		_UserProfile{
-			Id:       id,
+) User {
+	ret := User{
+		_User{
 			Fullname: fullname,
 			Email:    email,
 			Is_admin: is_admin,
+		},
+	}
+	return ret
+}
+
+type UserApiRequests struct {
+	_UserApiRequests
+}
+
+type _UserApiRequests struct {
+	Create_user capability.HttpPost[UserDetails, db.AppUserId]                    `json:"create_user"`
+	Update_user capability.HttpPost[WithId[db.AppUserId, UserDetails], http.Unit] `json:"update_user"`
+	Query_users capability.HttpPost[QueryUsersReq, Paginated[UserWithId]]         `json:"query_users"`
+}
+
+func MakeAll_UserApiRequests(
+	create_user capability.HttpPost[UserDetails, db.AppUserId],
+	update_user capability.HttpPost[WithId[db.AppUserId, UserDetails], http.Unit],
+	query_users capability.HttpPost[QueryUsersReq, Paginated[UserWithId]],
+) UserApiRequests {
+	return UserApiRequests{
+		_UserApiRequests{
+			Create_user: create_user,
+			Update_user: update_user,
+			Query_users: query_users,
+		},
+	}
+}
+
+func Make_UserApiRequests() UserApiRequests {
+	ret := UserApiRequests{
+		_UserApiRequests{
+			Create_user: ((*UserApiRequests)(nil)).Default_create_user(),
+			Update_user: ((*UserApiRequests)(nil)).Default_update_user(),
+			Query_users: ((*UserApiRequests)(nil)).Default_query_users(),
+		},
+	}
+	return ret
+}
+
+func (*UserApiRequests) Default_create_user() capability.HttpPost[UserDetails, db.AppUserId] {
+	return capability.MakeAll_HttpPost[UserDetails, db.AppUserId](
+		"/users/create",
+		nil,
+		adlast.Make_ATypeExpr[UserDetails](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.cap",
+					"UserDetails",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+		adlast.Make_ATypeExpr[db.AppUserId](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.db",
+					"AppUserId",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+	)
+}
+func (*UserApiRequests) Default_update_user() capability.HttpPost[WithId[db.AppUserId, UserDetails], http.Unit] {
+	return capability.MakeAll_HttpPost[WithId[db.AppUserId, UserDetails], http.Unit](
+		"/users/update",
+		nil,
+		adlast.Make_ATypeExpr[WithId[db.AppUserId, UserDetails]](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.cap",
+					"WithId",
+				),
+			),
+			[]adlast.TypeExpr{
+				adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"protoapp.db",
+							"AppUserId",
+						),
+					),
+					[]adlast.TypeExpr{},
+				),
+				adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"protoapp.apis.cap",
+							"UserDetails",
+						),
+					),
+					[]adlast.TypeExpr{},
+				),
+			},
+		)),
+		adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"common.http",
+					"Unit",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+	)
+}
+func (*UserApiRequests) Default_query_users() capability.HttpPost[QueryUsersReq, Paginated[UserWithId]] {
+	return capability.MakeAll_HttpPost[QueryUsersReq, Paginated[UserWithId]](
+		"/users/query",
+		nil,
+		adlast.Make_ATypeExpr[QueryUsersReq](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.cap",
+					"QueryUsersReq",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+		adlast.Make_ATypeExpr[Paginated[UserWithId]](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.cap",
+					"Paginated",
+				),
+			),
+			[]adlast.TypeExpr{
+				adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"protoapp.apis.cap",
+							"UserWithId",
+						),
+					),
+					[]adlast.TypeExpr{},
+				),
+			},
+		)),
+	)
+}
+
+type UserDetails struct {
+	_UserDetails
+}
+
+type _UserDetails struct {
+	Fullname strings2.StringNE     `json:"fullname"`
+	Email    strings2.EmailAddress `json:"email"`
+	Is_admin bool                  `json:"is_admin"`
+	Password strings2.Password     `json:"password"`
+}
+
+func MakeAll_UserDetails(
+	fullname strings2.StringNE,
+	email strings2.EmailAddress,
+	is_admin bool,
+	password strings2.Password,
+) UserDetails {
+	return UserDetails{
+		_UserDetails{
+			Fullname: fullname,
+			Email:    email,
+			Is_admin: is_admin,
+			Password: password,
+		},
+	}
+}
+
+func Make_UserDetails(
+	fullname strings2.StringNE,
+	email strings2.EmailAddress,
+	is_admin bool,
+	password strings2.Password,
+) UserDetails {
+	ret := UserDetails{
+		_UserDetails{
+			Fullname: fullname,
+			Email:    email,
+			Is_admin: is_admin,
+			Password: password,
+		},
+	}
+	return ret
+}
+
+type UserWithId = WithId[db.AppUserId, User]
+
+type WithId[I any, T any] struct {
+	_WithId[I, T]
+}
+
+type _WithId[I any, T any] struct {
+	Id    I `json:"id"`
+	Value T `json:"value"`
+}
+
+func MakeAll_WithId[I any, T any](
+	id I,
+	value T,
+) WithId[I, T] {
+	return WithId[I, T]{
+		_WithId[I, T]{
+			Id:    id,
+			Value: value,
+		},
+	}
+}
+
+func Make_WithId[I any, T any](
+	id I,
+	value T,
+) WithId[I, T] {
+	ret := WithId[I, T]{
+		_WithId[I, T]{
+			Id:    id,
+			Value: value,
 		},
 	}
 	return ret

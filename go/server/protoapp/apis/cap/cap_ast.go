@@ -109,8 +109,8 @@ func AST_AccessApiRequests() adlast.ScopedDecl {
 						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Get recent noticeboard messages\n"},
 					),
 					adlast.MakeAll_Field(
-						"whoAmI",
-						"whoAmI",
+						"who_am_i",
+						"who_am_i",
 						adlast.MakeAll_TypeExpr(
 							adlast.Make_TypeRef_reference(
 								adlast.MakeAll_ScopedName(
@@ -123,7 +123,7 @@ func AST_AccessApiRequests() adlast.ScopedDecl {
 									adlast.Make_TypeRef_reference(
 										adlast.MakeAll_ScopedName(
 											"protoapp.apis.cap",
-											"UserProfile",
+											"UserWithId",
 										),
 									),
 									[]adlast.TypeExpr{},
@@ -133,7 +133,7 @@ func AST_AccessApiRequests() adlast.ScopedDecl {
 						types.Make_Maybe_just[any](
 							map[string]interface{}{"path": "/whoami"},
 						),
-						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Gets the logged in user details\n"},
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Gets info about the logged in user\n"},
 					),
 				},
 			),
@@ -164,8 +164,8 @@ func AST_AccessToken() adlast.ScopedDecl {
 	decl := adlast.MakeAll_Decl(
 		"AccessToken",
 		types.Make_Maybe_nothing[uint32](),
-		adlast.Make_DeclType_type_(
-			adlast.MakeAll_TypeDef(
+		adlast.Make_DeclType_newtype_(
+			adlast.MakeAll_NewType(
 				[]adlast.Ident{},
 				adlast.MakeAll_TypeExpr(
 					adlast.Make_TypeRef_reference(
@@ -176,6 +176,7 @@ func AST_AccessToken() adlast.ScopedDecl {
 					),
 					[]adlast.TypeExpr{},
 				),
+				types.Make_Maybe_nothing[any](),
 			),
 		),
 		customtypes.MapMap[adlast.ScopedName, any]{},
@@ -187,6 +188,47 @@ func init() {
 	goadl.RESOLVER.Register(
 		adlast.Make_ScopedName("protoapp.apis.cap", "AccessToken"),
 		AST_AccessToken(),
+	)
+}
+
+func Texpr_AdminAccessToken() adlast.ATypeExpr[AdminAccessToken] {
+	te := adlast.Make_TypeExpr(
+		adlast.Make_TypeRef_reference(
+			adlast.Make_ScopedName("protoapp.apis.cap", "AdminAccessToken"),
+		),
+		[]adlast.TypeExpr{},
+	)
+	return adlast.Make_ATypeExpr[AdminAccessToken](te)
+}
+
+func AST_AdminAccessToken() adlast.ScopedDecl {
+	decl := adlast.MakeAll_Decl(
+		"AdminAccessToken",
+		types.Make_Maybe_nothing[uint32](),
+		adlast.Make_DeclType_newtype_(
+			adlast.MakeAll_NewType(
+				[]adlast.Ident{},
+				adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"common.strings",
+							"StringNE",
+						),
+					),
+					[]adlast.TypeExpr{},
+				),
+				types.Make_Maybe_nothing[any](),
+			),
+		),
+		customtypes.MapMap[adlast.ScopedName, any]{},
+	)
+	return adlast.Make_ScopedDecl("protoapp.apis.cap", decl)
+}
+
+func init() {
+	goadl.RESOLVER.Register(
+		adlast.Make_ScopedName("protoapp.apis.cap", "AdminAccessToken"),
+		AST_AdminAccessToken(),
 	)
 }
 
@@ -432,6 +474,51 @@ func AST_ApiRequests() adlast.ScopedDecl {
 							map[string]interface{}{"service": map[string]interface{}{}},
 						),
 						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Enpoints requiring a RefreshToken\n\nThis is a simple refresh model, hence the Unit as the S type.\nIf a more complex model (eg. with user blacklisting) was required the S payload would be different\n"},
+					),
+					adlast.MakeAll_Field(
+						"userApi",
+						"userApi",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"common.capability",
+									"CapabilityApi",
+								),
+							),
+							[]adlast.TypeExpr{
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"protoapp.apis.cap",
+											"AdminAccessToken",
+										),
+									),
+									[]adlast.TypeExpr{},
+								),
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"protoapp.apis.cap",
+											"Capability",
+										),
+									),
+									[]adlast.TypeExpr{},
+								),
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"protoapp.apis.cap",
+											"UserApiRequests",
+										),
+									),
+									[]adlast.TypeExpr{},
+								),
+							},
+						),
+						types.Make_Maybe_just[any](
+							map[string]interface{}{"service": map[string]interface{}{}},
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Enpoints requiring a User\n"},
 					),
 				},
 			),
@@ -836,6 +923,67 @@ func init() {
 	)
 }
 
+func Texpr_PageReq() adlast.ATypeExpr[PageReq] {
+	te := adlast.Make_TypeExpr(
+		adlast.Make_TypeRef_reference(
+			adlast.Make_ScopedName("protoapp.apis.cap", "PageReq"),
+		),
+		[]adlast.TypeExpr{},
+	)
+	return adlast.Make_ATypeExpr[PageReq](te)
+}
+
+func AST_PageReq() adlast.ScopedDecl {
+	decl := adlast.MakeAll_Decl(
+		"PageReq",
+		types.Make_Maybe_nothing[uint32](),
+		adlast.Make_DeclType_struct_(
+			adlast.MakeAll_Struct(
+				[]adlast.Ident{},
+				[]adlast.Field{
+					adlast.MakeAll_Field(
+						"offset",
+						"offset",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_primitive(
+								"Word64",
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_just[any](
+							0,
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+					adlast.MakeAll_Field(
+						"limit",
+						"limit",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_primitive(
+								"Word64",
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_just[any](
+							20,
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+				},
+			),
+		),
+		customtypes.MapMap[adlast.ScopedName, any]{},
+	)
+	return adlast.Make_ScopedDecl("protoapp.apis.cap", decl)
+}
+
+func init() {
+	goadl.RESOLVER.Register(
+		adlast.Make_ScopedName("protoapp.apis.cap", "PageReq"),
+		AST_PageReq(),
+	)
+}
+
 func Texpr_Paginated[T any](t adlast.ATypeExpr[T]) adlast.ATypeExpr[Paginated[T]] {
 	te := adlast.Make_TypeExpr(
 		adlast.Make_TypeRef_reference(
@@ -911,6 +1059,56 @@ func init() {
 	goadl.RESOLVER.Register(
 		adlast.Make_ScopedName("protoapp.apis.cap", "Paginated"),
 		AST_Paginated(),
+	)
+}
+
+func Texpr_QueryUsersReq() adlast.ATypeExpr[QueryUsersReq] {
+	te := adlast.Make_TypeExpr(
+		adlast.Make_TypeRef_reference(
+			adlast.Make_ScopedName("protoapp.apis.cap", "QueryUsersReq"),
+		),
+		[]adlast.TypeExpr{},
+	)
+	return adlast.Make_ATypeExpr[QueryUsersReq](te)
+}
+
+func AST_QueryUsersReq() adlast.ScopedDecl {
+	decl := adlast.MakeAll_Decl(
+		"QueryUsersReq",
+		types.Make_Maybe_nothing[uint32](),
+		adlast.Make_DeclType_struct_(
+			adlast.MakeAll_Struct(
+				[]adlast.Ident{},
+				[]adlast.Field{
+					adlast.MakeAll_Field(
+						"page",
+						"page",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"protoapp.apis.cap",
+									"PageReq",
+								),
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_just[any](
+							map[string]interface{}{},
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+				},
+			),
+		),
+		customtypes.MapMap[adlast.ScopedName, any]{},
+	)
+	return adlast.Make_ScopedDecl("protoapp.apis.cap", decl)
+}
+
+func init() {
+	goadl.RESOLVER.Register(
+		adlast.Make_ScopedName("protoapp.apis.cap", "QueryUsersReq"),
+		AST_QueryUsersReq(),
 	)
 }
 
@@ -1175,8 +1373,8 @@ func AST_RefreshToken() adlast.ScopedDecl {
 	decl := adlast.MakeAll_Decl(
 		"RefreshToken",
 		types.Make_Maybe_nothing[uint32](),
-		adlast.Make_DeclType_type_(
-			adlast.MakeAll_TypeDef(
+		adlast.Make_DeclType_newtype_(
+			adlast.MakeAll_NewType(
 				[]adlast.Ident{},
 				adlast.MakeAll_TypeExpr(
 					adlast.Make_TypeRef_reference(
@@ -1187,6 +1385,7 @@ func AST_RefreshToken() adlast.ScopedDecl {
 					),
 					[]adlast.TypeExpr{},
 				),
+				types.Make_Maybe_nothing[any](),
 			),
 		),
 		customtypes.MapMap[adlast.ScopedName, any]{},
@@ -1201,32 +1400,32 @@ func init() {
 	)
 }
 
-func Texpr_UserProfile() adlast.ATypeExpr[UserProfile] {
+func Texpr_User() adlast.ATypeExpr[User] {
 	te := adlast.Make_TypeExpr(
 		adlast.Make_TypeRef_reference(
-			adlast.Make_ScopedName("protoapp.apis.cap", "UserProfile"),
+			adlast.Make_ScopedName("protoapp.apis.cap", "User"),
 		),
 		[]adlast.TypeExpr{},
 	)
-	return adlast.Make_ATypeExpr[UserProfile](te)
+	return adlast.Make_ATypeExpr[User](te)
 }
 
-func AST_UserProfile() adlast.ScopedDecl {
+func AST_User() adlast.ScopedDecl {
 	decl := adlast.MakeAll_Decl(
-		"UserProfile",
+		"User",
 		types.Make_Maybe_nothing[uint32](),
 		adlast.Make_DeclType_struct_(
 			adlast.MakeAll_Struct(
 				[]adlast.Ident{},
 				[]adlast.Field{
 					adlast.MakeAll_Field(
-						"id",
-						"id",
+						"fullname",
+						"fullname",
 						adlast.MakeAll_TypeExpr(
 							adlast.Make_TypeRef_reference(
 								adlast.MakeAll_ScopedName(
-									"protoapp.db",
-									"AppUserId",
+									"common.strings",
+									"StringNE",
 								),
 							),
 							[]adlast.TypeExpr{},
@@ -1235,23 +1434,14 @@ func AST_UserProfile() adlast.ScopedDecl {
 						customtypes.MapMap[adlast.ScopedName, any]{},
 					),
 					adlast.MakeAll_Field(
-						"fullname",
-						"fullname",
-						adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_primitive(
-								"String",
-							),
-							[]adlast.TypeExpr{},
-						),
-						types.Make_Maybe_nothing[any](),
-						customtypes.MapMap[adlast.ScopedName, any]{},
-					),
-					adlast.MakeAll_Field(
 						"email",
 						"email",
 						adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_primitive(
-								"String",
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"common.strings",
+									"EmailAddress",
+								),
 							),
 							[]adlast.TypeExpr{},
 						),
@@ -1280,7 +1470,386 @@ func AST_UserProfile() adlast.ScopedDecl {
 
 func init() {
 	goadl.RESOLVER.Register(
-		adlast.Make_ScopedName("protoapp.apis.cap", "UserProfile"),
-		AST_UserProfile(),
+		adlast.Make_ScopedName("protoapp.apis.cap", "User"),
+		AST_User(),
+	)
+}
+
+func Texpr_UserApiRequests() adlast.ATypeExpr[UserApiRequests] {
+	te := adlast.Make_TypeExpr(
+		adlast.Make_TypeRef_reference(
+			adlast.Make_ScopedName("protoapp.apis.cap", "UserApiRequests"),
+		),
+		[]adlast.TypeExpr{},
+	)
+	return adlast.Make_ATypeExpr[UserApiRequests](te)
+}
+
+func AST_UserApiRequests() adlast.ScopedDecl {
+	decl := adlast.MakeAll_Decl(
+		"UserApiRequests",
+		types.Make_Maybe_nothing[uint32](),
+		adlast.Make_DeclType_struct_(
+			adlast.MakeAll_Struct(
+				[]adlast.Ident{},
+				[]adlast.Field{
+					adlast.MakeAll_Field(
+						"create_user",
+						"create_user",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"common.capability",
+									"HttpPost",
+								),
+							),
+							[]adlast.TypeExpr{
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"protoapp.apis.cap",
+											"UserDetails",
+										),
+									),
+									[]adlast.TypeExpr{},
+								),
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"protoapp.db",
+											"AppUserId",
+										),
+									),
+									[]adlast.TypeExpr{},
+								),
+							},
+						),
+						types.Make_Maybe_just[any](
+							map[string]interface{}{"path": "/users/create"},
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Create a new user\n"},
+					),
+					adlast.MakeAll_Field(
+						"update_user",
+						"update_user",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"common.capability",
+									"HttpPost",
+								),
+							),
+							[]adlast.TypeExpr{
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"protoapp.apis.cap",
+											"WithId",
+										),
+									),
+									[]adlast.TypeExpr{
+										adlast.MakeAll_TypeExpr(
+											adlast.Make_TypeRef_reference(
+												adlast.MakeAll_ScopedName(
+													"protoapp.db",
+													"AppUserId",
+												),
+											),
+											[]adlast.TypeExpr{},
+										),
+										adlast.MakeAll_TypeExpr(
+											adlast.Make_TypeRef_reference(
+												adlast.MakeAll_ScopedName(
+													"protoapp.apis.cap",
+													"UserDetails",
+												),
+											),
+											[]adlast.TypeExpr{},
+										),
+									},
+								),
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"common.http",
+											"Unit",
+										),
+									),
+									[]adlast.TypeExpr{},
+								),
+							},
+						),
+						types.Make_Maybe_just[any](
+							map[string]interface{}{"path": "/users/update"},
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Update a user\n"},
+					),
+					adlast.MakeAll_Field(
+						"query_users",
+						"query_users",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"common.capability",
+									"HttpPost",
+								),
+							),
+							[]adlast.TypeExpr{
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"protoapp.apis.cap",
+											"QueryUsersReq",
+										),
+									),
+									[]adlast.TypeExpr{},
+								),
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"protoapp.apis.cap",
+											"Paginated",
+										),
+									),
+									[]adlast.TypeExpr{
+										adlast.MakeAll_TypeExpr(
+											adlast.Make_TypeRef_reference(
+												adlast.MakeAll_ScopedName(
+													"protoapp.apis.cap",
+													"UserWithId",
+												),
+											),
+											[]adlast.TypeExpr{},
+										),
+									},
+								),
+							},
+						),
+						types.Make_Maybe_just[any](
+							map[string]interface{}{"path": "/users/query"},
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Query users\n"},
+					),
+				},
+			),
+		),
+		customtypes.MapMap[adlast.ScopedName, any]{},
+	)
+	return adlast.Make_ScopedDecl("protoapp.apis.cap", decl)
+}
+
+func init() {
+	goadl.RESOLVER.Register(
+		adlast.Make_ScopedName("protoapp.apis.cap", "UserApiRequests"),
+		AST_UserApiRequests(),
+	)
+}
+
+func Texpr_UserDetails() adlast.ATypeExpr[UserDetails] {
+	te := adlast.Make_TypeExpr(
+		adlast.Make_TypeRef_reference(
+			adlast.Make_ScopedName("protoapp.apis.cap", "UserDetails"),
+		),
+		[]adlast.TypeExpr{},
+	)
+	return adlast.Make_ATypeExpr[UserDetails](te)
+}
+
+func AST_UserDetails() adlast.ScopedDecl {
+	decl := adlast.MakeAll_Decl(
+		"UserDetails",
+		types.Make_Maybe_nothing[uint32](),
+		adlast.Make_DeclType_struct_(
+			adlast.MakeAll_Struct(
+				[]adlast.Ident{},
+				[]adlast.Field{
+					adlast.MakeAll_Field(
+						"fullname",
+						"fullname",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"common.strings",
+									"StringNE",
+								),
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_nothing[any](),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+					adlast.MakeAll_Field(
+						"email",
+						"email",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"common.strings",
+									"EmailAddress",
+								),
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_nothing[any](),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+					adlast.MakeAll_Field(
+						"is_admin",
+						"is_admin",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_primitive(
+								"Bool",
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_nothing[any](),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+					adlast.MakeAll_Field(
+						"password",
+						"password",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"common.strings",
+									"Password",
+								),
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_nothing[any](),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+				},
+			),
+		),
+		customtypes.MapMap[adlast.ScopedName, any]{},
+	)
+	return adlast.Make_ScopedDecl("protoapp.apis.cap", decl)
+}
+
+func init() {
+	goadl.RESOLVER.Register(
+		adlast.Make_ScopedName("protoapp.apis.cap", "UserDetails"),
+		AST_UserDetails(),
+	)
+}
+
+func Texpr_UserWithId() adlast.ATypeExpr[UserWithId] {
+	te := adlast.Make_TypeExpr(
+		adlast.Make_TypeRef_reference(
+			adlast.Make_ScopedName("protoapp.apis.cap", "UserWithId"),
+		),
+		[]adlast.TypeExpr{},
+	)
+	return adlast.Make_ATypeExpr[UserWithId](te)
+}
+
+func AST_UserWithId() adlast.ScopedDecl {
+	decl := adlast.MakeAll_Decl(
+		"UserWithId",
+		types.Make_Maybe_nothing[uint32](),
+		adlast.Make_DeclType_type_(
+			adlast.MakeAll_TypeDef(
+				[]adlast.Ident{},
+				adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"protoapp.apis.cap",
+							"WithId",
+						),
+					),
+					[]adlast.TypeExpr{
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"protoapp.db",
+									"AppUserId",
+								),
+							),
+							[]adlast.TypeExpr{},
+						),
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"protoapp.apis.cap",
+									"User",
+								),
+							),
+							[]adlast.TypeExpr{},
+						),
+					},
+				),
+			),
+		),
+		customtypes.MapMap[adlast.ScopedName, any]{},
+	)
+	return adlast.Make_ScopedDecl("protoapp.apis.cap", decl)
+}
+
+func init() {
+	goadl.RESOLVER.Register(
+		adlast.Make_ScopedName("protoapp.apis.cap", "UserWithId"),
+		AST_UserWithId(),
+	)
+}
+
+func Texpr_WithId[I any, T any](i adlast.ATypeExpr[I], t adlast.ATypeExpr[T]) adlast.ATypeExpr[WithId[I, T]] {
+	te := adlast.Make_TypeExpr(
+		adlast.Make_TypeRef_reference(
+			adlast.Make_ScopedName("protoapp.apis.cap", "WithId"),
+		),
+		[]adlast.TypeExpr{i.Value, t.Value},
+	)
+	return adlast.Make_ATypeExpr[WithId[I, T]](te)
+}
+
+func AST_WithId() adlast.ScopedDecl {
+	decl := adlast.MakeAll_Decl(
+		"WithId",
+		types.Make_Maybe_nothing[uint32](),
+		adlast.Make_DeclType_struct_(
+			adlast.MakeAll_Struct(
+				[]adlast.Ident{
+					"I",
+					"T",
+				},
+				[]adlast.Field{
+					adlast.MakeAll_Field(
+						"id",
+						"id",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_typeParam(
+								"I",
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_nothing[any](),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+					adlast.MakeAll_Field(
+						"value",
+						"value",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_typeParam(
+								"T",
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_nothing[any](),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+				},
+			),
+		),
+		customtypes.MapMap[adlast.ScopedName, any]{},
+	)
+	return adlast.Make_ScopedDecl("protoapp.apis.cap", decl)
+}
+
+func init() {
+	goadl.RESOLVER.Register(
+		adlast.Make_ScopedName("protoapp.apis.cap", "WithId"),
+		AST_WithId(),
 	)
 }

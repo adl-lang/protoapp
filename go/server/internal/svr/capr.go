@@ -16,20 +16,24 @@ import (
 type accessTokenCapr struct {
 	tokener server.AccessTokener
 }
+type adminAccessTokenCapr struct {
+	tokener server.AccessTokener
+}
 type refreshTokenCapr struct {
 	tokener server.RefreshTokener
 }
 
 var _ capability.CapabilityRetriever[cap.AccessToken, cap.Capability] = &accessTokenCapr{}
+var _ capability.CapabilityRetriever[cap.AdminAccessToken, cap.Capability] = &adminAccessTokenCapr{}
 var _ capability.CapabilityRetriever[cap.RefreshToken, http2.Unit] = &refreshTokenCapr{}
 
 // Retrieve implements service.CapabilityRetriever.
-func (capr *accessTokenCapr) Retrieve(req *http.Request) (cp cap.Capability, token string, err error) {
-	token = req.Header.Get("Authorization")
+func (capr *accessTokenCapr) Retrieve(req *http.Request) (cp cap.Capability, token cap.AccessToken, err error) {
+	token = cap.AccessToken(req.Header.Get("Authorization"))
 	if token == "" {
 		return cp, token, fmt.Errorf("authorization not found")
 	}
-	parts := strings.Split(token, " ")
+	parts := strings.Split(string(token), " ")
 	if len(parts) != 2 {
 		fmt.Fprintf(os.Stderr, "Authorization header bad format '%s'\n", token)
 		return cp, token, fmt.Errorf("authorization not found")
@@ -48,6 +52,37 @@ func (capr *accessTokenCapr) Retrieve(req *http.Request) (cp cap.Capability, tok
 	now := time.Now()
 	fmt.Printf("claim %v\n", claims)
 	fmt.Printf("now %v\n", now.Unix())
+	return cap.Make_Capability(claims.Sub, []string{claims.Role}), token, nil
+}
+
+// Retrieve implements service.CapabilityRetriever.
+func (capr *adminAccessTokenCapr) Retrieve(req *http.Request) (cp cap.Capability, token cap.AdminAccessToken, err error) {
+	token = cap.AdminAccessToken(req.Header.Get("Authorization"))
+	if token == "" {
+		return cp, token, fmt.Errorf("authorization not found")
+	}
+	parts := strings.Split(string(token), " ")
+	if len(parts) != 2 {
+		fmt.Fprintf(os.Stderr, "Authorization header bad format '%s'\n", token)
+		return cp, token, fmt.Errorf("authorization not found")
+	}
+	if strings.ToLower(parts[0]) != "bearer" {
+		fmt.Fprintf(os.Stderr, "Authorization header bad format '%s'\n", token)
+		return cp, token, fmt.Errorf("authorization not found")
+	}
+	claims, err := capr.tokener.ParseAccessToken(parts[1])
+	if err != nil {
+		return cp, token, err
+	}
+	if claims.Sub == "" {
+		return cp, token, fmt.Errorf("'user-id' missing from claim")
+	}
+	now := time.Now()
+	fmt.Printf("claim %v\n", claims)
+	fmt.Printf("now %v\n", now.Unix())
+	if claims.Role != "admin" {
+		return cp, token, fmt.Errorf("role not admin")
+	}
 	return cap.Make_Capability(claims.Sub, []string{claims.Role}), token, nil
 }
 

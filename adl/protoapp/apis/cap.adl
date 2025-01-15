@@ -5,6 +5,7 @@ import common.capability.HttpPost;
 import common.capability.HttpGet;
 import common.capability.CapabilityApi;
 import common.time.Instant;
+import common.strings.EmailAddress;
 import common.strings.StringNE;
 import common.strings.StringML;
 import common.strings.Password;
@@ -13,24 +14,20 @@ import protoapp.db.AppUserId;
 import protoapp.db.MessageId;
 
 struct ApiRequests {
-
   /// AWS default compatible health check
   HttpGet<Unit> healthy = {
     "path": "/"
   };
-
   /// Test the server is live
   HttpPost<Unit, Unit> ping = {
     "path": "/ping"
   };
-
   /// Login a user
   ///
   /// The response will set an httpOnly cookie containing the refresh token
   HttpPost<LoginReq, LoginResp> login = {
     "path": "/login"
   };
-
   /// Clear the `refreshToken` cookie.
   HttpPost<Unit, Unit> logout = {
     "path": "/logout"
@@ -48,6 +45,11 @@ struct ApiRequests {
   CapabilityApi<RefreshToken,Unit,RefreshApiRequests> refreshTokenApi = {
     "service": {}
   };
+
+  /// Enpoints requiring a User
+  CapabilityApi<AdminAccessToken,Capability,UserApiRequests> userApi = {
+    "service": {}
+  };
 };
 
 struct AccessApiRequests {
@@ -55,15 +57,13 @@ struct AccessApiRequests {
   HttpPost<NewMessageReq, MessageId> newMessage = {
     "path": "/messages/new"
   };
-
   /// Get recent noticeboard messages
   HttpPost<RecentMessagesReq, Paginated<Message> > recentMessages = {
     "path": "/messages/recent"
   };
-
-  /// Gets the logged in user details
+  /// Gets info about the logged in user
   // NOTE: Fails with 401 if the token is invalid or user does not exist
-  HttpGet<UserProfile> whoAmI = {
+  HttpGet<UserWithId> who_am_i = {
     "path": "/whoami"
   };
 };
@@ -78,8 +78,25 @@ struct RefreshApiRequests {
   };
 };
 
-type AccessToken = StringNE;
-type RefreshToken = StringNE;
+struct UserApiRequests {
+  /// Create a new user
+  HttpPost<UserDetails, AppUserId> create_user = {
+    "path": "/users/create"
+  };
+  /// Update a user
+  HttpPost<WithId<AppUserId,UserDetails>, Unit> update_user = {
+    "path": "/users/update"
+  };
+  /// Query users
+  HttpPost<QueryUsersReq, Paginated<UserWithId>> query_users = {
+    "path": "/users/query"
+  };
+};
+
+newtype AccessToken = StringNE;
+newtype RefreshToken = StringNE;
+newtype AdminAccessToken = StringNE;
+
 struct Capability {
   String user_id;
   Vector<String> roles;
@@ -128,11 +145,36 @@ struct Message {
   StringML message;
 };
 
-struct UserProfile {
-  AppUserId id;
-  String fullname;
-  String email;
+struct QueryUsersReq {
+  PageReq page = {};
+};
+
+struct User {
+  StringNE fullname;
+  EmailAddress email;
   Bool is_admin;
+};
+
+type UserWithId = WithId<AppUserId, User>;
+
+struct UserDetails {
+  StringNE fullname;
+  EmailAddress email;
+  Bool is_admin;
+  Password password;
+};
+
+struct WithId<I,T> {
+ I id;
+ T value;
+};
+
+struct PageReq {
+  // Pagination offset
+  Word64 offset = 0;
+
+  // Max number of items to return
+  Word64 limit = 20;
 };
 
 /// A holder for paginated results
