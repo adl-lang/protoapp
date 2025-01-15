@@ -83,7 +83,7 @@ func (ts *tokenSvr) RecentMessages(ctx context.Context, cp cap.Capability, req c
 }
 
 // WhoAmI implements cap.AccessApiRequests_Service.
-func (ts *tokenSvr) WhoAmI(ctx context.Context, cp cap.Capability) (cap.UserProfile, error) {
+func (ts *tokenSvr) Who_am_i(ctx context.Context, cp cap.Capability) (cap.UserWithId, error) {
 	sp := postgres.Sql(db2.Texpr_AppUserTable().Value, "a", "").
 		WhereEqStr("id", cp.User_id)
 	sql, flds := sp.Select()
@@ -91,13 +91,15 @@ func (ts *tokenSvr) WhoAmI(ctx context.Context, cp cap.Capability) (cap.UserProf
 	user := db.WithId[db2.AppUser]{}
 	if err := ts.db.Get(&user, sql, flds...); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR select error %v\n", err)
-		return cap.UserProfile{}, err
+		return cap.UserWithId{}, err
 	}
-	return cap.Make_UserProfile(
+	return cap.Make_WithId(
 		db.DbKey[db2.AppUserTable](user.Id),
-		user.Value.Fullname,
-		user.Value.Email,
-		user.Value.Is_admin,
+		cap.Make_User(
+			user.Value.Fullname,
+			user.Value.Email,
+			user.Value.Is_admin,
+		),
 	), nil
 }
 

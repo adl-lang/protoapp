@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	goadl "github.com/adl-lang/goadl_rt/v3"
 	"github.com/adl-lang/goadl_rt/v3/sys/adlast"
@@ -33,24 +34,42 @@ func AdlPost[I any, O any](
 	req_dec := goadl.CreateJsonDecodeBinding(endpoint.ReqType, goadl.RESOLVER)
 	resp_enc := goadl.CreateJsonEncodeBinding(endpoint.RespType, goadl.RESOLVER)
 	endpoints.Set(endpoint.Path, &expvar.String{})
+	fmt.Printf("registering post %s\n", endpoint.Path)
 	serveMux.HandleFunc(endpoint.Path, func(w http.ResponseWriter, r *http.Request) {
-		var req I
-		err := req_dec.Decode(r.Body, &req)
+		fmt.Printf(">> post - %s\n", r.URL.Path)
+		var (
+			err  error
+			req  I
+			resp O
+		)
+		now := time.Now()
+		status := http.StatusOK
+		defer func() {
+			duration := time.Since(now).Round(time.Microsecond)
+			if err != nil {
+				fmt.Printf("<< post - %d %s took:%v error:%v\n", status, r.URL.Path, duration, err)
+			} else {
+				fmt.Printf("<< post - %d %s took:%v\n", status, r.URL.Path, duration)
+			}
+		}()
+		err = req_dec.Decode(r.Body, &req)
 		if err != nil {
+			status = http.StatusUnprocessableEntity
 			http.Error(w, fmt.Sprintf("error decoding body : %v", err), http.StatusUnprocessableEntity)
 			return
 		}
-
-		resp, err := fn(
+		resp, err = fn(
 			context.WithValue(context.WithValue(r.Context(), REQ_KEY, r), RESP_KEY, w),
 			req,
 		)
 		if err != nil {
+			status = http.StatusInternalServerError
 			http.Error(w, fmt.Sprintf("error : %v", err), http.StatusInternalServerError)
 			return
 		}
 		err = resp_enc.Encode(w, resp)
 		if err != nil {
+			status = http.StatusUnprocessableEntity
 			http.Error(w, fmt.Sprintf("error encoding body : %v", err), http.StatusUnprocessableEntity)
 			return
 		}
@@ -65,16 +84,34 @@ func AdlGet[O any](
 ) {
 	resp_enc := goadl.CreateJsonEncodeBinding(endpoint.RespType, goadl.RESOLVER)
 	endpoints.Set(endpoint.Path, &expvar.String{})
+	fmt.Printf("registering get %s\n", endpoint.Path)
 	serveMux.HandleFunc(endpoint.Path, func(w http.ResponseWriter, r *http.Request) {
-		resp, err := fn(
+		fmt.Printf(">> get - %s\n", r.URL.Path)
+		var (
+			err  error
+			resp O
+		)
+		status := http.StatusOK
+		now := time.Now()
+		defer func() {
+			duration := time.Since(now).Round(time.Microsecond)
+			if err != nil {
+				fmt.Printf("<< get - %d %s took:%v error:%v\n", status, r.URL.Path, duration, err)
+			} else {
+				fmt.Printf("<< get - %d %s took:%v\n", status, r.URL.Path, duration)
+			}
+		}()
+		resp, err = fn(
 			context.WithValue(context.WithValue(r.Context(), REQ_KEY, r), RESP_KEY, w),
 		)
 		if err != nil {
+			status = http.StatusInternalServerError
 			http.Error(w, fmt.Sprintf("error : %v", err), http.StatusInternalServerError)
 			return
 		}
 		err = resp_enc.Encode(w, resp)
 		if err != nil {
+			status = http.StatusUnprocessableEntity
 			http.Error(w, fmt.Sprintf("error encoding body : %v", err), http.StatusUnprocessableEntity)
 			return
 		}
@@ -97,29 +134,50 @@ func AdlCapPost[I any, O any, C any, S any, V any](
 		path = strings.ReplaceAll(path, "//", "/")
 	}
 	endpoints.Set(path, &expvar.String{})
+	fmt.Printf("registering post cap %s\n", path)
 	serveMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		cap, _, err := capf.Retrieve(r)
+		var (
+			cap  S
+			err  error
+			req  I
+			resp O
+		)
+		status := http.StatusOK
+		fmt.Printf(">> post cap - %s\n", r.URL.Path)
+		now := time.Now()
+		defer func() {
+			duration := time.Since(now).Round(time.Microsecond)
+			if err != nil {
+				fmt.Printf("<< post cap - %d %s took:%v error:%v\n", status, r.URL.Path, duration, err)
+			} else {
+				fmt.Printf("<< post cap - %d %s took:%v\n", status, r.URL.Path, duration)
+			}
+		}()
+		cap, _, err = capf.Retrieve(r)
 		if err != nil {
+			status = http.StatusUnauthorized
 			http.Error(w, fmt.Sprintf("%v", err), http.StatusUnauthorized)
 			return
 		}
-		var req I
 		err = req_dec.Decode(r.Body, &req)
 		if err != nil {
+			status = http.StatusUnprocessableEntity
 			http.Error(w, fmt.Sprintf("error decoding body : %v", err), http.StatusUnprocessableEntity)
 			return
 		}
-		resp, err := fn(
+		resp, err = fn(
 			context.WithValue(context.WithValue(r.Context(), REQ_KEY, r), RESP_KEY, w),
 			cap,
 			req,
 		)
 		if err != nil {
+			status = http.StatusInternalServerError
 			http.Error(w, fmt.Sprintf("error : %v", err), http.StatusInternalServerError)
 			return
 		}
 		err = resp_enc.Encode(w, resp)
 		if err != nil {
+			status = http.StatusUnprocessableEntity
 			http.Error(w, fmt.Sprintf("error encoding body : %v", err), http.StatusUnprocessableEntity)
 			return
 		}
@@ -161,22 +219,42 @@ func AdlCapGet[O any, C any, S any, V any](
 	// endpoints.Set(path, info)
 	// endpoints.Set(path, &expvar.String{})
 	endpoints.Set(path, expvar.Func(getinfo(endpoint.RespType.Value)))
+	fmt.Printf("registering get cap %s\n", path)
 	serveMux.HandleFunc(path, func(w http.ResponseWriter, r *http.Request) {
-		cap, _, err := capf.Retrieve(r)
+		var (
+			cap  S
+			err  error
+			resp O
+		)
+		now := time.Now()
+		status := http.StatusOK
+		fmt.Printf(">> get cap - %s\n", r.URL.Path)
+		defer func() {
+			duration := time.Since(now).Round(time.Microsecond)
+			if err != nil {
+				fmt.Printf("<< get cap - %d %s took:%v error:%v\n", status, r.URL.Path, duration, err)
+			} else {
+				fmt.Printf("<< get cap - %d %s took:%v\n", status, r.URL.Path, duration)
+			}
+		}()
+		cap, _, err = capf.Retrieve(r)
 		if err != nil {
+			status = http.StatusUnauthorized
 			http.Error(w, fmt.Sprintf("%v", err), http.StatusUnauthorized)
 			return
 		}
-		resp, err := fn(
+		resp, err = fn(
 			context.WithValue(context.WithValue(r.Context(), REQ_KEY, r), RESP_KEY, w),
 			cap,
 		)
 		if err != nil {
+			status = http.StatusInternalServerError
 			http.Error(w, fmt.Sprintf("error : %v", err), http.StatusInternalServerError)
 			return
 		}
 		err = resp_enc.Encode(w, resp)
 		if err != nil {
+			status = http.StatusUnprocessableEntity
 			http.Error(w, fmt.Sprintf("error encoding body : %v", err), http.StatusUnprocessableEntity)
 			return
 		}

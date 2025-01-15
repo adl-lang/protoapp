@@ -76,8 +76,14 @@ func (sc *srvCmd) Run() error {
 			access_tokener:  sc.Cfg,
 			// tokener: sc.Cfg,
 		},
+		userApi: &userSvr{
+			db: db,
+		},
 	}
 	acr := &accessTokenCapr{
+		tokener: sc.Cfg,
+	}
+	aacr := &adminAccessTokenCapr{
 		tokener: sc.Cfg,
 	}
 	rcr := &refreshTokenCapr{
@@ -90,6 +96,7 @@ func (sc *srvCmd) Run() error {
 		ps,
 		acr,
 		rcr,
+		aacr,
 	)
 	// cap_api.Register_TokenApi(&sc.mux, tcr, ts)
 	// cap_api.Register_AdminTokenApi(&sc.mux, ecr, es)
@@ -134,9 +141,7 @@ func (sc *srvCmd) Run() error {
 }
 
 func (sc *srvCmd) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf(">> %s\n", r.URL.Path)
 	sc.mux.ServeHTTP(w, r)
-	fmt.Printf("<< %s\n", r.URL.Path)
 }
 
 func registerDebugSvr(
