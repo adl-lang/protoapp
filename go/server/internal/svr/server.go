@@ -106,11 +106,19 @@ func (sc *srvCmd) Run() error {
 	}
 	g, gCtx := errgroup.WithContext(mainCtx)
 	g.Go(func() error {
-		l, err := net.Listen("tcp", sc.Cfg.Http_bind_addr)
+		l, err := net.Listen("tcp4", sc.Cfg.Http_bind_addr)
 		if err != nil {
 			return err
 		}
-		log.Printf("listening on http://%v", l.Addr())
+		log.Printf("tcp4 - listening on http://%v", l.Addr())
+		return svr.Serve(l)
+	})
+	g.Go(func() error {
+		l, err := net.Listen("tcp6", sc.Cfg.Http_bind_addr)
+		if err != nil {
+			return err
+		}
+		log.Printf("tcp6 - listening on http://%v", l.Addr())
 		return svr.Serve(l)
 	})
 	g.Go(func() error {

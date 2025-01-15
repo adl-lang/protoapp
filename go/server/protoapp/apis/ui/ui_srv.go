@@ -14,9 +14,12 @@ type ApiRequests_Service interface {
 	Login(ctx context.Context, req LoginReq) (LoginResp, error)
 	Refresh(ctx context.Context, req RefreshReq) (RefreshResp, error)
 	Logout(ctx context.Context, req http2.Unit) (http2.Unit, error)
-	NewMessage(ctx context.Context, req NewMessageReq) (db.MessageId, error)
-	RecentMessages(ctx context.Context, req RecentMessagesReq) (Paginated[Message], error)
-	WhoAmI(ctx context.Context) (UserProfile, error)
+	New_message(ctx context.Context, req NewMessageReq) (db.MessageId, error)
+	Recent_messages(ctx context.Context, req RecentMessagesReq) (Paginated[Message], error)
+	Who_am_i(ctx context.Context) (UserWithId, error)
+	Create_user(ctx context.Context, req UserDetails) (db.AppUserId, error)
+	Update_user(ctx context.Context, req WithId[db.AppUserId, UserDetails]) (http2.Unit, error)
+	Query_users(ctx context.Context, req QueryUsersReq) (Paginated[UserWithId], error)
 }
 
 func Register_ApiRequests(
@@ -29,7 +32,10 @@ func Register_ApiRequests(
 	http2.AdlPost(mux, reqs.Login, srv.Login)
 	http2.AdlPost(mux, reqs.Refresh, srv.Refresh)
 	http2.AdlPost(mux, reqs.Logout, srv.Logout)
-	http2.AdlPost(mux, reqs.NewMessage, srv.NewMessage)
-	http2.AdlPost(mux, reqs.RecentMessages, srv.RecentMessages)
-	http2.AdlGet(mux, reqs.WhoAmI, srv.WhoAmI)
+	http2.AdlPost(mux, reqs.New_message, srv.New_message)
+	http2.AdlPost(mux, reqs.Recent_messages, srv.Recent_messages)
+	http2.AdlGet(mux, reqs.Who_am_i, srv.Who_am_i)
+	http2.AdlPost(mux, reqs.Create_user, srv.Create_user)
+	http2.AdlPost(mux, reqs.Update_user, srv.Update_user)
+	http2.AdlPost(mux, reqs.Query_users, srv.Query_users)
 }

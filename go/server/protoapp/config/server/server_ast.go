@@ -287,6 +287,20 @@ func AST_ServerConfig() adlast.ScopedDecl {
 						customtypes.MapMap[adlast.ScopedName, any]{},
 					),
 					adlast.MakeAll_Field(
+						"db_connection_pool_size",
+						"db_connection_pool_size",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_primitive(
+								"Word32",
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_just[any](
+							20,
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+					adlast.MakeAll_Field(
 						"jwt_issuer",
 						"jwt_issuer",
 						adlast.MakeAll_TypeExpr(

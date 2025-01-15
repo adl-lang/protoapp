@@ -1,5 +1,5 @@
 {
-  "http_bind_addr": "0.0.0.0:8081",
+  "http_bind_addr": ":8081",
   "db": {
     "host": "localhost",
     "port": 5432,

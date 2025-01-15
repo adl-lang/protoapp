@@ -23,6 +23,7 @@ type _DbTable struct {
 	Uniqueness_constraints [][]string `json:"uniqueness_constraints"`
 	Extra_sql              []string   `json:"extra_sql"`
 	Label                  []string   `json:"label"`
+	Id_prefix              string     `json:"id_prefix"`
 }
 
 func MakeAll_DbTable(
@@ -31,6 +32,7 @@ func MakeAll_DbTable(
 	uniqueness_constraints [][]string,
 	extra_sql []string,
 	label []string,
+	id_prefix string,
 ) DbTable {
 	return DbTable{
 		_DbTable{
@@ -39,6 +41,7 @@ func MakeAll_DbTable(
 			Uniqueness_constraints: uniqueness_constraints,
 			Extra_sql:              extra_sql,
 			Label:                  label,
+			Id_prefix:              id_prefix,
 		},
 	}
 }
@@ -51,6 +54,7 @@ func Make_DbTable() DbTable {
 			Uniqueness_constraints: ((*DbTable)(nil)).Default_uniqueness_constraints(),
 			Extra_sql:              ((*DbTable)(nil)).Default_extra_sql(),
 			Label:                  ((*DbTable)(nil)).Default_label(),
+			Id_prefix:              ((*DbTable)(nil)).Default_id_prefix(),
 		},
 	}
 	return ret
@@ -70,6 +74,9 @@ func (*DbTable) Default_extra_sql() []string {
 }
 func (*DbTable) Default_label() []string {
 	return []string{}
+}
+func (*DbTable) Default_id_prefix() string {
+	return ""
 }
 
 type DbView struct {

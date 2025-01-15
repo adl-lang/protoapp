@@ -97,7 +97,7 @@ func (ts *tokenSvr) WhoAmI(ctx context.Context, cp cap.Capability) (cap.UserProf
 		db.DbKey[db2.AppUserTable](user.Id),
 		user.Value.Fullname,
 		user.Value.Email,
-		user.Value.IsAdmin,
+		user.Value.Is_admin,
 	), nil
 }
 
