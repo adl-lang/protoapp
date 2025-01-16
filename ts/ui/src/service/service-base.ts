@@ -40,7 +40,7 @@ export class ServiceBase {
   async requestAdl<O>(
     method: "get" | "post",
     path: string,
-    jsonArgs: {} | null,
+    jsonArgs: {} | null | undefined,
     respJB: JsonBinding<O>,
     authToken: string | undefined,
   ): Promise<O> {
@@ -54,7 +54,7 @@ export class ServiceBase {
       url: this.baseUrl + path,
       headers,
       method,
-      body: jsonArgs ? JSON.stringify(jsonArgs) : undefined
+      body: jsonArgs !== undefined ? JSON.stringify(jsonArgs) : undefined
     };
 
     // Make request
