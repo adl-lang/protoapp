@@ -7,7 +7,7 @@ import { Box, Button, Card, CircularProgress, Container, Divider, IconButton, Ty
 import { JSX, useMemo, useRef, useState } from "react";
 import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
-import { CompletedRequest, Endpoint, ExecutingRequest, HttpGetEndpoint, HttpPostEndpoint } from "./types";
+import { CompletedRequest, Endpoint, ExecutingRequest, HttpGetEndpoint, HttpPostEndpoint } from "./api-types";
 
 type ModalState = ChooseEndpoint | CreateRequest<unknown>;
 
