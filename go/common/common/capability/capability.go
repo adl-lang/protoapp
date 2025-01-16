@@ -11,80 +11,29 @@ type CapabilityApi[C any, S any, V any] struct {
 }
 
 type _CapabilityApi[C any, S any, V any] struct {
-	Cap_defn       CapabilityDefn[C, S] `json:"cap_defn"`
-	Service_prefix string               `json:"service_prefix"`
-	Service        V                    `json:"service"`
+	Token          adlast.ATypeExpr[C] `json:"token"`
+	Cap            adlast.ATypeExpr[S] `json:"cap"`
+	Service_prefix string              `json:"service_prefix"`
+	Service        V                   `json:"service"`
 }
 
 func MakeAll_CapabilityApi[C any, S any, V any](
-	cap_defn CapabilityDefn[C, S],
+	token adlast.ATypeExpr[C],
+	cap adlast.ATypeExpr[S],
 	service_prefix string,
 	service V,
 ) CapabilityApi[C, S, V] {
 	return CapabilityApi[C, S, V]{
 		_CapabilityApi[C, S, V]{
-			Cap_defn:       cap_defn,
+			Token:          token,
+			Cap:            cap,
 			Service_prefix: service_prefix,
 			Service:        service,
 		},
 	}
 }
 
-func Make_CapabilityApi[C any, S any, V any](
-	service V,
-) CapabilityApi[C, S, V] {
-	ret := CapabilityApi[C, S, V]{
-		_CapabilityApi[C, S, V]{
-			Cap_defn:       ((*CapabilityApi[C, S, V])(nil)).Default_cap_defn(),
-			Service_prefix: ((*CapabilityApi[C, S, V])(nil)).Default_service_prefix(),
-			Service:        service,
-		},
-	}
-	return ret
-}
-
-func (*CapabilityApi[C, S, V]) Default_cap_defn() CapabilityDefn[C, S] {
-	return MakeAll_CapabilityDefn[C, S](
-		adlast.Make_ATypeExpr[C](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_typeParam(
-				"C",
-			),
-			[]adlast.TypeExpr{},
-		)),
-		adlast.Make_ATypeExpr[S](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_typeParam(
-				"S",
-			),
-			[]adlast.TypeExpr{},
-		)),
-	)
-}
-func (*CapabilityApi[C, S, V]) Default_service_prefix() string {
-	return ""
-}
-
-type CapabilityDefn[C any, S any] struct {
-	_CapabilityDefn[C, S]
-}
-
-type _CapabilityDefn[C any, S any] struct {
-	Token adlast.ATypeExpr[C] `json:"token"`
-	Cap   adlast.ATypeExpr[S] `json:"cap"`
-}
-
-func MakeAll_CapabilityDefn[C any, S any](
-	token adlast.ATypeExpr[C],
-	cap adlast.ATypeExpr[S],
-) CapabilityDefn[C, S] {
-	return CapabilityDefn[C, S]{
-		_CapabilityDefn[C, S]{
-			Token: token,
-			Cap:   cap,
-		},
-	}
-}
-
-// struct CapabilityDefn contains at least one TypeToken, not generating Make_ funcs
+// struct CapabilityApi contains at least one TypeToken, not generating Make_ funcs
 
 type CapabilityToken[S any] struct {
 	_CapabilityToken[S]

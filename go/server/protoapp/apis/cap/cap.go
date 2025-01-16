@@ -264,26 +264,24 @@ func (*ApiRequests) Default_logout() capability.HttpPost[http.Unit, http.Unit] {
 }
 func (*ApiRequests) Default_accessTokenApi() capability.CapabilityApi[AccessToken, Capability, AccessApiRequests] {
 	return capability.MakeAll_CapabilityApi[AccessToken, Capability, AccessApiRequests](
-		capability.MakeAll_CapabilityDefn[AccessToken, Capability](
-			adlast.Make_ATypeExpr[AccessToken](adlast.MakeAll_TypeExpr(
-				adlast.Make_TypeRef_reference(
-					adlast.MakeAll_ScopedName(
-						"protoapp.apis.cap",
-						"AccessToken",
-					),
+		adlast.Make_ATypeExpr[AccessToken](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.cap",
+					"AccessToken",
 				),
-				[]adlast.TypeExpr{},
-			)),
-			adlast.Make_ATypeExpr[Capability](adlast.MakeAll_TypeExpr(
-				adlast.Make_TypeRef_reference(
-					adlast.MakeAll_ScopedName(
-						"protoapp.apis.cap",
-						"Capability",
-					),
+			),
+			[]adlast.TypeExpr{},
+		)),
+		adlast.Make_ATypeExpr[Capability](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.cap",
+					"Capability",
 				),
-				[]adlast.TypeExpr{},
-			)),
-		),
+			),
+			[]adlast.TypeExpr{},
+		)),
 		"",
 		MakeAll_AccessApiRequests(
 			capability.MakeAll_HttpPost[NewMessageReq, db.MessageId](
@@ -358,26 +356,24 @@ func (*ApiRequests) Default_accessTokenApi() capability.CapabilityApi[AccessToke
 }
 func (*ApiRequests) Default_refreshTokenApi() capability.CapabilityApi[RefreshToken, http.Unit, RefreshApiRequests] {
 	return capability.MakeAll_CapabilityApi[RefreshToken, http.Unit, RefreshApiRequests](
-		capability.MakeAll_CapabilityDefn[RefreshToken, http.Unit](
-			adlast.Make_ATypeExpr[RefreshToken](adlast.MakeAll_TypeExpr(
-				adlast.Make_TypeRef_reference(
-					adlast.MakeAll_ScopedName(
-						"protoapp.apis.cap",
-						"RefreshToken",
-					),
+		adlast.Make_ATypeExpr[RefreshToken](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.cap",
+					"RefreshToken",
 				),
-				[]adlast.TypeExpr{},
-			)),
-			adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
-				adlast.Make_TypeRef_reference(
-					adlast.MakeAll_ScopedName(
-						"common.http",
-						"Unit",
-					),
+			),
+			[]adlast.TypeExpr{},
+		)),
+		adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"common.http",
+					"Unit",
 				),
-				[]adlast.TypeExpr{},
-			)),
-		),
+			),
+			[]adlast.TypeExpr{},
+		)),
 		"",
 		MakeAll_RefreshApiRequests(
 			capability.MakeAll_HttpPost[RefreshReq, RefreshResp](
@@ -407,26 +403,24 @@ func (*ApiRequests) Default_refreshTokenApi() capability.CapabilityApi[RefreshTo
 }
 func (*ApiRequests) Default_userApi() capability.CapabilityApi[AdminAccessToken, Capability, UserApiRequests] {
 	return capability.MakeAll_CapabilityApi[AdminAccessToken, Capability, UserApiRequests](
-		capability.MakeAll_CapabilityDefn[AdminAccessToken, Capability](
-			adlast.Make_ATypeExpr[AdminAccessToken](adlast.MakeAll_TypeExpr(
-				adlast.Make_TypeRef_reference(
-					adlast.MakeAll_ScopedName(
-						"protoapp.apis.cap",
-						"AdminAccessToken",
-					),
+		adlast.Make_ATypeExpr[AdminAccessToken](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.cap",
+					"AdminAccessToken",
 				),
-				[]adlast.TypeExpr{},
-			)),
-			adlast.Make_ATypeExpr[Capability](adlast.MakeAll_TypeExpr(
-				adlast.Make_TypeRef_reference(
-					adlast.MakeAll_ScopedName(
-						"protoapp.apis.cap",
-						"Capability",
-					),
+			),
+			[]adlast.TypeExpr{},
+		)),
+		adlast.Make_ATypeExpr[Capability](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.cap",
+					"Capability",
 				),
-				[]adlast.TypeExpr{},
-			)),
-		),
+			),
+			[]adlast.TypeExpr{},
+		)),
 		"",
 		MakeAll_UserApiRequests(
 			capability.MakeAll_HttpPost[UserDetails, db.AppUserId](

@@ -22,17 +22,18 @@ import common.http.HttpRateLimit;
 /// S is the type of the server-side capability
 /// V is the type of the API struct requiring the capability
 struct CapabilityApi<C,S,V> {
-  CapabilityDefn<C,S> cap_defn = {};
+  TypeToken<C> token = null;
+  TypeToken<S> cap = null;
   String service_prefix = "";
   V service;
 };
 
-/// Used to annotation api field as an api call which creates a cap.
-/// more accurately, since generic types can be used as annotation type, used to create a type alias which is used as the annotation.
-struct CapabilityDefn<C,S> {
-  TypeToken<C> token = null;
-  TypeToken<S> cap = null;
-};
+// /// Used to annotation api field as an api call which creates a cap.
+// /// more accurately, since generic types can be used as annotation type, used to create a type alias which is used as the annotation.
+// struct CapabilityDefn<C,S> {
+//   TypeToken<C> token = null;
+//   TypeToken<S> cap = null;
+// };
 
 // note CapabilityToken is not yet used.
 // the idea is to use one of the other to generate stuff (fluent api or sequence diags, ...)

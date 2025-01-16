@@ -31,14 +31,11 @@ func AST_CapabilityApi() adlast.ScopedDecl {
 				},
 				[]adlast.Field{
 					adlast.MakeAll_Field(
-						"cap_defn",
-						"cap_defn",
+						"token",
+						"token",
 						adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_reference(
-								adlast.MakeAll_ScopedName(
-									"common.capability",
-									"CapabilityDefn",
-								),
+							adlast.Make_TypeRef_primitive(
+								"TypeToken",
 							),
 							[]adlast.TypeExpr{
 								adlast.MakeAll_TypeExpr(
@@ -47,6 +44,21 @@ func AST_CapabilityApi() adlast.ScopedDecl {
 									),
 									[]adlast.TypeExpr{},
 								),
+							},
+						),
+						types.Make_Maybe_just[any](
+							nil,
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+					adlast.MakeAll_Field(
+						"cap",
+						"cap",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_primitive(
+								"TypeToken",
+							),
+							[]adlast.TypeExpr{
 								adlast.MakeAll_TypeExpr(
 									adlast.Make_TypeRef_typeParam(
 										"S",
@@ -56,7 +68,7 @@ func AST_CapabilityApi() adlast.ScopedDecl {
 							},
 						),
 						types.Make_Maybe_just[any](
-							map[string]interface{}{},
+							nil,
 						),
 						customtypes.MapMap[adlast.ScopedName, any]{},
 					),
@@ -98,84 +110,6 @@ func init() {
 	goadl.RESOLVER.Register(
 		adlast.Make_ScopedName("common.capability", "CapabilityApi"),
 		AST_CapabilityApi(),
-	)
-}
-
-func Texpr_CapabilityDefn[C any, S any](c adlast.ATypeExpr[C], s adlast.ATypeExpr[S]) adlast.ATypeExpr[CapabilityDefn[C, S]] {
-	te := adlast.Make_TypeExpr(
-		adlast.Make_TypeRef_reference(
-			adlast.Make_ScopedName("common.capability", "CapabilityDefn"),
-		),
-		[]adlast.TypeExpr{c.Value, s.Value},
-	)
-	return adlast.Make_ATypeExpr[CapabilityDefn[C, S]](te)
-}
-
-func AST_CapabilityDefn() adlast.ScopedDecl {
-	decl := adlast.MakeAll_Decl(
-		"CapabilityDefn",
-		types.Make_Maybe_nothing[uint32](),
-		adlast.Make_DeclType_struct_(
-			adlast.MakeAll_Struct(
-				[]adlast.Ident{
-					"C",
-					"S",
-				},
-				[]adlast.Field{
-					adlast.MakeAll_Field(
-						"token",
-						"token",
-						adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_primitive(
-								"TypeToken",
-							),
-							[]adlast.TypeExpr{
-								adlast.MakeAll_TypeExpr(
-									adlast.Make_TypeRef_typeParam(
-										"C",
-									),
-									[]adlast.TypeExpr{},
-								),
-							},
-						),
-						types.Make_Maybe_just[any](
-							nil,
-						),
-						customtypes.MapMap[adlast.ScopedName, any]{},
-					),
-					adlast.MakeAll_Field(
-						"cap",
-						"cap",
-						adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_primitive(
-								"TypeToken",
-							),
-							[]adlast.TypeExpr{
-								adlast.MakeAll_TypeExpr(
-									adlast.Make_TypeRef_typeParam(
-										"S",
-									),
-									[]adlast.TypeExpr{},
-								),
-							},
-						),
-						types.Make_Maybe_just[any](
-							nil,
-						),
-						customtypes.MapMap[adlast.ScopedName, any]{},
-					),
-				},
-			),
-		),
-		customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Used to annotation api field as an api call which creates a cap.\nmore accurately, since generic types can be used as annotation type, used to create a type alias which is used as the annotation.\n"},
-	)
-	return adlast.Make_ScopedDecl("common.capability", decl)
-}
-
-func init() {
-	goadl.RESOLVER.Register(
-		adlast.Make_ScopedName("common.capability", "CapabilityDefn"),
-		AST_CapabilityDefn(),
 	)
 }
 
