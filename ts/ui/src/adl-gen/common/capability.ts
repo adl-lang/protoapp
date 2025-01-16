@@ -2,13 +2,13 @@
 
 import * as ADL from '@adllang/adl-runtime';
 import * as common_http from './http';
-import { makeTypeExpr, makeTypeRef } from '../sys/adlast';
+import * as AST from '../sys/adlast';
 
 /**
  * Used to create a field inside an API struct which represents a section of the api requiring a token.
  * C is the type of the client-side token
  * S is the type of the server-side capability
- * V is the type of the API struct requiring the capability
+ * V is the type of theAST API struct requiring the capability
  */
 export interface CapabilityApi<C, S, V> {
   cap_defn: CapabilityDefn<C, S>;
@@ -25,8 +25,8 @@ export function makeCapabilityApi<C, S, V>(
 ): CapabilityApi<C, S, V> {
   return {
     cap_defn: input.cap_defn === undefined ? {
-      token: ADL.makeATypeExpr(makeTypeExpr({ typeRef: makeTypeRef("typeParam", "C"), parameters: [] })),
-      cap: ADL.makeATypeExpr(makeTypeExpr({ typeRef: makeTypeRef("typeParam", "S"), parameters: [] }))
+      token: ADL.makeATypeExpr(AST.makeTypeExpr({ typeRef: AST.makeTypeRef("typeParam", "C"), parameters: [] })),
+      cap: ADL.makeATypeExpr(AST.makeTypeExpr({ typeRef: AST.makeTypeRef("typeParam", "S"), parameters: [] }))
     } : input.cap_defn,
     service_prefix: input.service_prefix === undefined ? "" : input.service_prefix,
     service: input.service,
