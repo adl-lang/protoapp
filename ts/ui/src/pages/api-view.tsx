@@ -1,6 +1,8 @@
-import { snHttpGet, snHttpPost, texprHttpGet, texprHttpPost } from "@/adl-gen/common/http";
+// import { snHttpGet, snHttpPost, texprHttpGet, texprHttpPost } from "@/adl-gen/common/http";
+import { snCapabilityApi, snHttpGet, snHttpPost, texprCapabilityApi, texprHttpGet, texprHttpPost } from "@/adl-gen/common/capability";
 
-import * as API from "@/adl-gen/protoapp/apis/ui";
+// import * as API from "@/adl-gen/protoapp/apis/ui";
+import * as CAP from "@/adl-gen/protoapp/apis/cap";
 import * as AST from "@/adl-gen/sys/adlast";
 import * as ADL from "@adllang/adl-runtime";
 
@@ -14,7 +16,7 @@ import { Json, createJsonBinding, scopedNamesEqual } from "@adllang/adl-runtime"
 import { Box, Container } from "@mui/material";
 import { useMemo } from "react";
 import { ApiWorkbenchPresent } from "./api-workbench";
-import { CompletedRequest, CompletedResponse, Endpoint, HttpGetEndpoint, HttpPostEndpoint } from "./api-types";
+import { Api, CompletedRequest, CompletedResponse, Endpoint, HttpEndpoint, HttpGetEndpoint, HttpPostEndpoint } from "./api-types";
 
 export function ApiWorkbench() {
   const appState = useAppState();
@@ -22,14 +24,18 @@ export function ApiWorkbench() {
   const jwt_decoded = authState.kind === 'auth' ? authState.auth.jwt_decoded : undefined;
 
   const endpoints = useMemo(() => {
-    const allEndpoints = getEndpoints(RESOLVER, API.texprApiRequests());
+    const allEndpoints = getEndpoints(RESOLVER, CAP.texprApiRequests());
 
-    // only show endpoints accessible for the current authstate
-    return allEndpoints.filter(ep =>
-      ep.security.kind === 'public' ||
-      ep.security.kind === 'token' && authState.kind == 'auth' ||
-      ep.security.kind === 'tokenWithRole' && jwt_decoded && ep.security.value === jwt_decoded.role
-    );
+    // // only show endpoints accessible for the current authstate
+    // return allEndpoints.filter(ep => {
+    //   if (ep.kind === 'api') {
+    //     return true
+    //   }
+    //   return ep.security.kind === 'public' ||
+    //     ep.security.kind === 'token' && authState.kind == 'auth' ||
+    //     ep.security.kind === 'tokenWithRole' && jwt_decoded && ep.security.value === jwt_decoded.role
+    // });
+    return allEndpoints;
   }, [authState]);
 
   return (
@@ -53,7 +59,7 @@ function updateAppState<I, O>(appState: AppState, endpoint: Endpoint, resp: O) {
   // All the endpoint handling is generic except for here, where we update the auth state when the
   // login or logout endpoints are called.
   switch (endpoint.name) {
-    case 'login': appState.setAuthStateFromLogin(resp as API.LoginResp); break;
+    case 'login': appState.setAuthStateFromLogin(resp as CAP.LoginResp); break;
     case 'logout': appState.logout(); break;
   }
 }
@@ -61,7 +67,7 @@ function updateAppState<I, O>(appState: AppState, endpoint: Endpoint, resp: O) {
 async function executeRequest<I>(
   service: ServiceBase,
   jwt: string | undefined,
-  endpoint: Endpoint,
+  endpoint: HttpEndpoint,
   startedAt: Date,
   req?: I,
   reqbody?: Json,
@@ -91,9 +97,12 @@ async function executeRequest<I>(
 }
 
 function getEndpoints<API>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<API>): Endpoint[] {
-  if (texpr.value.typeRef.kind !== 'reference' || texpr.value.parameters.length != 0) {
+  if (texpr.value.typeRef.kind !== 'reference') {
     throw new Error("API must be a monomorphic declaration");
   }
+  // if (texpr.value.typeRef.kind !== 'reference' || texpr.value.parameters.length != 0) {
+  //   throw new Error("API must be a monomorphic declaration");
+  // }
   const decl = resolver(texpr.value.typeRef.value);
   if (decl.decl.type_.kind !== 'struct_') {
     throw new Error("API must be a struct");
@@ -103,6 +112,9 @@ function getEndpoints<API>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<API>
   const endpoints: Endpoint[] = [];
   for (const f of struct.fields) {
     if (f.typeExpr.typeRef.kind === 'reference') {
+      if (scopedNamesEqual(f.typeExpr.typeRef.value, snCapabilityApi)) {
+        endpoints.push(getApiEndpoint(resolver, f))
+      }
       if (scopedNamesEqual(f.typeExpr.typeRef.value, snHttpPost)) {
         endpoints.push(getHttpPostEndpoint(resolver, f))
       }
@@ -112,6 +124,25 @@ function getEndpoints<API>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<API>
     }
   }
   return endpoints;
+}
+
+function getApiEndpoint<C,S,V>(resolver: ADL.DeclResolver, field: AST.Field): Api {
+  if (field.default.kind !== 'just') {
+    throw new Error("API endpoint must have a default value");
+  }
+  const texprC = ADL.makeATypeExpr<C>(field.typeExpr.parameters[0]);
+  const texprS = ADL.makeATypeExpr<S>(field.typeExpr.parameters[1]);
+  const texprV = ADL.makeATypeExpr<V>(field.typeExpr.parameters[2]);
+
+  // const jb = createJsonBinding(resolver, texprCapabilityApi(texprC, texprS, texprV));
+  // const capApi = jb.fromJson(field.default.value);
+
+  return {
+    kind: 'api',
+    name: field.name,
+    token: texprC,
+    endpoints: getEndpoints(resolver, texprV),
+  }
 }
 
 function getHttpPostEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field): HttpPostEndpoint<I, O> {
@@ -135,7 +166,7 @@ function getHttpPostEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field)
     name: field.name,
     path: httpPost.path,
     docString,
-    security: httpPost.security,
+    // security: httpPost.security,
     veditorI,
     veditorO,
     jsonBindingI,
@@ -161,7 +192,7 @@ function getHttpGetEndpoint<O>(resolver: ADL.DeclResolver, field: AST.Field): Ht
     name: field.name,
     path: httpGet.path,
     docString,
-    security: httpGet.security,
+    // security: httpGet.security,
     veditorO,
     jsonBindingO,
   }

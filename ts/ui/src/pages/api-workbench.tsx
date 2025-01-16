@@ -7,7 +7,7 @@ import { Box, Button, Card, CircularProgress, Container, Divider, IconButton, Ty
 import { JSX, useMemo, useRef, useState } from "react";
 import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
-import { CompletedRequest, Endpoint, ExecutingRequest, HttpGetEndpoint, HttpPostEndpoint } from "./api-types";
+import { CompletedRequest, Endpoint, ExecutingRequest, HttpEndpoint, HttpGetEndpoint, HttpPostEndpoint } from "./api-types";
 
 type ModalState = ChooseEndpoint | CreateRequest<unknown>;
 
@@ -24,16 +24,17 @@ interface CreateRequest<I> {
 
 interface ApiWorkbenchPresentProps {
   endpoints: Endpoint[],
-  executeRequest: (endpoint: Endpoint, startedAt: Date, req?: unknown, reqbody?: Json) => Promise<CompletedRequest>
-  updateAppState: (endpoint: Endpoint, resp: unknown) => void
+  executeRequest: (endpoint: HttpEndpoint, startedAt: Date, req?: unknown, reqbody?: Json) => Promise<CompletedRequest>
+  updateAppState: (endpoint: HttpEndpoint, resp: unknown) => void
 }
 export function ApiWorkbenchPresent(props: ApiWorkbenchPresentProps) {
+  console.log(props.endpoints)
   const [currentRequest, setCurrentRequest] = useState<ExecutingRequest>();
   const [prevRequests, setPrevRequests] = useState<CompletedRequest[]>([]);
   const [modal, setModal] = useState<ModalState | undefined>();
   const newRequestButtonRef = useRef<HTMLDivElement | null>(null);
 
-  async function execute(endpoint: Endpoint, req?: unknown) {
+  async function execute(endpoint: HttpEndpoint, req?: unknown) {
     setModal(undefined);
     const startedAt = new Date();
     setCurrentRequest({ startedAt, endpoint, req });
@@ -134,17 +135,27 @@ function ModalChooseEndpoint(props: {
       <div>
         <div>Select an endpoint:</div>
         <Divider sx={{ marginTop: "10px", marginBottom: "10px" }} />
-        {props.endpoints.map((e, i) =>
-          <Box key={i} sx={{ marginTop: "20px", marginBottom: "20px" }}>
-            <Button onClick={() => props.choose(e)}>
-              {e.name}
-            </Button>
-            <Typography>{e.docString}</Typography>
-          </Box>
-        )}
+        {props.endpoints.map((e, i) => {
+          if (e.kind === 'api') {
+            return <div>API: {e.name}</div>;
+          }
+          return <HttpEndpointView key={i} endpoint={e} choose={props.choose}/>
+        })}
       </div>
     </Modal>
   );
+}
+
+function HttpEndpointView(props: {
+  endpoint: HttpEndpoint;
+  choose: (e: Endpoint) => void,
+}) {
+  return <Box sx={{ marginTop: "20px", marginBottom: "20px" }}>
+    <Button onClick={() => props.choose(props.endpoint)}>
+      {props.endpoint.name}
+    </Button>
+    <Typography>{props.endpoint.docString}</Typography>
+  </Box>;
 }
 
 function ModalCreatePostRequest<I, O>(props: {
