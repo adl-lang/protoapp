@@ -15,6 +15,7 @@ type _CapabilityApi[C any, S any, V any] struct {
 	Cap            adlast.ATypeExpr[S] `json:"cap"`
 	Service_prefix string              `json:"service_prefix"`
 	Service        V                   `json:"service"`
+	Name           string              `json:"name"`
 }
 
 func MakeAll_CapabilityApi[C any, S any, V any](
@@ -22,6 +23,7 @@ func MakeAll_CapabilityApi[C any, S any, V any](
 	cap adlast.ATypeExpr[S],
 	service_prefix string,
 	service V,
+	name string,
 ) CapabilityApi[C, S, V] {
 	return CapabilityApi[C, S, V]{
 		_CapabilityApi[C, S, V]{
@@ -29,6 +31,7 @@ func MakeAll_CapabilityApi[C any, S any, V any](
 			Cap:            cap,
 			Service_prefix: service_prefix,
 			Service:        service,
+			Name:           name,
 		},
 	}
 }

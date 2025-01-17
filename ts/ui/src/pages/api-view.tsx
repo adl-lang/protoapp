@@ -17,6 +17,7 @@ import { Box, Container } from "@mui/material";
 import { useMemo } from "react";
 import { ApiWorkbenchPresent } from "./api-workbench";
 import { Api, CompletedRequest, CompletedResponse, Endpoint, HttpEndpoint, HttpGetEndpoint, HttpPostEndpoint } from "./api-types";
+import { LoginResp } from "@/adl-gen/protoapp/apis/types";
 
 export function ApiWorkbench() {
   const appState = useAppState();
@@ -59,7 +60,7 @@ function updateAppState<I, O>(appState: AppState, endpoint: Endpoint, resp: O) {
   // All the endpoint handling is generic except for here, where we update the auth state when the
   // login or logout endpoints are called.
   switch (endpoint.name) {
-    case 'login': appState.setAuthStateFromLogin(resp as CAP.LoginResp); break;
+    case 'login': appState.setAuthStateFromLogin(resp as LoginResp); break;
     case 'logout': appState.logout(); break;
   }
 }
@@ -123,6 +124,7 @@ function getEndpoints<API>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<API>
       }
     }
   }
+  console.log(endpoints);
   return endpoints;
 }
 
@@ -134,13 +136,15 @@ function getApiEndpoint<C,S,V>(resolver: ADL.DeclResolver, field: AST.Field): Ap
   const texprS = ADL.makeATypeExpr<S>(field.typeExpr.parameters[1]);
   const texprV = ADL.makeATypeExpr<V>(field.typeExpr.parameters[2]);
 
-  // const jb = createJsonBinding(resolver, texprCapabilityApi(texprC, texprS, texprV));
-  // const capApi = jb.fromJson(field.default.value);
+  const jb = createJsonBinding(resolver, texprCapabilityApi(texprC, texprS, texprV));
+  const capApi = jb.fromJson(field.default.value);
+  const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
 
   return {
     kind: 'api',
-    name: field.name,
+    name: capApi.name === "" ? field.name : capApi.name,
     token: texprC,
+    docString,
     endpoints: getEndpoints(resolver, texprV),
   }
 }

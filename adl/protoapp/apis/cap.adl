@@ -13,6 +13,17 @@ import common.strings.Password;
 import protoapp.db.AppUserId;
 import protoapp.db.MessageId;
 
+import protoapp.apis.types.*;
+
+newtype AccessToken = StringNE;
+newtype RefreshToken = StringNE;
+newtype AdminAccessToken = StringNE;
+
+struct Capability {
+  String user_id;
+  Vector<String> roles;
+};
+
 struct ApiRequests {
   /// AWS default compatible health check
   HttpGet<Unit> healthy = {
@@ -33,22 +44,24 @@ struct ApiRequests {
     "path": "/logout"
   };
 
-  /// Enpoints requiring an AccessToken
+  /// API endpoints accessible when logged in
   CapabilityApi<AccessToken,Capability,AccessApiRequests> accessTokenApi = {
-    "service": {}
+    "service": {},
+    "name": "Logged-in API"
   };
 
-  /// Enpoints requiring a RefreshToken
-  ///
-  /// This is a simple refresh model, hence the Unit as the S type.
-  /// If a more complex model (eg. with user blacklisting) was required the S payload would be different
+  // This is a simple refresh model, hence the Unit as the S type.
+  // If a more complex model (eg. with user blacklisting) was required the S payload would be different
+  /// API Enpoint used to refresh the access token
   CapabilityApi<RefreshToken,Unit,RefreshApiRequests> refreshTokenApi = {
-    "service": {}
+    "service": {},
+    "name": "Refresh Token API"
   };
 
-  /// Enpoints requiring a User
+  /// API endpoints accessible when logged in as admin
   CapabilityApi<AdminAccessToken,Capability,UserApiRequests> userApi = {
-    "service": {}
+    "service": {},
+    "name": "User Admin API"
   };
 };
 
@@ -91,103 +104,6 @@ struct UserApiRequests {
   HttpPost<QueryUsersReq, Paginated<UserWithId>> query_users = {
     "path": "/users/query"
   };
-};
-
-newtype AccessToken = StringNE;
-newtype RefreshToken = StringNE;
-newtype AdminAccessToken = StringNE;
-
-struct Capability {
-  String user_id;
-  Vector<String> roles;
-};
-
-struct LoginReq {
-  StringNE email;
-  Password password;
-};
-
-union LoginResp {
-  LoginTokens tokens;
-  Void invalid_credentials;
-};
-
-struct RefreshReq {
-  Nullable<StringNE> refresh_token = null;
-};
-
-union RefreshResp {
-  StringNE access_token;
-  Void invalid_refresh_token;
-};
-
-struct LoginTokens {
-  StringNE access_jwt;
-  StringNE refresh_jwt;
-};
-
-struct NewMessageReq {
-  StringML message;
-};
-
-struct RecentMessagesReq {
-  // Pagination offset
-  Word32 offset = 0;
-
-  // Max number of items to return
-  Word32 limit = 20;
-};
-
-struct Message {
-  MessageId id;
-  Instant posted_at;
-  String user_fullname;
-  StringML message;
-};
-
-struct QueryUsersReq {
-  PageReq page = {};
-};
-
-struct User {
-  StringNE fullname;
-  EmailAddress email;
-  Bool is_admin;
-};
-
-type UserWithId = WithId<AppUserId, User>;
-
-struct UserDetails {
-  StringNE fullname;
-  EmailAddress email;
-  Bool is_admin;
-  Password password;
-};
-
-struct WithId<I,T> {
- I id;
- T value;
-};
-
-struct PageReq {
-  // Pagination offset
-  Word64 offset = 0;
-
-  // Max number of items to return
-  Word64 limit = 20;
-};
-
-/// A holder for paginated results
-struct Paginated<T> {
-
-  /// The paginated items
-  Vector<T> items;
-
-  /// The offset used for this query
-  Word32 current_offset;
-
-  /// The size of the entire date set
-  Word32 total_count;
 };
 
 };

@@ -10,6 +10,7 @@ import (
 	http2 "github.com/adl-lang/goadl_common/common/http"
 	"github.com/adl-lang/goadl_common/common/sql/postgres"
 	"github.com/adl-lang/goadl_protoapp/protoapp/apis/cap"
+	"github.com/adl-lang/goadl_protoapp/protoapp/apis/types"
 	"github.com/adl-lang/goadl_protoapp/protoapp/config/server"
 	db2 "github.com/adl-lang/goadl_protoapp/protoapp/db"
 
@@ -23,7 +24,7 @@ type refreshSvr struct {
 }
 
 // Refresh implements cap.RefreshApiRequests_Service.
-func (rs *refreshSvr) Refresh(ctx context.Context, cp http2.Unit, req cap.RefreshReq) (resp cap.RefreshResp, rerr error) {
+func (rs *refreshSvr) Refresh(ctx context.Context, cp http2.Unit, req types.RefreshReq) (resp types.RefreshResp, rerr error) {
 	hr := ctx.Value(capability.REQ_KEY).(*http.Request)
 	var refresh_token string
 	if req.Refresh_token != nil {
@@ -50,7 +51,7 @@ func (rs *refreshSvr) Refresh(ctx context.Context, cp http2.Unit, req cap.Refres
 	user := db2.AppUserTable{}
 	if err := rs.db.Get(&user, sql, flds...); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR %v\n", err)
-		return cap.Make_RefreshResp_invalid_refresh_token(), nil
+		return types.Make_RefreshResp_invalid_refresh_token(), nil
 	}
 	role := ""
 	if user.Value.Is_admin {
@@ -59,9 +60,9 @@ func (rs *refreshSvr) Refresh(ctx context.Context, cp http2.Unit, req cap.Refres
 	accesstoken, err := rs.access_tokener.CreateAccessToken(claims.Sub, role)
 	if err != nil {
 		fmt.Printf("error signing accesstoken: %v\n", err)
-		return cap.Make_RefreshResp_invalid_refresh_token(), nil
+		return types.Make_RefreshResp_invalid_refresh_token(), nil
 	}
-	resp = cap.Make_RefreshResp_access_token(accesstoken)
+	resp = types.Make_RefreshResp_access_token(accesstoken)
 	return
 }
 

@@ -9,6 +9,7 @@ export type HttpEndpoint = HttpPostEndpoint<unknown, unknown> | HttpGetEndpoint<
 
 export interface Api {
   name: string;
+  docString: string,
   kind: 'api';
   token: ADL.ATypeExpr<unknown>;
   endpoints: Endpoint[];

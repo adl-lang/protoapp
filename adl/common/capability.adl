@@ -26,6 +26,7 @@ struct CapabilityApi<C,S,V> {
   TypeToken<S> cap = null;
   String service_prefix = "";
   V service;
+  String name = "";
 };
 
 // /// Used to annotation api field as an api call which creates a cap.

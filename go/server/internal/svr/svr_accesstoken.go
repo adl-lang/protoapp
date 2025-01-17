@@ -14,6 +14,7 @@ import (
 	"github.com/adl-lang/goadl_common/common/db"
 	"github.com/adl-lang/goadl_common/common/sql/postgres"
 	"github.com/adl-lang/goadl_protoapp/protoapp/apis/cap"
+	"github.com/adl-lang/goadl_protoapp/protoapp/apis/types"
 	db2 "github.com/adl-lang/goadl_protoapp/protoapp/db"
 	"github.com/jmoiron/sqlx"
 )
@@ -23,7 +24,7 @@ type tokenSvr struct {
 }
 
 // NewMessage implements cap.AccessApiRequests_Service.
-func (ts *tokenSvr) NewMessage(ctx context.Context, cp cap.Capability, req cap.NewMessageReq) (resp db.DbKey[db2.MessageTable], err error) {
+func (ts *tokenSvr) NewMessage(ctx context.Context, cp cap.Capability, req types.NewMessageReq) (resp db.DbKey[db2.MessageTable], err error) {
 	msg := db.Make_WithId(
 		db.RandKey("M-"),
 		db2.Make_Message(
@@ -44,14 +45,14 @@ func (ts *tokenSvr) NewMessage(ctx context.Context, cp cap.Capability, req cap.N
 }
 
 // RecentMessages implements cap.AccessApiRequests_Service.
-func (ts *tokenSvr) RecentMessages(ctx context.Context, cp cap.Capability, req cap.RecentMessagesReq) (resp cap.Paginated[cap.Message], resp_err error) {
+func (ts *tokenSvr) RecentMessages(ctx context.Context, cp cap.Capability, req types.RecentMessagesReq) (resp types.Paginated[types.Message], resp_err error) {
 	tbl := postgres.Sql(db2.Texpr_MessageTable().Value, "a", "")
 	sql, flds := tbl.
-		Limit(uint64(req.Limit)).
-		Offset(uint64(req.Offset)).
+		Limit(uint64(req.Page.Limit)).
+		Offset(uint64(req.Page.Offset)).
 		Select()
 	mts := []db2.MessageTable{}
-	var total uint32
+	var total uint64
 
 	eg := errgroup.Group{}
 	eg.Go(func() error {
@@ -71,19 +72,19 @@ func (ts *tokenSvr) RecentMessages(ctx context.Context, cp cap.Capability, req c
 	if err := eg.Wait(); err != nil {
 		return resp, fmt.Errorf("internal error")
 	}
-	msgs := lo.Map[db2.MessageTable, cap.Message](mts, func(item db2.MessageTable, index int) cap.Message {
-		return cap.Make_Message(
+	msgs := lo.Map[db2.MessageTable, types.Message](mts, func(item db2.MessageTable, index int) types.Message {
+		return types.Make_Message(
 			db.DbKey[db2.MessageTable](item.Id),
 			item.Value.Posted_at,
 			string(item.Value.Posted_by),
 			item.Value.Message,
 		)
 	})
-	return cap.Make_Paginated(msgs, uint32(req.Offset), total), nil
+	return types.Make_Paginated(msgs, req.Page.Offset, total), nil
 }
 
 // WhoAmI implements cap.AccessApiRequests_Service.
-func (ts *tokenSvr) Who_am_i(ctx context.Context, cp cap.Capability) (cap.UserWithId, error) {
+func (ts *tokenSvr) Who_am_i(ctx context.Context, cp cap.Capability) (types.UserWithId, error) {
 	sp := postgres.Sql(db2.Texpr_AppUserTable().Value, "a", "").
 		WhereEqStr("id", cp.User_id)
 	sql, flds := sp.Select()
@@ -91,11 +92,11 @@ func (ts *tokenSvr) Who_am_i(ctx context.Context, cp cap.Capability) (cap.UserWi
 	user := db.WithId[db2.AppUser]{}
 	if err := ts.db.Get(&user, sql, flds...); err != nil {
 		fmt.Fprintf(os.Stderr, "ERROR select error %v\n", err)
-		return cap.UserWithId{}, err
+		return types.UserWithId{}, err
 	}
-	return cap.Make_WithId(
+	return types.Make_WithId(
 		db.DbKey[db2.AppUserTable](user.Id),
-		cap.Make_User(
+		types.Make_User(
 			user.Value.Fullname,
 			user.Value.Email,
 			user.Value.Is_admin,

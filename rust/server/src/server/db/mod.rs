@@ -104,7 +104,7 @@ pub async fn query_users(
     pool: &DbPool,
     offset: u64,
     limit: u64,
-) -> sqlx::Result<Vec<apis::ui::UserWithId>> {
+) -> sqlx::Result<Vec<apis::types::UserWithId>> {
     type T = schema::AppUser;
     let (sql, values) = Query::select()
         .from(T::table())
@@ -116,9 +116,9 @@ pub async fn query_users(
         .limit(limit)
         .build_sqlx(PostgresQueryBuilder);
     let users = sqlx::query_with(&sql, values)
-        .map(|r| apis::ui::UserWithId {
+        .map(|r| apis::types::UserWithId {
             id: T::id().from_row(&r),
-            value: apis::ui::User {
+            value: apis::types::User {
                 fullname: T::fullname().from_row(&r),
                 email: T::email().from_row(&r),
                 is_admin: T::is_admin().from_row(&r),
@@ -174,7 +174,7 @@ pub async fn recent_messages(
     pool: &DbPool,
     offset: u64,
     limit: u64,
-) -> sqlx::Result<Vec<apis::ui::Message>> {
+) -> sqlx::Result<Vec<apis::types::Message>> {
     type U = schema::AppUser;
     type M = schema::Message;
     let (sql, values) = Query::select()
@@ -190,7 +190,7 @@ pub async fn recent_messages(
         .build_sqlx(PostgresQueryBuilder);
 
     let messages = sqlx::query_with(&sql, values.clone())
-        .map(|r| apis::ui::Message {
+        .map(|r| apis::types::Message {
             id: M::id().from_row(&r),
             posted_at: M::posted_at().from_row(&r),
             message: M::message().from_row(&r),

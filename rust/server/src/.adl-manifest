@@ -11,6 +11,7 @@ adl/gen/common/time.rs
 adl/gen/common/ui.rs
 adl/gen/mod.rs
 adl/gen/protoapp/apis/mod.rs
+adl/gen/protoapp/apis/types.rs
 adl/gen/protoapp/apis/ui.rs
 adl/gen/protoapp/config/mod.rs
 adl/gen/protoapp/config/server.rs

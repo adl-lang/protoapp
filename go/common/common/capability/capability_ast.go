@@ -98,6 +98,20 @@ func AST_CapabilityApi() adlast.ScopedDecl {
 						types.Make_Maybe_nothing[any](),
 						customtypes.MapMap[adlast.ScopedName, any]{},
 					),
+					adlast.MakeAll_Field(
+						"name",
+						"name",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_primitive(
+								"String",
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_just[any](
+							"",
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
 				},
 			),
 		),

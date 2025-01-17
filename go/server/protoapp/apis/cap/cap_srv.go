@@ -5,6 +5,7 @@ import (
 	"context"
 	"github.com/adl-lang/goadl_common/common/capability"
 	http2 "github.com/adl-lang/goadl_common/common/http"
+	"github.com/adl-lang/goadl_protoapp/protoapp/apis/types"
 	"github.com/adl-lang/goadl_protoapp/protoapp/db"
 	"net/http"
 )
@@ -12,7 +13,7 @@ import (
 type ApiRequests_Service interface {
 	Healthy(ctx context.Context) (http2.Unit, error)
 	Ping(ctx context.Context, req http2.Unit) (http2.Unit, error)
-	Login(ctx context.Context, req LoginReq) (LoginResp, error)
+	Login(ctx context.Context, req types.LoginReq) (types.LoginResp, error)
 	Logout(ctx context.Context, req http2.Unit) (http2.Unit, error)
 	GetAccessTokenApi() AccessApiRequests_Service[AccessToken, Capability]
 	GetRefreshTokenApi() RefreshApiRequests_Service[RefreshToken, http2.Unit]
@@ -52,9 +53,9 @@ func Register_ApiRequests(
 }
 
 type AccessApiRequests_Service[C any, S any] interface {
-	NewMessage(ctx context.Context, cp S, req NewMessageReq) (db.MessageId, error)
-	RecentMessages(ctx context.Context, cp S, req RecentMessagesReq) (Paginated[Message], error)
-	Who_am_i(ctx context.Context, cp S) (UserWithId, error)
+	NewMessage(ctx context.Context, cp S, req types.NewMessageReq) (db.MessageId, error)
+	RecentMessages(ctx context.Context, cp S, req types.RecentMessagesReq) (types.Paginated[types.Message], error)
+	Who_am_i(ctx context.Context, cp S) (types.UserWithId, error)
 }
 
 func Register_AccessApiRequests[C any, S any](
@@ -70,7 +71,7 @@ func Register_AccessApiRequests[C any, S any](
 }
 
 type RefreshApiRequests_Service[C any, S any] interface {
-	Refresh(ctx context.Context, cp S, req RefreshReq) (RefreshResp, error)
+	Refresh(ctx context.Context, cp S, req types.RefreshReq) (types.RefreshResp, error)
 }
 
 func Register_RefreshApiRequests[C any, S any](
@@ -84,9 +85,9 @@ func Register_RefreshApiRequests[C any, S any](
 }
 
 type UserApiRequests_Service[C any, S any] interface {
-	Create_user(ctx context.Context, cp S, req UserDetails) (db.AppUserId, error)
-	Update_user(ctx context.Context, cp S, req WithId[db.AppUserId, UserDetails]) (http2.Unit, error)
-	Query_users(ctx context.Context, cp S, req QueryUsersReq) (Paginated[UserWithId], error)
+	Create_user(ctx context.Context, cp S, req types.UserDetails) (db.AppUserId, error)
+	Update_user(ctx context.Context, cp S, req types.WithId[db.AppUserId, types.UserDetails]) (http2.Unit, error)
+	Query_users(ctx context.Context, cp S, req types.QueryUsersReq) (types.Paginated[types.UserWithId], error)
 }
 
 func Register_UserApiRequests[C any, S any](

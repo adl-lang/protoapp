@@ -6,7 +6,7 @@ use sqlx::Executor;
 
 use crate::adl::gen::common::http::{HttpGet, HttpPost};
 use crate::adl::gen::protoapp::apis;
-use crate::adl::gen::protoapp::apis::ui::LoginReq;
+use crate::adl::gen::protoapp::apis::types::LoginReq;
 use crate::adl::gen::protoapp::config::server::{DbConnectionConfig, ServerConfig};
 use crate::server::passwords::hash_password;
 
@@ -178,9 +178,9 @@ pub async fn create_test_user(
 }
 
 pub async fn login_user(login_req: &LoginReq) -> String {
-    let resp = server_public_request(apis::ui::ApiRequests::def_login(), login_req).await;
+    let resp = server_public_request(apis::types::ApiRequests::def_login(), login_req).await;
     match resp {
-        apis::ui::LoginResp::Tokens(tokens) => tokens.access_jwt,
-        apis::ui::LoginResp::InvalidCredentials => panic!("invalid credentials"),
+        apis::types::LoginResp::Tokens(tokens) => tokens.access_jwt,
+        apis::types::LoginResp::InvalidCredentials => panic!("invalid credentials"),
     }
 }

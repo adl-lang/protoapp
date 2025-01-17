@@ -7,7 +7,7 @@ import { Box, Button, Card, CircularProgress, Container, Divider, IconButton, Ty
 import { JSX, useMemo, useRef, useState } from "react";
 import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
-import { CompletedRequest, Endpoint, ExecutingRequest, HttpEndpoint, HttpGetEndpoint, HttpPostEndpoint } from "./api-types";
+import { Api, CompletedRequest, Endpoint, ExecutingRequest, HttpEndpoint, HttpGetEndpoint, HttpPostEndpoint } from "./api-types";
 
 type ModalState = ChooseEndpoint | CreateRequest<unknown>;
 
@@ -28,7 +28,6 @@ interface ApiWorkbenchPresentProps {
   updateAppState: (endpoint: HttpEndpoint, resp: unknown) => void
 }
 export function ApiWorkbenchPresent(props: ApiWorkbenchPresentProps) {
-  console.log(props.endpoints)
   const [currentRequest, setCurrentRequest] = useState<ExecutingRequest>();
   const [prevRequests, setPrevRequests] = useState<CompletedRequest[]>([]);
   const [modal, setModal] = useState<ModalState | undefined>();
@@ -136,14 +135,34 @@ function ModalChooseEndpoint(props: {
         <div>Select an endpoint:</div>
         <Divider sx={{ marginTop: "10px", marginBottom: "10px" }} />
         {props.endpoints.map((e, i) => {
-          if (e.kind === 'api') {
-            return <div>API: {e.name}</div>;
+          switch (e.kind) {
+            case 'api': return <ApiView key={i} endpoint={e} choose={props.choose} />;
+            default: return <HttpEndpointView key={i} endpoint={e} choose={props.choose} />;
           }
-          return <HttpEndpointView key={i} endpoint={e} choose={props.choose}/>
         })}
       </div>
     </Modal>
   );
+}
+
+function ApiView(props: {
+  endpoint: Api;
+  choose: (e: Endpoint) => void,
+  // cancel: () => void
+}) {
+  return <Box sx={{ marginTop: "20px", marginBottom: "20px" }}>
+    <Typography>{props.endpoint.name}</Typography>
+    {/* todo change this to an accordion */}
+    <Typography>{props.endpoint.docString}</Typography>
+    <Divider />
+    {props.endpoint.endpoints.map((e, i) => {
+      switch (e.kind) {
+        case 'api': return <ApiView key={i} endpoint={e} choose={props.choose} />;
+        default: return <HttpEndpointView key={i} endpoint={e} choose={props.choose} />;
+      }
+    })}
+    <Divider />
+  </Box>;
 }
 
 function HttpEndpointView(props: {

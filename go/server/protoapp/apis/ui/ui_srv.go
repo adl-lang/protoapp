@@ -4,6 +4,7 @@ package ui
 import (
 	"context"
 	http2 "github.com/adl-lang/goadl_common/common/http"
+	"github.com/adl-lang/goadl_protoapp/protoapp/apis/types"
 	"github.com/adl-lang/goadl_protoapp/protoapp/db"
 	"net/http"
 )
@@ -11,15 +12,15 @@ import (
 type ApiRequests_Service interface {
 	Healthy(ctx context.Context) (http2.Unit, error)
 	Ping(ctx context.Context, req http2.Unit) (http2.Unit, error)
-	Login(ctx context.Context, req LoginReq) (LoginResp, error)
-	Refresh(ctx context.Context, req RefreshReq) (RefreshResp, error)
+	Login(ctx context.Context, req types.LoginReq) (types.LoginResp, error)
+	Refresh(ctx context.Context, req types.RefreshReq) (types.RefreshResp, error)
 	Logout(ctx context.Context, req http2.Unit) (http2.Unit, error)
-	New_message(ctx context.Context, req NewMessageReq) (db.MessageId, error)
-	Recent_messages(ctx context.Context, req RecentMessagesReq) (Paginated[Message], error)
-	Who_am_i(ctx context.Context) (UserWithId, error)
-	Create_user(ctx context.Context, req UserDetails) (db.AppUserId, error)
-	Update_user(ctx context.Context, req WithId[db.AppUserId, UserDetails]) (http2.Unit, error)
-	Query_users(ctx context.Context, req QueryUsersReq) (Paginated[UserWithId], error)
+	New_message(ctx context.Context, req types.NewMessageReq) (db.MessageId, error)
+	Recent_messages(ctx context.Context, req types.RecentMessagesReq) (types.Paginated[types.Message], error)
+	Who_am_i(ctx context.Context) (types.UserWithId, error)
+	Create_user(ctx context.Context, req types.UserDetails) (db.AppUserId, error)
+	Update_user(ctx context.Context, req types.WithId[db.AppUserId, types.UserDetails]) (http2.Unit, error)
+	Query_users(ctx context.Context, req types.QueryUsersReq) (types.Paginated[types.UserWithId], error)
 }
 
 func Register_ApiRequests(
