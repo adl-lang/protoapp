@@ -10,6 +10,7 @@ import (
 	"github.com/adl-lang/goadl_common/common/capability"
 	http2 "github.com/adl-lang/goadl_common/common/http"
 	"github.com/adl-lang/goadl_protoapp/protoapp/apis/cap"
+	"github.com/adl-lang/goadl_protoapp/protoapp/apis/types"
 	"github.com/adl-lang/goadl_protoapp/protoapp/config/server"
 )
 
@@ -23,13 +24,13 @@ type refreshTokenCapr struct {
 	tokener server.RefreshTokener
 }
 
-var _ capability.CapabilityRetriever[cap.AccessToken, cap.Capability] = &accessTokenCapr{}
-var _ capability.CapabilityRetriever[cap.AdminAccessToken, cap.Capability] = &adminAccessTokenCapr{}
-var _ capability.CapabilityRetriever[cap.RefreshToken, http2.Unit] = &refreshTokenCapr{}
+var _ capability.CapabilityRetriever[types.AccessToken, cap.Capability] = &accessTokenCapr{}
+var _ capability.CapabilityRetriever[types.AdminAccessToken, cap.Capability] = &adminAccessTokenCapr{}
+var _ capability.CapabilityRetriever[types.RefreshToken, http2.Unit] = &refreshTokenCapr{}
 
 // Retrieve implements service.CapabilityRetriever.
-func (capr *accessTokenCapr) Retrieve(req *http.Request) (cp cap.Capability, token cap.AccessToken, err error) {
-	token = cap.AccessToken(req.Header.Get("Authorization"))
+func (capr *accessTokenCapr) Retrieve(req *http.Request) (cp cap.Capability, token types.AccessToken, err error) {
+	token = types.AccessToken(req.Header.Get("Authorization"))
 	if token == "" {
 		return cp, token, fmt.Errorf("authorization not found")
 	}
@@ -56,8 +57,8 @@ func (capr *accessTokenCapr) Retrieve(req *http.Request) (cp cap.Capability, tok
 }
 
 // Retrieve implements service.CapabilityRetriever.
-func (capr *adminAccessTokenCapr) Retrieve(req *http.Request) (cp cap.Capability, token cap.AdminAccessToken, err error) {
-	token = cap.AdminAccessToken(req.Header.Get("Authorization"))
+func (capr *adminAccessTokenCapr) Retrieve(req *http.Request) (cp cap.Capability, token types.AdminAccessToken, err error) {
+	token = types.AdminAccessToken(req.Header.Get("Authorization"))
 	if token == "" {
 		return cp, token, fmt.Errorf("authorization not found")
 	}
@@ -87,7 +88,7 @@ func (capr *adminAccessTokenCapr) Retrieve(req *http.Request) (cp cap.Capability
 }
 
 // Retrieve implements capability.CapabilityRetriever.
-func (r *refreshTokenCapr) Retrieve(req *http.Request) (cap http2.Unit, token cap.RefreshToken, err error) {
+func (r *refreshTokenCapr) Retrieve(req *http.Request) (cap http2.Unit, token types.RefreshToken, err error) {
 	// note the token could come from a cookie or request body, so leaving it to the endpoint to retrieve it.
 	return
 }

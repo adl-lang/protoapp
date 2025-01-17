@@ -15,10 +15,6 @@ import protoapp.db.MessageId;
 
 import protoapp.apis.types.*;
 
-newtype AccessToken = StringNE;
-newtype RefreshToken = StringNE;
-newtype AdminAccessToken = StringNE;
-
 struct Capability {
   String user_id;
   Vector<String> roles;
@@ -39,6 +35,12 @@ struct ApiRequests {
   HttpPost<LoginReq, LoginResp> login = {
     "path": "/login"
   };
+
+  /// Get a refreshed token, the refresh token is used to get an access token
+  HttpPost<LoginReq, NewRefreshResp> new_refresh = {
+    "path": "/new_refresh"
+  };
+
   /// Clear the `refreshToken` cookie.
   HttpPost<Unit, Unit> logout = {
     "path": "/logout"

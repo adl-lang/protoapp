@@ -3,10 +3,19 @@ package types
 
 import (
 	"fmt"
+	"github.com/adl-lang/goadl_common/common/capability"
 	strings2 "github.com/adl-lang/goadl_common/common/strings"
 	"github.com/adl-lang/goadl_protoapp/protoapp/db"
 	"time"
 )
+
+type AccessToken strings2.StringNE
+
+type AccessTokenMarker = capability.CapabilityToken[AccessToken]
+
+type AdminAccessToken strings2.StringNE
+
+type AdminAccessTokenMarker = capability.CapabilityToken[AdminAccessToken]
 
 type LoginReq struct {
 	_LoginReq
@@ -241,6 +250,100 @@ func Make_NewMessageReq(
 		},
 	}
 	return ret
+}
+
+type NewRefreshResp struct {
+	Branch NewRefreshRespBranch
+}
+
+type NewRefreshRespBranch interface {
+	isNewRefreshRespBranch()
+}
+
+func (*NewRefreshResp) MakeNewBranch(key string) (any, error) {
+	switch key {
+	case "refresh_jwt":
+		return &_NewRefreshResp_Refresh_jwt{}, nil
+	case "invalid_credentials":
+		return &_NewRefreshResp_Invalid_credentials{}, nil
+	}
+	return nil, fmt.Errorf("unknown branch is : %s", key)
+}
+
+type _NewRefreshResp_Refresh_jwt struct {
+	V strings2.StringNE `branch:"refresh_jwt"`
+}
+type _NewRefreshResp_Invalid_credentials struct {
+	V struct{} `branch:"invalid_credentials"`
+}
+
+func (_NewRefreshResp_Refresh_jwt) isNewRefreshRespBranch()         {}
+func (_NewRefreshResp_Invalid_credentials) isNewRefreshRespBranch() {}
+
+func Make_NewRefreshResp_refresh_jwt(v strings2.StringNE) NewRefreshResp {
+	return NewRefreshResp{
+		_NewRefreshResp_Refresh_jwt{v},
+	}
+}
+
+func Make_NewRefreshResp_invalid_credentials() NewRefreshResp {
+	return NewRefreshResp{
+		_NewRefreshResp_Invalid_credentials{struct{}{}},
+	}
+}
+
+func (un NewRefreshResp) Cast_refresh_jwt() (strings2.StringNE, bool) {
+	br, ok := un.Branch.(_NewRefreshResp_Refresh_jwt)
+	return br.V, ok
+}
+
+func (un NewRefreshResp) Cast_invalid_credentials() (struct{}, bool) {
+	br, ok := un.Branch.(_NewRefreshResp_Invalid_credentials)
+	return br.V, ok
+}
+
+func Handle_NewRefreshResp[T any](
+	_in NewRefreshResp,
+	refresh_jwt func(refresh_jwt strings2.StringNE) T,
+	invalid_credentials func(invalid_credentials struct{}) T,
+	_default func() T,
+) T {
+	switch _b := _in.Branch.(type) {
+	case _NewRefreshResp_Refresh_jwt:
+		if refresh_jwt != nil {
+			return refresh_jwt(_b.V)
+		}
+	case _NewRefreshResp_Invalid_credentials:
+		if invalid_credentials != nil {
+			return invalid_credentials(_b.V)
+		}
+	}
+	if _default != nil {
+		return _default()
+	}
+	panic("unhandled branch in : NewRefreshResp")
+}
+
+func HandleWithErr_NewRefreshResp[T any](
+	_in NewRefreshResp,
+	refresh_jwt func(refresh_jwt strings2.StringNE) (T, error),
+	invalid_credentials func(invalid_credentials struct{}) (T, error),
+	_default func() (T, error),
+) (T, error) {
+	switch _b := _in.Branch.(type) {
+	case _NewRefreshResp_Refresh_jwt:
+		if refresh_jwt != nil {
+			return refresh_jwt(_b.V)
+		}
+	case _NewRefreshResp_Invalid_credentials:
+		if invalid_credentials != nil {
+			return invalid_credentials(_b.V)
+		}
+	}
+	if _default != nil {
+		return _default()
+	}
+	panic("unhandled branch in : NewRefreshResp")
 }
 
 type PageReq struct {
@@ -507,6 +610,10 @@ func HandleWithErr_RefreshResp[T any](
 	}
 	panic("unhandled branch in : RefreshResp")
 }
+
+type RefreshToken strings2.StringNE
+
+type RefreshTokenMarker = capability.CapabilityToken[RefreshToken]
 
 type User struct {
 	_User

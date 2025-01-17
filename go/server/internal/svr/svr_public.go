@@ -30,16 +30,16 @@ type publicSvr struct {
 }
 
 // GetAccessTokenApi implements cap.ApiRequests_Service.
-func (ps *publicSvr) GetAccessTokenApi() cap.AccessApiRequests_Service[cap.AccessToken, cap.Capability] {
+func (ps *publicSvr) GetAccessTokenApi() cap.AccessApiRequests_Service[types.AccessToken, cap.Capability] {
 	return ps.tokenApi
 }
 
 // GetRefreshTokenApi implements cap.ApiRequests_Service.
-func (ps *publicSvr) GetRefreshTokenApi() cap.RefreshApiRequests_Service[cap.RefreshToken, http.Unit] {
+func (ps *publicSvr) GetRefreshTokenApi() cap.RefreshApiRequests_Service[types.RefreshToken, http.Unit] {
 	return ps.refreshApi
 }
 
-func (ps *publicSvr) GetUserApi() cap.UserApiRequests_Service[cap.AdminAccessToken, cap.Capability] {
+func (ps *publicSvr) GetUserApi() cap.UserApiRequests_Service[types.AdminAccessToken, cap.Capability] {
 	return ps.userApi
 }
 
@@ -59,6 +59,47 @@ func (ps *publicSvr) Ping(ctx context.Context, req http.Unit) (http.Unit, error)
 		return http.Unit{}, err
 	}
 	return http.Make_Unit(), nil
+}
+
+// New_refresh implements cap.ApiRequests_Service.
+func (ps *publicSvr) New_refresh(ctx context.Context, req types.LoginReq) (resp types.NewRefreshResp, rerr error) {
+	sp := postgres.Sql(db2.Texpr_AppUserTable().Value, "a", "").
+		WhereEqStr("email", req.Email)
+	sql, flds := sp.Select()
+	users := []db.WithId[db2.AppUser]{}
+	if err := ps.db.Select(&users, sql, flds...); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR %v\n", err)
+		return resp, err
+	}
+	if len(users) != 1 {
+		if len(users) == 0 {
+			fmt.Fprintf(os.Stderr, "failed loggin attempt, user doesn't exist %s\n", req.Email)
+		} else {
+			fmt.Fprintf(os.Stderr, "failed loggin attempt, duplicate emails %s\n", req.Email)
+		}
+		ps.pswdHasher.ComparePasswordAndHash(req.Password, "")
+		return types.Make_NewRefreshResp_invalid_credentials(), nil
+	}
+	user := users[0]
+	if ok, err := ps.pswdHasher.ComparePasswordAndHash(req.Password, user.Value.Hashed_password); err != nil {
+		fmt.Fprintf(os.Stderr, "ERROR %v\n", err)
+		return types.NewRefreshResp{}, err
+	} else if !ok {
+		fmt.Fprintf(os.Stderr, "failed login attempt %s %s\n", user.Id, user.Value.Email)
+		return types.Make_NewRefreshResp_invalid_credentials(), nil
+	}
+	refreshtoken, err := ps.cfg.CreateRefreshToken(user.Id)
+	if err != nil {
+		fmt.Printf("error signing refresh token: %v\n", err)
+		return types.Make_NewRefreshResp_invalid_credentials(), nil
+	}
+	hw := ctx.Value(capability.RESP_KEY).(http2.ResponseWriter)
+	http2.SetCookie(hw, &http2.Cookie{
+		Name:     REFRESH_TOKEN,
+		Value:    refreshtoken,
+		HttpOnly: true,
+	})
+	return types.Make_NewRefreshResp_refresh_jwt(refreshtoken), nil
 }
 
 // Login implements cap.ApiRequests_Service.

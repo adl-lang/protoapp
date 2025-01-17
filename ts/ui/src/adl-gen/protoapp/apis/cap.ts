@@ -3,42 +3,8 @@
 import * as ADL from '@adllang/adl-runtime';
 import * as common_capability from './../../common/capability';
 import * as common_http from './../../common/http';
-import * as common_strings from './../../common/strings';
 import * as protoapp_apis_types from './types';
 import * as protoapp_db from './../db';
-
-export type AccessToken = common_strings.StringNE;
-
-const AccessToken_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"AccessToken","type_":{"kind":"newtype_","value":{"default":{"kind":"nothing"},"typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}},"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.cap"};
-
-export const snAccessToken: ADL.ScopedName = {moduleName:"protoapp.apis.cap", name:"AccessToken"};
-
-export function texprAccessToken(): ADL.ATypeExpr<AccessToken> {
-  return {value : {typeRef : {kind: "reference", value : snAccessToken}, parameters : []}};
-}
-
-export type RefreshToken = common_strings.StringNE;
-
-const RefreshToken_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"RefreshToken","type_":{"kind":"newtype_","value":{"default":{"kind":"nothing"},"typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}},"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.cap"};
-
-export const snRefreshToken: ADL.ScopedName = {moduleName:"protoapp.apis.cap", name:"RefreshToken"};
-
-export function texprRefreshToken(): ADL.ATypeExpr<RefreshToken> {
-  return {value : {typeRef : {kind: "reference", value : snRefreshToken}, parameters : []}};
-}
-
-export type AdminAccessToken = common_strings.StringNE;
-
-const AdminAccessToken_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"AdminAccessToken","type_":{"kind":"newtype_","value":{"default":{"kind":"nothing"},"typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}},"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.cap"};
-
-export const snAdminAccessToken: ADL.ScopedName = {moduleName:"protoapp.apis.cap", name:"AdminAccessToken"};
-
-export function texprAdminAccessToken(): ADL.ATypeExpr<AdminAccessToken> {
-  return {value : {typeRef : {kind: "reference", value : snAdminAccessToken}, parameters : []}};
-}
 
 export interface Capability {
   user_id: string;
@@ -81,21 +47,25 @@ export interface ApiRequests {
    */
   login: common_capability.HttpPost<protoapp_apis_types.LoginReq, protoapp_apis_types.LoginResp>;
   /**
+   * Get a refreshed token, the refresh token is used to get an access token
+   */
+  new_refresh: common_capability.HttpPost<protoapp_apis_types.LoginReq, protoapp_apis_types.NewRefreshResp>;
+  /**
    * Clear the `refreshToken` cookie.
    */
   logout: common_capability.HttpPost<common_http.Unit, common_http.Unit>;
   /**
    * API endpoints accessible when logged in
    */
-  accessTokenApi: common_capability.CapabilityApi<AccessToken, Capability, AccessApiRequests>;
+  accessTokenApi: common_capability.CapabilityApi<protoapp_apis_types.AccessToken, Capability, AccessApiRequests>;
   /**
    * API Enpoint used to refresh the access token
    */
-  refreshTokenApi: common_capability.CapabilityApi<RefreshToken, common_http.Unit, RefreshApiRequests>;
+  refreshTokenApi: common_capability.CapabilityApi<protoapp_apis_types.RefreshToken, common_http.Unit, RefreshApiRequests>;
   /**
    * API endpoints accessible when logged in as admin
    */
-  userApi: common_capability.CapabilityApi<AdminAccessToken, Capability, UserApiRequests>;
+  userApi: common_capability.CapabilityApi<protoapp_apis_types.AdminAccessToken, Capability, UserApiRequests>;
 }
 
 export function makeApiRequests(
@@ -103,25 +73,27 @@ export function makeApiRequests(
     healthy?: common_capability.HttpGet<common_http.Unit>,
     ping?: common_capability.HttpPost<common_http.Unit, common_http.Unit>,
     login?: common_capability.HttpPost<protoapp_apis_types.LoginReq, protoapp_apis_types.LoginResp>,
+    new_refresh?: common_capability.HttpPost<protoapp_apis_types.LoginReq, protoapp_apis_types.NewRefreshResp>,
     logout?: common_capability.HttpPost<common_http.Unit, common_http.Unit>,
-    accessTokenApi?: common_capability.CapabilityApi<AccessToken, Capability, AccessApiRequests>,
-    refreshTokenApi?: common_capability.CapabilityApi<RefreshToken, common_http.Unit, RefreshApiRequests>,
-    userApi?: common_capability.CapabilityApi<AdminAccessToken, Capability, UserApiRequests>,
+    accessTokenApi?: common_capability.CapabilityApi<protoapp_apis_types.AccessToken, Capability, AccessApiRequests>,
+    refreshTokenApi?: common_capability.CapabilityApi<protoapp_apis_types.RefreshToken, common_http.Unit, RefreshApiRequests>,
+    userApi?: common_capability.CapabilityApi<protoapp_apis_types.AdminAccessToken, Capability, UserApiRequests>,
   }
 ): ApiRequests {
   return {
     healthy: input.healthy === undefined ? {path : "/", rateLimit : null, respType : common_http.texprUnit()} : input.healthy,
     ping: input.ping === undefined ? {path : "/ping", rateLimit : null, reqType : common_http.texprUnit(), respType : common_http.texprUnit()} : input.ping,
     login: input.login === undefined ? {path : "/login", rateLimit : null, reqType : protoapp_apis_types.texprLoginReq(), respType : protoapp_apis_types.texprLoginResp()} : input.login,
+    new_refresh: input.new_refresh === undefined ? {path : "/new_refresh", rateLimit : null, reqType : protoapp_apis_types.texprLoginReq(), respType : protoapp_apis_types.texprNewRefreshResp()} : input.new_refresh,
     logout: input.logout === undefined ? {path : "/logout", rateLimit : null, reqType : common_http.texprUnit(), respType : common_http.texprUnit()} : input.logout,
-    accessTokenApi: input.accessTokenApi === undefined ? {token : texprAccessToken(), cap : texprCapability(), service_prefix : "", service : {newMessage : {path : "/messages/new", rateLimit : null, reqType : protoapp_apis_types.texprNewMessageReq(), respType : protoapp_db.texprMessageId()}, recentMessages : {path : "/messages/recent", rateLimit : null, reqType : protoapp_apis_types.texprRecentMessagesReq(), respType : protoapp_apis_types.texprPaginated(protoapp_apis_types.texprMessage())}, who_am_i : {path : "/whoami", rateLimit : null, respType : protoapp_apis_types.texprUserWithId()}}, name : "Logged-in API"} : input.accessTokenApi,
-    refreshTokenApi: input.refreshTokenApi === undefined ? {token : texprRefreshToken(), cap : common_http.texprUnit(), service_prefix : "", service : {refresh : {path : "/refresh", rateLimit : null, reqType : protoapp_apis_types.texprRefreshReq(), respType : protoapp_apis_types.texprRefreshResp()}}, name : "Refresh Token API"} : input.refreshTokenApi,
-    userApi: input.userApi === undefined ? {token : texprAdminAccessToken(), cap : texprCapability(), service_prefix : "", service : {create_user : {path : "/users/create", rateLimit : null, reqType : protoapp_apis_types.texprUserDetails(), respType : protoapp_db.texprAppUserId()}, update_user : {path : "/users/update", rateLimit : null, reqType : protoapp_apis_types.texprWithId(protoapp_db.texprAppUserId(), protoapp_apis_types.texprUserDetails()), respType : common_http.texprUnit()}, query_users : {path : "/users/query", rateLimit : null, reqType : protoapp_apis_types.texprQueryUsersReq(), respType : protoapp_apis_types.texprPaginated(protoapp_apis_types.texprUserWithId())}}, name : "User Admin API"} : input.userApi,
+    accessTokenApi: input.accessTokenApi === undefined ? {token : protoapp_apis_types.texprAccessToken(), cap : texprCapability(), service_prefix : "", service : {newMessage : {path : "/messages/new", rateLimit : null, reqType : protoapp_apis_types.texprNewMessageReq(), respType : protoapp_db.texprMessageId()}, recentMessages : {path : "/messages/recent", rateLimit : null, reqType : protoapp_apis_types.texprRecentMessagesReq(), respType : protoapp_apis_types.texprPaginated(protoapp_apis_types.texprMessage())}, who_am_i : {path : "/whoami", rateLimit : null, respType : protoapp_apis_types.texprUserWithId()}}, name : "Logged-in API"} : input.accessTokenApi,
+    refreshTokenApi: input.refreshTokenApi === undefined ? {token : protoapp_apis_types.texprRefreshToken(), cap : common_http.texprUnit(), service_prefix : "", service : {refresh : {path : "/refresh", rateLimit : null, reqType : protoapp_apis_types.texprRefreshReq(), respType : protoapp_apis_types.texprRefreshResp()}}, name : "Refresh Token API"} : input.refreshTokenApi,
+    userApi: input.userApi === undefined ? {token : protoapp_apis_types.texprAdminAccessToken(), cap : texprCapability(), service_prefix : "", service : {create_user : {path : "/users/create", rateLimit : null, reqType : protoapp_apis_types.texprUserDetails(), respType : protoapp_db.texprAppUserId()}, update_user : {path : "/users/update", rateLimit : null, reqType : protoapp_apis_types.texprWithId(protoapp_db.texprAppUserId(), protoapp_apis_types.texprUserDetails()), respType : common_http.texprUnit()}, query_users : {path : "/users/query", rateLimit : null, reqType : protoapp_apis_types.texprQueryUsersReq(), respType : protoapp_apis_types.texprPaginated(protoapp_apis_types.texprUserWithId())}}, name : "User Admin API"} : input.userApi,
   };
 }
 
 const ApiRequests_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"ApiRequests","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"AWS default compatible health check\n"}],"default":{"kind":"just","value":{"path":"/"}},"name":"healthy","serializedName":"healthy","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpGet"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Test the server is live\n"}],"default":{"kind":"just","value":{"path":"/ping"}},"name":"ping","serializedName":"ping","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Login a user\n\nThe response will set an httpOnly cookie containing the refresh token\n"}],"default":{"kind":"just","value":{"path":"/login"}},"name":"login","serializedName":"login","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.types","name":"LoginReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.types","name":"LoginResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Clear the `refreshToken` cookie.\n"}],"default":{"kind":"just","value":{"path":"/logout"}},"name":"logout","serializedName":"logout","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"API endpoints accessible when logged in\n"}],"default":{"kind":"just","value":{"name":"Logged-in API","service":{}}},"name":"accessTokenApi","serializedName":"accessTokenApi","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.cap","name":"AccessToken"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.cap","name":"Capability"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.cap","name":"AccessApiRequests"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"CapabilityApi"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"API Enpoint used to refresh the access token\n"}],"default":{"kind":"just","value":{"name":"Refresh Token API","service":{}}},"name":"refreshTokenApi","serializedName":"refreshTokenApi","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.cap","name":"RefreshToken"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.cap","name":"RefreshApiRequests"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"CapabilityApi"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"API endpoints accessible when logged in as admin\n"}],"default":{"kind":"just","value":{"name":"User Admin API","service":{}}},"name":"userApi","serializedName":"userApi","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.cap","name":"AdminAccessToken"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.cap","name":"Capability"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.cap","name":"UserApiRequests"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"CapabilityApi"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.cap"};
+  {"decl":{"annotations":[],"name":"ApiRequests","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"AWS default compatible health check\n"}],"default":{"kind":"just","value":{"path":"/"}},"name":"healthy","serializedName":"healthy","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpGet"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Test the server is live\n"}],"default":{"kind":"just","value":{"path":"/ping"}},"name":"ping","serializedName":"ping","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Login a user\n\nThe response will set an httpOnly cookie containing the refresh token\n"}],"default":{"kind":"just","value":{"path":"/login"}},"name":"login","serializedName":"login","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.types","name":"LoginReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.types","name":"LoginResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Get a refreshed token, the refresh token is used to get an access token\n"}],"default":{"kind":"just","value":{"path":"/new_refresh"}},"name":"new_refresh","serializedName":"new_refresh","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.types","name":"LoginReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.types","name":"NewRefreshResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Clear the `refreshToken` cookie.\n"}],"default":{"kind":"just","value":{"path":"/logout"}},"name":"logout","serializedName":"logout","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"API endpoints accessible when logged in\n"}],"default":{"kind":"just","value":{"name":"Logged-in API","service":{}}},"name":"accessTokenApi","serializedName":"accessTokenApi","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.types","name":"AccessToken"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.cap","name":"Capability"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.cap","name":"AccessApiRequests"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"CapabilityApi"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"API Enpoint used to refresh the access token\n"}],"default":{"kind":"just","value":{"name":"Refresh Token API","service":{}}},"name":"refreshTokenApi","serializedName":"refreshTokenApi","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.types","name":"RefreshToken"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.cap","name":"RefreshApiRequests"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"CapabilityApi"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"API endpoints accessible when logged in as admin\n"}],"default":{"kind":"just","value":{"name":"User Admin API","service":{}}},"name":"userApi","serializedName":"userApi","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.types","name":"AdminAccessToken"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.cap","name":"Capability"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.cap","name":"UserApiRequests"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"CapabilityApi"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.cap"};
 
 export const snApiRequests: ADL.ScopedName = {moduleName:"protoapp.apis.cap", name:"ApiRequests"};
 
@@ -234,9 +206,6 @@ export function texprUserApiRequests(): ADL.ATypeExpr<UserApiRequests> {
 }
 
 export const _AST_MAP: { [key: string]: ADL.ScopedDecl } = {
-  "protoapp.apis.cap.AccessToken" : AccessToken_AST,
-  "protoapp.apis.cap.RefreshToken" : RefreshToken_AST,
-  "protoapp.apis.cap.AdminAccessToken" : AdminAccessToken_AST,
   "protoapp.apis.cap.Capability" : Capability_AST,
   "protoapp.apis.cap.ApiRequests" : ApiRequests_AST,
   "protoapp.apis.cap.AccessApiRequests" : AccessApiRequests_AST,

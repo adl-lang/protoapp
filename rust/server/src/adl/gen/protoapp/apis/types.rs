@@ -1,6 +1,7 @@
 // @generated from adl module protoapp.apis.types
 
 use crate::adl::custom::common::time::Instant;
+use crate::adl::gen::common::capability::CapabilityToken;
 use crate::adl::gen::common::strings::EmailAddress;
 use crate::adl::gen::common::strings::Password;
 use crate::adl::gen::common::strings::StringML;
@@ -8,7 +9,87 @@ use crate::adl::gen::common::strings::StringNE;
 use crate::adl::gen::protoapp::db::AppUserId;
 use crate::adl::gen::protoapp::db::MessageId;
 use serde::Deserialize;
+use serde::Deserializer;
 use serde::Serialize;
+use serde::Serializer;
+
+#[derive(Clone,Eq,Hash,PartialEq)]
+pub struct AccessToken(pub StringNE);
+
+impl Serialize for AccessToken
+{
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+      S: Serializer,
+  {
+      self.0.serialize(serializer)
+  }
+}
+
+impl<'de> Deserialize<'de> for AccessToken
+{
+  fn deserialize<D>(deserializer: D) -> Result<AccessToken, D::Error>
+  where
+      D: Deserializer<'de>,
+  {
+      let v = StringNE::deserialize(deserializer)?;
+      Ok(AccessToken(v))
+  }
+}
+
+#[derive(Clone,Eq,Hash,PartialEq)]
+pub struct RefreshToken(pub StringNE);
+
+impl Serialize for RefreshToken
+{
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+      S: Serializer,
+  {
+      self.0.serialize(serializer)
+  }
+}
+
+impl<'de> Deserialize<'de> for RefreshToken
+{
+  fn deserialize<D>(deserializer: D) -> Result<RefreshToken, D::Error>
+  where
+      D: Deserializer<'de>,
+  {
+      let v = StringNE::deserialize(deserializer)?;
+      Ok(RefreshToken(v))
+  }
+}
+
+#[derive(Clone,Eq,Hash,PartialEq)]
+pub struct AdminAccessToken(pub StringNE);
+
+impl Serialize for AdminAccessToken
+{
+  fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+  where
+      S: Serializer,
+  {
+      self.0.serialize(serializer)
+  }
+}
+
+impl<'de> Deserialize<'de> for AdminAccessToken
+{
+  fn deserialize<D>(deserializer: D) -> Result<AdminAccessToken, D::Error>
+  where
+      D: Deserializer<'de>,
+  {
+      let v = StringNE::deserialize(deserializer)?;
+      Ok(AdminAccessToken(v))
+  }
+}
+
+pub type AccessTokenMarker = CapabilityToken<AccessToken>;
+
+pub type RefreshTokenMarker = CapabilityToken<RefreshToken>;
+
+pub type AdminAccessTokenMarker = CapabilityToken<AdminAccessToken>;
 
 #[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
 pub struct LoginReq {
@@ -36,7 +117,20 @@ pub enum LoginResp {
 }
 
 #[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
+pub enum NewRefreshResp {
+  #[serde(rename="refresh_jwt")]
+  RefreshJwt(StringNE),
+
+  #[serde(rename="invalid_credentials")]
+  InvalidCredentials,
+}
+
+#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
 pub struct RefreshReq {
+  /**
+   * The refresh token is usually provided as a cookie, i.e. a null refresh_token in the post body.
+   * The refresh_token body is used for testing purposes.
+   */
   #[serde(default="RefreshReq::def_refresh_token")]
   pub refresh_token: Option<StringNE>,
 }

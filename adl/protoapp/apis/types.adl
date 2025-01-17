@@ -8,9 +8,18 @@ import common.strings.EmailAddress;
 import common.strings.Password;
 import common.strings.StringNE;
 import common.strings.StringML;
+import common.capability.CapabilityToken;
 
 import protoapp.db.AppUserId;
 import protoapp.db.MessageId;
+
+newtype AccessToken = StringNE;
+newtype RefreshToken = StringNE;
+newtype AdminAccessToken = StringNE;
+
+type AccessTokenMarker = CapabilityToken<AccessToken>;
+type RefreshTokenMarker = CapabilityToken<RefreshToken>;
+type AdminAccessTokenMarker = CapabilityToken<AdminAccessToken>;
 
 struct LoginReq {
   StringNE email;
@@ -22,17 +31,28 @@ union LoginResp {
   Void invalid_credentials;
 };
 
+union NewRefreshResp {
+  @RefreshTokenMarker {}
+  StringNE refresh_jwt;
+  Void invalid_credentials;
+};
+
 struct RefreshReq {
+  /// The refresh token is usually provided as a cookie, i.e. a null refresh_token in the post body.
+  /// The refresh_token body is used for testing purposes.
   Nullable<StringNE> refresh_token = null;
 };
 
 union RefreshResp {
+  @AccessTokenMarker {}
   StringNE access_token;
   Void invalid_refresh_token;
 };
 
 struct LoginTokens {
+  @AccessTokenMarker {}
   StringNE access_jwt;
+  @RefreshTokenMarker {}
   StringNE refresh_jwt;
 };
 

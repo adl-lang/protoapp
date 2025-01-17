@@ -66,4 +66,4 @@ func (rs *refreshSvr) Refresh(ctx context.Context, cp http2.Unit, req types.Refr
 	return
 }
 
-var _ cap.RefreshApiRequests_Service[cap.RefreshToken, http2.Unit] = &refreshSvr{}
+var _ cap.RefreshApiRequests_Service[types.RefreshToken, http2.Unit] = &refreshSvr{}

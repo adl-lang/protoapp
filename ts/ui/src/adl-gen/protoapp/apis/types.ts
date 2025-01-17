@@ -1,9 +1,76 @@
 /* @generated from adl module protoapp.apis.types */
 
 import * as ADL from '@adllang/adl-runtime';
+import * as common_capability from './../../common/capability';
 import * as common_strings from './../../common/strings';
 import * as common_time from './../../common/time';
 import * as protoapp_db from './../db';
+
+export type AccessToken = common_strings.StringNE;
+
+const AccessToken_AST : ADL.ScopedDecl =
+  {"decl":{"annotations":[],"name":"AccessToken","type_":{"kind":"newtype_","value":{"default":{"kind":"nothing"},"typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}},"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.types"};
+
+export const snAccessToken: ADL.ScopedName = {moduleName:"protoapp.apis.types", name:"AccessToken"};
+
+export function texprAccessToken(): ADL.ATypeExpr<AccessToken> {
+  return {value : {typeRef : {kind: "reference", value : snAccessToken}, parameters : []}};
+}
+
+export type RefreshToken = common_strings.StringNE;
+
+const RefreshToken_AST : ADL.ScopedDecl =
+  {"decl":{"annotations":[],"name":"RefreshToken","type_":{"kind":"newtype_","value":{"default":{"kind":"nothing"},"typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}},"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.types"};
+
+export const snRefreshToken: ADL.ScopedName = {moduleName:"protoapp.apis.types", name:"RefreshToken"};
+
+export function texprRefreshToken(): ADL.ATypeExpr<RefreshToken> {
+  return {value : {typeRef : {kind: "reference", value : snRefreshToken}, parameters : []}};
+}
+
+export type AdminAccessToken = common_strings.StringNE;
+
+const AdminAccessToken_AST : ADL.ScopedDecl =
+  {"decl":{"annotations":[],"name":"AdminAccessToken","type_":{"kind":"newtype_","value":{"default":{"kind":"nothing"},"typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}},"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.types"};
+
+export const snAdminAccessToken: ADL.ScopedName = {moduleName:"protoapp.apis.types", name:"AdminAccessToken"};
+
+export function texprAdminAccessToken(): ADL.ATypeExpr<AdminAccessToken> {
+  return {value : {typeRef : {kind: "reference", value : snAdminAccessToken}, parameters : []}};
+}
+
+export type AccessTokenMarker = common_capability.CapabilityToken<AccessToken>;
+
+const AccessTokenMarker_AST : ADL.ScopedDecl =
+  {"decl":{"annotations":[],"name":"AccessTokenMarker","type_":{"kind":"type_","value":{"typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.types","name":"AccessToken"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"CapabilityToken"}}},"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.types"};
+
+export const snAccessTokenMarker: ADL.ScopedName = {moduleName:"protoapp.apis.types", name:"AccessTokenMarker"};
+
+export function texprAccessTokenMarker(): ADL.ATypeExpr<AccessTokenMarker> {
+  return {value : {typeRef : {kind: "reference", value : snAccessTokenMarker}, parameters : []}};
+}
+
+export type RefreshTokenMarker = common_capability.CapabilityToken<RefreshToken>;
+
+const RefreshTokenMarker_AST : ADL.ScopedDecl =
+  {"decl":{"annotations":[],"name":"RefreshTokenMarker","type_":{"kind":"type_","value":{"typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.types","name":"RefreshToken"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"CapabilityToken"}}},"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.types"};
+
+export const snRefreshTokenMarker: ADL.ScopedName = {moduleName:"protoapp.apis.types", name:"RefreshTokenMarker"};
+
+export function texprRefreshTokenMarker(): ADL.ATypeExpr<RefreshTokenMarker> {
+  return {value : {typeRef : {kind: "reference", value : snRefreshTokenMarker}, parameters : []}};
+}
+
+export type AdminAccessTokenMarker = common_capability.CapabilityToken<AdminAccessToken>;
+
+const AdminAccessTokenMarker_AST : ADL.ScopedDecl =
+  {"decl":{"annotations":[],"name":"AdminAccessTokenMarker","type_":{"kind":"type_","value":{"typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.types","name":"AdminAccessToken"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"CapabilityToken"}}},"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.types"};
+
+export const snAdminAccessTokenMarker: ADL.ScopedName = {moduleName:"protoapp.apis.types", name:"AdminAccessTokenMarker"};
+
+export function texprAdminAccessTokenMarker(): ADL.ATypeExpr<AdminAccessTokenMarker> {
+  return {value : {typeRef : {kind: "reference", value : snAdminAccessTokenMarker}, parameters : []}};
+}
 
 export interface LoginReq {
   email: common_strings.StringNE;
@@ -57,7 +124,37 @@ export function texprLoginResp(): ADL.ATypeExpr<LoginResp> {
   return {value : {typeRef : {kind: "reference", value : snLoginResp}, parameters : []}};
 }
 
+export interface NewRefreshResp_Refresh_jwt {
+  kind: 'refresh_jwt';
+  value: common_strings.StringNE;
+}
+export interface NewRefreshResp_Invalid_credentials {
+  kind: 'invalid_credentials';
+}
+
+export type NewRefreshResp = NewRefreshResp_Refresh_jwt | NewRefreshResp_Invalid_credentials;
+
+export interface NewRefreshRespOpts {
+  refresh_jwt: common_strings.StringNE;
+  invalid_credentials: null;
+}
+
+export function makeNewRefreshResp<K extends keyof NewRefreshRespOpts>(kind: K, value: NewRefreshRespOpts[K]) { return {kind, value}; }
+
+const NewRefreshResp_AST : ADL.ScopedDecl =
+  {"decl":{"annotations":[],"name":"NewRefreshResp","type_":{"kind":"union_","value":{"fields":[{"annotations":[{"key":{"moduleName":"protoapp.apis.types","name":"RefreshTokenMarker"},"value":{}}],"default":{"kind":"nothing"},"name":"refresh_jwt","serializedName":"refresh_jwt","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}}},{"annotations":[],"default":{"kind":"nothing"},"name":"invalid_credentials","serializedName":"invalid_credentials","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.types"};
+
+export const snNewRefreshResp: ADL.ScopedName = {moduleName:"protoapp.apis.types", name:"NewRefreshResp"};
+
+export function texprNewRefreshResp(): ADL.ATypeExpr<NewRefreshResp> {
+  return {value : {typeRef : {kind: "reference", value : snNewRefreshResp}, parameters : []}};
+}
+
 export interface RefreshReq {
+  /**
+   * The refresh token is usually provided as a cookie, i.e. a null refresh_token in the post body.
+   * The refresh_token body is used for testing purposes.
+   */
   refresh_token: (common_strings.StringNE|null);
 }
 
@@ -72,7 +169,7 @@ export function makeRefreshReq(
 }
 
 const RefreshReq_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"RefreshReq","type_":{"kind":"struct_","value":{"fields":[{"annotations":[],"default":{"kind":"just","value":null},"name":"refresh_token","serializedName":"refresh_token","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}}],"typeRef":{"kind":"primitive","value":"Nullable"}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.types"};
+  {"decl":{"annotations":[],"name":"RefreshReq","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"The refresh token is usually provided as a cookie, i.e. a null refresh_token in the post body.\nThe refresh_token body is used for testing purposes.\n"}],"default":{"kind":"just","value":null},"name":"refresh_token","serializedName":"refresh_token","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}}],"typeRef":{"kind":"primitive","value":"Nullable"}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.types"};
 
 export const snRefreshReq: ADL.ScopedName = {moduleName:"protoapp.apis.types", name:"RefreshReq"};
 
@@ -98,7 +195,7 @@ export interface RefreshRespOpts {
 export function makeRefreshResp<K extends keyof RefreshRespOpts>(kind: K, value: RefreshRespOpts[K]) { return {kind, value}; }
 
 const RefreshResp_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"RefreshResp","type_":{"kind":"union_","value":{"fields":[{"annotations":[],"default":{"kind":"nothing"},"name":"access_token","serializedName":"access_token","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}}},{"annotations":[],"default":{"kind":"nothing"},"name":"invalid_refresh_token","serializedName":"invalid_refresh_token","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.types"};
+  {"decl":{"annotations":[],"name":"RefreshResp","type_":{"kind":"union_","value":{"fields":[{"annotations":[{"key":{"moduleName":"protoapp.apis.types","name":"AccessTokenMarker"},"value":{}}],"default":{"kind":"nothing"},"name":"access_token","serializedName":"access_token","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}}},{"annotations":[],"default":{"kind":"nothing"},"name":"invalid_refresh_token","serializedName":"invalid_refresh_token","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.types"};
 
 export const snRefreshResp: ADL.ScopedName = {moduleName:"protoapp.apis.types", name:"RefreshResp"};
 
@@ -124,7 +221,7 @@ export function makeLoginTokens(
 }
 
 const LoginTokens_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"LoginTokens","type_":{"kind":"struct_","value":{"fields":[{"annotations":[],"default":{"kind":"nothing"},"name":"access_jwt","serializedName":"access_jwt","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}}},{"annotations":[],"default":{"kind":"nothing"},"name":"refresh_jwt","serializedName":"refresh_jwt","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.types"};
+  {"decl":{"annotations":[],"name":"LoginTokens","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"protoapp.apis.types","name":"AccessTokenMarker"},"value":{}}],"default":{"kind":"nothing"},"name":"access_jwt","serializedName":"access_jwt","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}}},{"annotations":[{"key":{"moduleName":"protoapp.apis.types","name":"RefreshTokenMarker"},"value":{}}],"default":{"kind":"nothing"},"name":"refresh_jwt","serializedName":"refresh_jwt","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.types"};
 
 export const snLoginTokens: ADL.ScopedName = {moduleName:"protoapp.apis.types", name:"LoginTokens"};
 
@@ -399,8 +496,15 @@ export function texprWithId<I, T>(texprI : ADL.ATypeExpr<I>, texprT : ADL.ATypeE
 }
 
 export const _AST_MAP: { [key: string]: ADL.ScopedDecl } = {
+  "protoapp.apis.types.AccessToken" : AccessToken_AST,
+  "protoapp.apis.types.RefreshToken" : RefreshToken_AST,
+  "protoapp.apis.types.AdminAccessToken" : AdminAccessToken_AST,
+  "protoapp.apis.types.AccessTokenMarker" : AccessTokenMarker_AST,
+  "protoapp.apis.types.RefreshTokenMarker" : RefreshTokenMarker_AST,
+  "protoapp.apis.types.AdminAccessTokenMarker" : AdminAccessTokenMarker_AST,
   "protoapp.apis.types.LoginReq" : LoginReq_AST,
   "protoapp.apis.types.LoginResp" : LoginResp_AST,
+  "protoapp.apis.types.NewRefreshResp" : NewRefreshResp_AST,
   "protoapp.apis.types.RefreshReq" : RefreshReq_AST,
   "protoapp.apis.types.RefreshResp" : RefreshResp_AST,
   "protoapp.apis.types.LoginTokens" : LoginTokens_AST,

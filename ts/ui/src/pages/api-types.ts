@@ -1,19 +1,31 @@
 import { HttpSecurity } from "@/adl-gen/common/http";
 import { VEditor } from "@/components/forms/mui/veditor";
 import { JsonBinding } from "@adllang/adl-runtime";
+
+import * as AST from "@/adl-gen/sys/adlast";
 import * as ADL from "@adllang/adl-runtime";
 
-export type Endpoint = HttpEndpoint | Api;
+export type Endpoint =
+  HttpEndpoint
+  // | CapHttpEndpoint 
+  | Api<unknown>;
 
 export type HttpEndpoint = HttpPostEndpoint<unknown, unknown> | HttpGetEndpoint<unknown>;
+// export type CapHttpEndpoint = CapHttpPostEndpoint<unknown, unknown> | CapHttpGetEndpoint<unknown>;
 
-export interface Api {
+export interface Api<C> {
   name: string;
   docString: string,
   kind: 'api';
-  token: ADL.ATypeExpr<unknown>;
-  endpoints: Endpoint[];
+  typetoken: ADL.ATypeExpr<C>;
+  token_val: C;
+  // endpoints: Endpoint[];
+  endpoints: HttpEndpoint[];
+  parent: AST.Struct;
 }
+
+// export type CapHttpGetEndpoint<O> = Omit<HttpGetEndpoint<O>, "security">;
+// export type CapHttpPostEndpoint<I, O> = Omit<HttpPostEndpoint<I, O>, "security">;
 
 export interface HttpGetEndpoint<O> {
   kind: 'get';
@@ -23,6 +35,7 @@ export interface HttpGetEndpoint<O> {
   docString: string,
   veditorO: VEditor<O>;
   jsonBindingO: JsonBinding<O>;
+  parent: AST.Struct;
 }
 
 export interface HttpPostEndpoint<I, O> {
@@ -35,6 +48,7 @@ export interface HttpPostEndpoint<I, O> {
   veditorO: VEditor<O>;
   jsonBindingI: JsonBinding<I>;
   jsonBindingO: JsonBinding<O>;
+  parent: AST.Struct;
 }
 
 export type ExecutingRequest = {

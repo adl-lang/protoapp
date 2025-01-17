@@ -146,18 +146,18 @@ function ModalChooseEndpoint(props: {
 }
 
 function ApiView(props: {
-  endpoint: Api;
+  endpoint: Api<unknown>;
   choose: (e: Endpoint) => void,
   // cancel: () => void
 }) {
   return <Box sx={{ marginTop: "20px", marginBottom: "20px" }}>
-    <Typography>{props.endpoint.name}</Typography>
+    <Typography>{props.endpoint.name} - {`${props.endpoint.token_val}`}</Typography>
     {/* todo change this to an accordion */}
     <Typography>{props.endpoint.docString}</Typography>
     <Divider />
     {props.endpoint.endpoints.map((e, i) => {
       switch (e.kind) {
-        case 'api': return <ApiView key={i} endpoint={e} choose={props.choose} />;
+        // case 'api': return <ApiView key={i} endpoint={e} choose={props.choose} />;
         default: return <HttpEndpointView key={i} endpoint={e} choose={props.choose} />;
       }
     })}

@@ -104,4 +104,4 @@ func (ts *tokenSvr) Who_am_i(ctx context.Context, cp cap.Capability) (types.User
 	), nil
 }
 
-var _ cap.AccessApiRequests_Service[cap.AccessToken, cap.Capability] = &tokenSvr{}
+var _ cap.AccessApiRequests_Service[types.AccessToken, cap.Capability] = &tokenSvr{}

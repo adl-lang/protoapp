@@ -5,7 +5,7 @@ import { FetchHttp } from '../service/fetch-http';
 import { ApiWithToken, Auth, JwtClaims, expiry_secs } from '../auth';
 import { jwtDecode } from "jwt-decode";
 
-import { LoginResp, makeRefreshReq } from '@/adl-gen/protoapp/apis/ui';
+import { LoginResp, makeRefreshReq } from '@/adl-gen/protoapp/apis/types';
 import { logoutUrl } from '@/navigation';
 import { useNavigate } from 'raviger';
 

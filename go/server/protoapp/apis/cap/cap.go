@@ -4,7 +4,6 @@ package cap
 import (
 	"github.com/adl-lang/goadl_common/common/capability"
 	"github.com/adl-lang/goadl_common/common/http"
-	strings2 "github.com/adl-lang/goadl_common/common/strings"
 	"github.com/adl-lang/goadl_protoapp/protoapp/apis/types"
 	"github.com/adl-lang/goadl_protoapp/protoapp/db"
 	"github.com/adl-lang/goadl_rt/v3/sys/adlast"
@@ -119,38 +118,37 @@ func (*AccessApiRequests) Default_who_am_i() capability.HttpGet[types.UserWithId
 	)
 }
 
-type AccessToken strings2.StringNE
-
-type AdminAccessToken strings2.StringNE
-
 type ApiRequests struct {
 	_ApiRequests
 }
 
 type _ApiRequests struct {
-	Healthy         capability.HttpGet[http.Unit]                                           `json:"healthy"`
-	Ping            capability.HttpPost[http.Unit, http.Unit]                               `json:"ping"`
-	Login           capability.HttpPost[types.LoginReq, types.LoginResp]                    `json:"login"`
-	Logout          capability.HttpPost[http.Unit, http.Unit]                               `json:"logout"`
-	AccessTokenApi  capability.CapabilityApi[AccessToken, Capability, AccessApiRequests]    `json:"accessTokenApi"`
-	RefreshTokenApi capability.CapabilityApi[RefreshToken, http.Unit, RefreshApiRequests]   `json:"refreshTokenApi"`
-	UserApi         capability.CapabilityApi[AdminAccessToken, Capability, UserApiRequests] `json:"userApi"`
+	Healthy         capability.HttpGet[http.Unit]                                                 `json:"healthy"`
+	Ping            capability.HttpPost[http.Unit, http.Unit]                                     `json:"ping"`
+	Login           capability.HttpPost[types.LoginReq, types.LoginResp]                          `json:"login"`
+	New_refresh     capability.HttpPost[types.LoginReq, types.NewRefreshResp]                     `json:"new_refresh"`
+	Logout          capability.HttpPost[http.Unit, http.Unit]                                     `json:"logout"`
+	AccessTokenApi  capability.CapabilityApi[types.AccessToken, Capability, AccessApiRequests]    `json:"accessTokenApi"`
+	RefreshTokenApi capability.CapabilityApi[types.RefreshToken, http.Unit, RefreshApiRequests]   `json:"refreshTokenApi"`
+	UserApi         capability.CapabilityApi[types.AdminAccessToken, Capability, UserApiRequests] `json:"userApi"`
 }
 
 func MakeAll_ApiRequests(
 	healthy capability.HttpGet[http.Unit],
 	ping capability.HttpPost[http.Unit, http.Unit],
 	login capability.HttpPost[types.LoginReq, types.LoginResp],
+	new_refresh capability.HttpPost[types.LoginReq, types.NewRefreshResp],
 	logout capability.HttpPost[http.Unit, http.Unit],
-	accesstokenapi capability.CapabilityApi[AccessToken, Capability, AccessApiRequests],
-	refreshtokenapi capability.CapabilityApi[RefreshToken, http.Unit, RefreshApiRequests],
-	userapi capability.CapabilityApi[AdminAccessToken, Capability, UserApiRequests],
+	accesstokenapi capability.CapabilityApi[types.AccessToken, Capability, AccessApiRequests],
+	refreshtokenapi capability.CapabilityApi[types.RefreshToken, http.Unit, RefreshApiRequests],
+	userapi capability.CapabilityApi[types.AdminAccessToken, Capability, UserApiRequests],
 ) ApiRequests {
 	return ApiRequests{
 		_ApiRequests{
 			Healthy:         healthy,
 			Ping:            ping,
 			Login:           login,
+			New_refresh:     new_refresh,
 			Logout:          logout,
 			AccessTokenApi:  accesstokenapi,
 			RefreshTokenApi: refreshtokenapi,
@@ -165,6 +163,7 @@ func Make_ApiRequests() ApiRequests {
 			Healthy:         ((*ApiRequests)(nil)).Default_healthy(),
 			Ping:            ((*ApiRequests)(nil)).Default_ping(),
 			Login:           ((*ApiRequests)(nil)).Default_login(),
+			New_refresh:     ((*ApiRequests)(nil)).Default_new_refresh(),
 			Logout:          ((*ApiRequests)(nil)).Default_logout(),
 			AccessTokenApi:  ((*ApiRequests)(nil)).Default_accessTokenApi(),
 			RefreshTokenApi: ((*ApiRequests)(nil)).Default_refreshTokenApi(),
@@ -237,6 +236,30 @@ func (*ApiRequests) Default_login() capability.HttpPost[types.LoginReq, types.Lo
 		)),
 	)
 }
+func (*ApiRequests) Default_new_refresh() capability.HttpPost[types.LoginReq, types.NewRefreshResp] {
+	return capability.MakeAll_HttpPost[types.LoginReq, types.NewRefreshResp](
+		"/new_refresh",
+		nil,
+		adlast.Make_ATypeExpr[types.LoginReq](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.types",
+					"LoginReq",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+		adlast.Make_ATypeExpr[types.NewRefreshResp](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.types",
+					"NewRefreshResp",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+	)
+}
 func (*ApiRequests) Default_logout() capability.HttpPost[http.Unit, http.Unit] {
 	return capability.MakeAll_HttpPost[http.Unit, http.Unit](
 		"/logout",
@@ -261,12 +284,12 @@ func (*ApiRequests) Default_logout() capability.HttpPost[http.Unit, http.Unit] {
 		)),
 	)
 }
-func (*ApiRequests) Default_accessTokenApi() capability.CapabilityApi[AccessToken, Capability, AccessApiRequests] {
-	return capability.MakeAll_CapabilityApi[AccessToken, Capability, AccessApiRequests](
-		adlast.Make_ATypeExpr[AccessToken](adlast.MakeAll_TypeExpr(
+func (*ApiRequests) Default_accessTokenApi() capability.CapabilityApi[types.AccessToken, Capability, AccessApiRequests] {
+	return capability.MakeAll_CapabilityApi[types.AccessToken, Capability, AccessApiRequests](
+		adlast.Make_ATypeExpr[types.AccessToken](adlast.MakeAll_TypeExpr(
 			adlast.Make_TypeRef_reference(
 				adlast.MakeAll_ScopedName(
-					"protoapp.apis.cap",
+					"protoapp.apis.types",
 					"AccessToken",
 				),
 			),
@@ -354,12 +377,12 @@ func (*ApiRequests) Default_accessTokenApi() capability.CapabilityApi[AccessToke
 		"Logged-in API",
 	)
 }
-func (*ApiRequests) Default_refreshTokenApi() capability.CapabilityApi[RefreshToken, http.Unit, RefreshApiRequests] {
-	return capability.MakeAll_CapabilityApi[RefreshToken, http.Unit, RefreshApiRequests](
-		adlast.Make_ATypeExpr[RefreshToken](adlast.MakeAll_TypeExpr(
+func (*ApiRequests) Default_refreshTokenApi() capability.CapabilityApi[types.RefreshToken, http.Unit, RefreshApiRequests] {
+	return capability.MakeAll_CapabilityApi[types.RefreshToken, http.Unit, RefreshApiRequests](
+		adlast.Make_ATypeExpr[types.RefreshToken](adlast.MakeAll_TypeExpr(
 			adlast.Make_TypeRef_reference(
 				adlast.MakeAll_ScopedName(
-					"protoapp.apis.cap",
+					"protoapp.apis.types",
 					"RefreshToken",
 				),
 			),
@@ -402,12 +425,12 @@ func (*ApiRequests) Default_refreshTokenApi() capability.CapabilityApi[RefreshTo
 		"Refresh Token API",
 	)
 }
-func (*ApiRequests) Default_userApi() capability.CapabilityApi[AdminAccessToken, Capability, UserApiRequests] {
-	return capability.MakeAll_CapabilityApi[AdminAccessToken, Capability, UserApiRequests](
-		adlast.Make_ATypeExpr[AdminAccessToken](adlast.MakeAll_TypeExpr(
+func (*ApiRequests) Default_userApi() capability.CapabilityApi[types.AdminAccessToken, Capability, UserApiRequests] {
+	return capability.MakeAll_CapabilityApi[types.AdminAccessToken, Capability, UserApiRequests](
+		adlast.Make_ATypeExpr[types.AdminAccessToken](adlast.MakeAll_TypeExpr(
 			adlast.Make_TypeRef_reference(
 				adlast.MakeAll_ScopedName(
-					"protoapp.apis.cap",
+					"protoapp.apis.types",
 					"AdminAccessToken",
 				),
 			),
@@ -609,8 +632,6 @@ func (*RefreshApiRequests) Default_refresh() capability.HttpPost[types.RefreshRe
 		)),
 	)
 }
-
-type RefreshToken strings2.StringNE
 
 type UserApiRequests struct {
 	_UserApiRequests

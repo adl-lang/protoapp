@@ -37,4 +37,4 @@ func (u *userSvr) Update_user(ctx context.Context, cp cap.Capability, req types.
 	return http.Make_Unit(), fmt.Errorf("unimplemented")
 }
 
-var _ cap.UserApiRequests_Service[cap.AdminAccessToken, cap.Capability] = &userSvr{}
+var _ cap.UserApiRequests_Service[types.AdminAccessToken, cap.Capability] = &userSvr{}

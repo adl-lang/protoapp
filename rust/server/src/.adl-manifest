@@ -2,6 +2,7 @@
 adl/gen/adlc/config/mod.rs
 adl/gen/adlc/config/rust.rs
 adl/gen/adlc/mod.rs
+adl/gen/common/capability.rs
 adl/gen/common/db.rs
 adl/gen/common/hashing.rs
 adl/gen/common/http.rs

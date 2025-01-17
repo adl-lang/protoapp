@@ -150,88 +150,6 @@ func init() {
 	)
 }
 
-func Texpr_AccessToken() adlast.ATypeExpr[AccessToken] {
-	te := adlast.Make_TypeExpr(
-		adlast.Make_TypeRef_reference(
-			adlast.Make_ScopedName("protoapp.apis.cap", "AccessToken"),
-		),
-		[]adlast.TypeExpr{},
-	)
-	return adlast.Make_ATypeExpr[AccessToken](te)
-}
-
-func AST_AccessToken() adlast.ScopedDecl {
-	decl := adlast.MakeAll_Decl(
-		"AccessToken",
-		types.Make_Maybe_nothing[uint32](),
-		adlast.Make_DeclType_newtype_(
-			adlast.MakeAll_NewType(
-				[]adlast.Ident{},
-				adlast.MakeAll_TypeExpr(
-					adlast.Make_TypeRef_reference(
-						adlast.MakeAll_ScopedName(
-							"common.strings",
-							"StringNE",
-						),
-					),
-					[]adlast.TypeExpr{},
-				),
-				types.Make_Maybe_nothing[any](),
-			),
-		),
-		customtypes.MapMap[adlast.ScopedName, any]{},
-	)
-	return adlast.Make_ScopedDecl("protoapp.apis.cap", decl)
-}
-
-func init() {
-	goadl.RESOLVER.Register(
-		adlast.Make_ScopedName("protoapp.apis.cap", "AccessToken"),
-		AST_AccessToken(),
-	)
-}
-
-func Texpr_AdminAccessToken() adlast.ATypeExpr[AdminAccessToken] {
-	te := adlast.Make_TypeExpr(
-		adlast.Make_TypeRef_reference(
-			adlast.Make_ScopedName("protoapp.apis.cap", "AdminAccessToken"),
-		),
-		[]adlast.TypeExpr{},
-	)
-	return adlast.Make_ATypeExpr[AdminAccessToken](te)
-}
-
-func AST_AdminAccessToken() adlast.ScopedDecl {
-	decl := adlast.MakeAll_Decl(
-		"AdminAccessToken",
-		types.Make_Maybe_nothing[uint32](),
-		adlast.Make_DeclType_newtype_(
-			adlast.MakeAll_NewType(
-				[]adlast.Ident{},
-				adlast.MakeAll_TypeExpr(
-					adlast.Make_TypeRef_reference(
-						adlast.MakeAll_ScopedName(
-							"common.strings",
-							"StringNE",
-						),
-					),
-					[]adlast.TypeExpr{},
-				),
-				types.Make_Maybe_nothing[any](),
-			),
-		),
-		customtypes.MapMap[adlast.ScopedName, any]{},
-	)
-	return adlast.Make_ScopedDecl("protoapp.apis.cap", decl)
-}
-
-func init() {
-	goadl.RESOLVER.Register(
-		adlast.Make_ScopedName("protoapp.apis.cap", "AdminAccessToken"),
-		AST_AdminAccessToken(),
-	)
-}
-
 func Texpr_ApiRequests() adlast.ATypeExpr[ApiRequests] {
 	te := adlast.Make_TypeExpr(
 		adlast.Make_TypeRef_reference(
@@ -350,6 +268,42 @@ func AST_ApiRequests() adlast.ScopedDecl {
 						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Login a user\n\nThe response will set an httpOnly cookie containing the refresh token\n"},
 					),
 					adlast.MakeAll_Field(
+						"new_refresh",
+						"new_refresh",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"common.capability",
+									"HttpPost",
+								),
+							),
+							[]adlast.TypeExpr{
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"protoapp.apis.types",
+											"LoginReq",
+										),
+									),
+									[]adlast.TypeExpr{},
+								),
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"protoapp.apis.types",
+											"NewRefreshResp",
+										),
+									),
+									[]adlast.TypeExpr{},
+								),
+							},
+						),
+						types.Make_Maybe_just[any](
+							map[string]interface{}{"path": "/new_refresh"},
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Get a refreshed token, the refresh token is used to get an access token\n"},
+					),
+					adlast.MakeAll_Field(
 						"logout",
 						"logout",
 						adlast.MakeAll_TypeExpr(
@@ -399,7 +353,7 @@ func AST_ApiRequests() adlast.ScopedDecl {
 								adlast.MakeAll_TypeExpr(
 									adlast.Make_TypeRef_reference(
 										adlast.MakeAll_ScopedName(
-											"protoapp.apis.cap",
+											"protoapp.apis.types",
 											"AccessToken",
 										),
 									),
@@ -444,7 +398,7 @@ func AST_ApiRequests() adlast.ScopedDecl {
 								adlast.MakeAll_TypeExpr(
 									adlast.Make_TypeRef_reference(
 										adlast.MakeAll_ScopedName(
-											"protoapp.apis.cap",
+											"protoapp.apis.types",
 											"RefreshToken",
 										),
 									),
@@ -489,7 +443,7 @@ func AST_ApiRequests() adlast.ScopedDecl {
 								adlast.MakeAll_TypeExpr(
 									adlast.Make_TypeRef_reference(
 										adlast.MakeAll_ScopedName(
-											"protoapp.apis.cap",
+											"protoapp.apis.types",
 											"AdminAccessToken",
 										),
 									),
@@ -665,47 +619,6 @@ func init() {
 	goadl.RESOLVER.Register(
 		adlast.Make_ScopedName("protoapp.apis.cap", "RefreshApiRequests"),
 		AST_RefreshApiRequests(),
-	)
-}
-
-func Texpr_RefreshToken() adlast.ATypeExpr[RefreshToken] {
-	te := adlast.Make_TypeExpr(
-		adlast.Make_TypeRef_reference(
-			adlast.Make_ScopedName("protoapp.apis.cap", "RefreshToken"),
-		),
-		[]adlast.TypeExpr{},
-	)
-	return adlast.Make_ATypeExpr[RefreshToken](te)
-}
-
-func AST_RefreshToken() adlast.ScopedDecl {
-	decl := adlast.MakeAll_Decl(
-		"RefreshToken",
-		types.Make_Maybe_nothing[uint32](),
-		adlast.Make_DeclType_newtype_(
-			adlast.MakeAll_NewType(
-				[]adlast.Ident{},
-				adlast.MakeAll_TypeExpr(
-					adlast.Make_TypeRef_reference(
-						adlast.MakeAll_ScopedName(
-							"common.strings",
-							"StringNE",
-						),
-					),
-					[]adlast.TypeExpr{},
-				),
-				types.Make_Maybe_nothing[any](),
-			),
-		),
-		customtypes.MapMap[adlast.ScopedName, any]{},
-	)
-	return adlast.Make_ScopedDecl("protoapp.apis.cap", decl)
-}
-
-func init() {
-	goadl.RESOLVER.Register(
-		adlast.Make_ScopedName("protoapp.apis.cap", "RefreshToken"),
-		AST_RefreshToken(),
 	)
 }
 

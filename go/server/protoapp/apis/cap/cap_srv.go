@@ -14,23 +14,25 @@ type ApiRequests_Service interface {
 	Healthy(ctx context.Context) (http2.Unit, error)
 	Ping(ctx context.Context, req http2.Unit) (http2.Unit, error)
 	Login(ctx context.Context, req types.LoginReq) (types.LoginResp, error)
+	New_refresh(ctx context.Context, req types.LoginReq) (types.NewRefreshResp, error)
 	Logout(ctx context.Context, req http2.Unit) (http2.Unit, error)
-	GetAccessTokenApi() AccessApiRequests_Service[AccessToken, Capability]
-	GetRefreshTokenApi() RefreshApiRequests_Service[RefreshToken, http2.Unit]
-	GetUserApi() UserApiRequests_Service[AdminAccessToken, Capability]
+	GetAccessTokenApi() AccessApiRequests_Service[types.AccessToken, Capability]
+	GetRefreshTokenApi() RefreshApiRequests_Service[types.RefreshToken, http2.Unit]
+	GetUserApi() UserApiRequests_Service[types.AdminAccessToken, Capability]
 }
 
 func Register_ApiRequests(
 	mux *http.ServeMux,
 	srv ApiRequests_Service,
-	accesstokenapi_capr capability.CapabilityRetriever[AccessToken, Capability],
-	refreshtokenapi_capr capability.CapabilityRetriever[RefreshToken, http2.Unit],
-	userapi_capr capability.CapabilityRetriever[AdminAccessToken, Capability],
+	accesstokenapi_capr capability.CapabilityRetriever[types.AccessToken, Capability],
+	refreshtokenapi_capr capability.CapabilityRetriever[types.RefreshToken, http2.Unit],
+	userapi_capr capability.CapabilityRetriever[types.AdminAccessToken, Capability],
 ) {
 	reqs := Make_ApiRequests()
 	capability.AdlGet(mux, reqs.Healthy, srv.Healthy)
 	capability.AdlPost(mux, reqs.Ping, srv.Ping)
 	capability.AdlPost(mux, reqs.Login, srv.Login)
+	capability.AdlPost(mux, reqs.New_refresh, srv.New_refresh)
 	capability.AdlPost(mux, reqs.Logout, srv.Logout)
 	Register_AccessApiRequests(
 		mux,

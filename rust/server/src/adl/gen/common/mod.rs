@@ -1,3 +1,4 @@
+pub mod capability;
 pub mod db;
 pub mod hashing;
 pub mod http;

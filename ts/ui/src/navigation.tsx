@@ -3,7 +3,8 @@ import { RequireLogin } from "./components/RequireLogin";
 import { Messages } from "./pages/messages";
 import { Logout } from "./pages/logout";
 import { Login } from "./pages/login";
-import { ApiWorkbench } from "./pages/api-view";
+import { ApiWorkbench } from "./pages/api-ui";
+import { CapWorkbench } from "./pages/api-cap";
 
 export const ROUTES = {
   '/': () => <Landing />,
@@ -11,6 +12,7 @@ export const ROUTES = {
   '/logout': () => <Logout/>,
   '/messages': () => <RequireLogin><Messages/></RequireLogin>,
   '/api-workbench': () =><ApiWorkbench/>,
+  '/cap-workbench': () =><CapWorkbench/>,
 };
 
 
