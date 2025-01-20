@@ -147,3 +147,19 @@ impl<I, O> HttpPost<I, O> {
     std::marker::PhantomData
   }
 }
+
+#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
+pub struct CapCall<C, P> {
+  pub token: C,
+
+  pub payload: P,
+}
+
+impl<C, P> CapCall<C, P> {
+  pub fn new(token: C, payload: P) -> CapCall<C, P> {
+    CapCall {
+      token: token,
+      payload: payload,
+    }
+  }
+}

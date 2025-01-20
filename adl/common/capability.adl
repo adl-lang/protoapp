@@ -60,4 +60,9 @@ struct HttpPost<I,O> {
   TypeToken<O> respType = null;
 };
 
+struct CapCall<C,P> {
+  C token;
+  P payload;
+};
+
 };

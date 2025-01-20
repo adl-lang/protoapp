@@ -17,6 +17,26 @@ type AdminAccessToken strings2.StringNE
 
 type AdminAccessTokenMarker = capability.CapabilityToken[AdminAccessToken]
 
+type CapRefreshReq struct {
+	_CapRefreshReq
+}
+
+type _CapRefreshReq struct {
+}
+
+func MakeAll_CapRefreshReq() CapRefreshReq {
+	return CapRefreshReq{
+		_CapRefreshReq{},
+	}
+}
+
+func Make_CapRefreshReq() CapRefreshReq {
+	ret := CapRefreshReq{
+		_CapRefreshReq{},
+	}
+	return ret
+}
+
 type LoginReq struct {
 	_LoginReq
 }

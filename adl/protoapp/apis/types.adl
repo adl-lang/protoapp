@@ -40,7 +40,11 @@ union NewRefreshResp {
 struct RefreshReq {
   /// The refresh token is usually provided as a cookie, i.e. a null refresh_token in the post body.
   /// The refresh_token body is used for testing purposes.
+  @RefreshTokenMarker {}
   Nullable<StringNE> refresh_token = null;
+};
+
+struct CapRefreshReq {
 };
 
 union RefreshResp {

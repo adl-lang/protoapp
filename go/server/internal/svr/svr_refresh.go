@@ -19,8 +19,13 @@ import (
 
 type refreshSvr struct {
 	db              *sqlx.DB
+	tokenApi        *tokenSvr
 	refresh_tokener server.RefreshTokener
 	access_tokener  server.AccessTokener
+}
+
+func (rs *refreshSvr) GetAccessTokenApi() cap.AccessApiRequests_Service[types.AccessToken, cap.Capability] {
+	return rs.tokenApi
 }
 
 // Refresh implements cap.RefreshApiRequests_Service.

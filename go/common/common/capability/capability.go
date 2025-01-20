@@ -6,6 +6,40 @@ import (
 	"github.com/adl-lang/goadl_rt/v3/sys/adlast"
 )
 
+type CapCall[C any, P any] struct {
+	_CapCall[C, P]
+}
+
+type _CapCall[C any, P any] struct {
+	Token   C `json:"token"`
+	Payload P `json:"payload"`
+}
+
+func MakeAll_CapCall[C any, P any](
+	token C,
+	payload P,
+) CapCall[C, P] {
+	return CapCall[C, P]{
+		_CapCall[C, P]{
+			Token:   token,
+			Payload: payload,
+		},
+	}
+}
+
+func Make_CapCall[C any, P any](
+	token C,
+	payload P,
+) CapCall[C, P] {
+	ret := CapCall[C, P]{
+		_CapCall[C, P]{
+			Token:   token,
+			Payload: payload,
+		},
+	}
+	return ret
+}
+
 type CapabilityApi[C any, S any, V any] struct {
 	_CapabilityApi[C, S, V]
 }

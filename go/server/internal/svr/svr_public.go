@@ -24,14 +24,8 @@ type publicSvr struct {
 	db         *sqlx.DB
 	cfg        server.ServerConfig
 	pswdHasher hashing.Hasher
-	tokenApi   *tokenSvr
 	refreshApi *refreshSvr
 	userApi    *userSvr
-}
-
-// GetAccessTokenApi implements cap.ApiRequests_Service.
-func (ps *publicSvr) GetAccessTokenApi() cap.AccessApiRequests_Service[types.AccessToken, cap.Capability] {
-	return ps.tokenApi
 }
 
 // GetRefreshTokenApi implements cap.ApiRequests_Service.

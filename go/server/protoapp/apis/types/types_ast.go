@@ -190,6 +190,38 @@ func init() {
 	)
 }
 
+func Texpr_CapRefreshReq() adlast.ATypeExpr[CapRefreshReq] {
+	te := adlast.Make_TypeExpr(
+		adlast.Make_TypeRef_reference(
+			adlast.Make_ScopedName("protoapp.apis.types", "CapRefreshReq"),
+		),
+		[]adlast.TypeExpr{},
+	)
+	return adlast.Make_ATypeExpr[CapRefreshReq](te)
+}
+
+func AST_CapRefreshReq() adlast.ScopedDecl {
+	decl := adlast.MakeAll_Decl(
+		"CapRefreshReq",
+		types.Make_Maybe_nothing[uint32](),
+		adlast.Make_DeclType_struct_(
+			adlast.MakeAll_Struct(
+				[]adlast.Ident{},
+				[]adlast.Field{},
+			),
+		),
+		customtypes.MapMap[adlast.ScopedName, any]{},
+	)
+	return adlast.Make_ScopedDecl("protoapp.apis.types", decl)
+}
+
+func init() {
+	goadl.RESOLVER.Register(
+		adlast.Make_ScopedName("protoapp.apis.types", "CapRefreshReq"),
+		AST_CapRefreshReq(),
+	)
+}
+
 func Texpr_LoginReq() adlast.ATypeExpr[LoginReq] {
 	te := adlast.Make_TypeExpr(
 		adlast.Make_TypeRef_reference(
@@ -851,7 +883,7 @@ func AST_RefreshReq() adlast.ScopedDecl {
 						types.Make_Maybe_just[any](
 							nil,
 						),
-						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "The refresh token is usually provided as a cookie, i.e. a null refresh_token in the post body.\nThe refresh_token body is used for testing purposes.\n"},
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("protoapp.apis.types", "RefreshTokenMarker"): map[string]interface{}{}, adlast.Make_ScopedName("sys.annotations", "Doc"): "The refresh token is usually provided as a cookie, i.e. a null refresh_token in the post body.\nThe refresh_token body is used for testing purposes.\n"},
 					),
 				},
 			),

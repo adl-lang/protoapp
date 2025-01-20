@@ -9,18 +9,4 @@ services:
       POSTGRES_DB: appdb
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: xyzzy
-    volumes:
-      - ../../sql/adl-gen:/docker-entrypoint-initdb.d/
 
-  postgrest:
-    container_name: protoapp-postgrest
-    image: postgrest/postgrest:v12.0.2
-    ports:
-      - "3000:3000"
-    environment:
-      PGRST_DB_URI: postgres://authenticator:pgxyzzy@db:5432/appdb
-      PGRST_DB_ANON_ROLE: web_anon
-      PGRST_JWT_ROLE_CLAIM_KEY: .role
-      PGRST_JWT_SECRET: shouldbetrulysecretbutnotrightnow
-    depends_on:
-      - db

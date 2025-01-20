@@ -3,11 +3,13 @@ import { Modal } from "@/components/forms/mui/modal";
 import { Json } from "@adllang/adl-runtime";
 import DeleteIcon from "@mui/icons-material/Delete";
 import RefreshIcon from "@mui/icons-material/Refresh";
-import { Box, Button, Card, CircularProgress, Container, Divider, IconButton, Typography } from "@mui/material";
+import { Accordion, AccordionDetails, AccordionSummary, Box, Button, Card, CircularProgress, Container, Divider, Grid, Grid2, IconButton, ListItem, Stack, Tooltip, Typography } from "@mui/material";
 import { JSX, useMemo, useRef, useState } from "react";
 import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
 import { Api, CompletedRequest, Endpoint, ExecutingRequest, HttpEndpoint, HttpGetEndpoint, HttpPostEndpoint } from "./api-types";
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import HelpIcon from '@mui/icons-material/Help';
 
 type ModalState = ChooseEndpoint | CreateRequest<unknown>;
 
@@ -151,16 +153,34 @@ function ApiView(props: {
   // cancel: () => void
 }) {
   return <Box sx={{ marginTop: "20px", marginBottom: "20px" }}>
-    <Typography>{props.endpoint.name} - {`${props.endpoint.token_val}`}</Typography>
-    {/* todo change this to an accordion */}
+    <Accordion>
+    <AccordionSummary
+          expandIcon={<ExpandMoreIcon />}
+          aria-controls="panel2-content"
+          id="panel2-header"
+        >
+          <Box>
+              <Typography component="span">{props.endpoint.name}</Typography>
+          <Tooltip title={`${props.endpoint.token_val}`}>
+            <IconButton>
+              <HelpIcon />
+            </IconButton>
+          </Tooltip>
+          </Box>
+        </AccordionSummary>
+      <AccordionDetails>
     <Typography>{props.endpoint.docString}</Typography>
+    </AccordionDetails>
+    {/* todo change this to an accordion */}
+    {/* <Typography>{props.endpoint.docString}</Typography> */}
     <Divider />
     {props.endpoint.endpoints.map((e, i) => {
       switch (e.kind) {
-        // case 'api': return <ApiView key={i} endpoint={e} choose={props.choose} />;
+        case 'api': return <ApiView key={i} endpoint={e} choose={props.choose} />;
         default: return <HttpEndpointView key={i} endpoint={e} choose={props.choose} />;
       }
     })}
+    </Accordion>
     <Divider />
   </Box>;
 }
@@ -168,7 +188,8 @@ function ApiView(props: {
 function HttpEndpointView(props: {
   endpoint: HttpEndpoint;
   choose: (e: Endpoint) => void,
-}) {
+}) 
+{
   return <Box sx={{ marginTop: "20px", marginBottom: "20px" }}>
     <Button onClick={() => props.choose(props.endpoint)}>
       {props.endpoint.name}

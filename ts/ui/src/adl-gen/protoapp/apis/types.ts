@@ -169,12 +169,32 @@ export function makeRefreshReq(
 }
 
 const RefreshReq_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"RefreshReq","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"The refresh token is usually provided as a cookie, i.e. a null refresh_token in the post body.\nThe refresh_token body is used for testing purposes.\n"}],"default":{"kind":"just","value":null},"name":"refresh_token","serializedName":"refresh_token","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}}],"typeRef":{"kind":"primitive","value":"Nullable"}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.types"};
+  {"decl":{"annotations":[],"name":"RefreshReq","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"protoapp.apis.types","name":"RefreshTokenMarker"},"value":{}},{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"The refresh token is usually provided as a cookie, i.e. a null refresh_token in the post body.\nThe refresh_token body is used for testing purposes.\n"}],"default":{"kind":"just","value":null},"name":"refresh_token","serializedName":"refresh_token","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}}],"typeRef":{"kind":"primitive","value":"Nullable"}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.types"};
 
 export const snRefreshReq: ADL.ScopedName = {moduleName:"protoapp.apis.types", name:"RefreshReq"};
 
 export function texprRefreshReq(): ADL.ATypeExpr<RefreshReq> {
   return {value : {typeRef : {kind: "reference", value : snRefreshReq}, parameters : []}};
+}
+
+export interface CapRefreshReq {
+}
+
+export function makeCapRefreshReq(
+  _input: {
+  }
+): CapRefreshReq {
+  return {
+  };
+}
+
+const CapRefreshReq_AST : ADL.ScopedDecl =
+  {"decl":{"annotations":[],"name":"CapRefreshReq","type_":{"kind":"struct_","value":{"fields":[],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.types"};
+
+export const snCapRefreshReq: ADL.ScopedName = {moduleName:"protoapp.apis.types", name:"CapRefreshReq"};
+
+export function texprCapRefreshReq(): ADL.ATypeExpr<CapRefreshReq> {
+  return {value : {typeRef : {kind: "reference", value : snCapRefreshReq}, parameters : []}};
 }
 
 export interface RefreshResp_Access_token {
@@ -506,6 +526,7 @@ export const _AST_MAP: { [key: string]: ADL.ScopedDecl } = {
   "protoapp.apis.types.LoginResp" : LoginResp_AST,
   "protoapp.apis.types.NewRefreshResp" : NewRefreshResp_AST,
   "protoapp.apis.types.RefreshReq" : RefreshReq_AST,
+  "protoapp.apis.types.CapRefreshReq" : CapRefreshReq_AST,
   "protoapp.apis.types.RefreshResp" : RefreshResp_AST,
   "protoapp.apis.types.LoginTokens" : LoginTokens_AST,
   "protoapp.apis.types.NewMessageReq" : NewMessageReq_AST,

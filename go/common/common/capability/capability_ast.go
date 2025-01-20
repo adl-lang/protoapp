@@ -8,6 +8,66 @@ import (
 	"github.com/adl-lang/goadl_rt/v3/sys/types"
 )
 
+func Texpr_CapCall[C any, P any](c adlast.ATypeExpr[C], p adlast.ATypeExpr[P]) adlast.ATypeExpr[CapCall[C, P]] {
+	te := adlast.Make_TypeExpr(
+		adlast.Make_TypeRef_reference(
+			adlast.Make_ScopedName("common.capability", "CapCall"),
+		),
+		[]adlast.TypeExpr{c.Value, p.Value},
+	)
+	return adlast.Make_ATypeExpr[CapCall[C, P]](te)
+}
+
+func AST_CapCall() adlast.ScopedDecl {
+	decl := adlast.MakeAll_Decl(
+		"CapCall",
+		types.Make_Maybe_nothing[uint32](),
+		adlast.Make_DeclType_struct_(
+			adlast.MakeAll_Struct(
+				[]adlast.Ident{
+					"C",
+					"P",
+				},
+				[]adlast.Field{
+					adlast.MakeAll_Field(
+						"token",
+						"token",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_typeParam(
+								"C",
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_nothing[any](),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+					adlast.MakeAll_Field(
+						"payload",
+						"payload",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_typeParam(
+								"P",
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_nothing[any](),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+				},
+			),
+		),
+		customtypes.MapMap[adlast.ScopedName, any]{},
+	)
+	return adlast.Make_ScopedDecl("common.capability", decl)
+}
+
+func init() {
+	goadl.RESOLVER.Register(
+		adlast.Make_ScopedName("common.capability", "CapCall"),
+		AST_CapCall(),
+	)
+}
+
 func Texpr_CapabilityApi[C any, S any, V any](c adlast.ATypeExpr[C], s adlast.ATypeExpr[S], v adlast.ATypeExpr[V]) adlast.ATypeExpr[CapabilityApi[C, S, V]] {
 	te := adlast.Make_TypeExpr(
 		adlast.Make_TypeRef_reference(

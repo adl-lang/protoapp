@@ -109,10 +109,10 @@ function getEndpoints<API>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<API>
   for (const f of struct.fields) {
     if (f.typeExpr.typeRef.kind === 'reference') {
       if (scopedNamesEqual(f.typeExpr.typeRef.value, snHttpPost)) {
-        endpoints.push(getHttpPostEndpoint(resolver, f, struct))
+        endpoints.push(getHttpPostEndpoint(resolver, f))
       }
       if (scopedNamesEqual(f.typeExpr.typeRef.value, snHttpGet)) {
-        endpoints.push(getHttpGetEndpoint(resolver, f, struct))
+        endpoints.push(getHttpGetEndpoint(resolver, f))
       }
     }
   }
@@ -120,7 +120,7 @@ function getEndpoints<API>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<API>
   return endpoints;
 }
 
-function getHttpPostEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field, parent: AST.Struct): HttpPostEndpoint<I, O> {
+function getHttpPostEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field): HttpPostEndpoint<I, O> {
   if (field.default.kind !== 'just') {
     throw new Error("API endpoint must have a default value");
   }
@@ -146,11 +146,10 @@ function getHttpPostEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field,
     veditorO,
     jsonBindingI,
     jsonBindingO,
-    parent,
   }
 }
 
-function getHttpGetEndpoint<O>(resolver: ADL.DeclResolver, field: AST.Field, parent: AST.Struct): HttpGetEndpoint<O> {
+function getHttpGetEndpoint<O>(resolver: ADL.DeclResolver, field: AST.Field): HttpGetEndpoint<O> {
   if (field.default.kind !== 'just') {
     throw new Error("API endpoint must have a default value");
   }
@@ -171,7 +170,6 @@ function getHttpGetEndpoint<O>(resolver: ADL.DeclResolver, field: AST.Field, par
     security: httpGet.security,
     veditorO,
     jsonBindingO,
-    parent,
   }
 }
 

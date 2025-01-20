@@ -148,6 +148,17 @@ impl RefreshReq {
 }
 
 #[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
+pub struct CapRefreshReq {
+}
+
+impl CapRefreshReq {
+  pub fn new() -> CapRefreshReq {
+    CapRefreshReq {
+    }
+  }
+}
+
+#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
 pub enum RefreshResp {
   #[serde(rename="access_token")]
   AccessToken(StringNE),

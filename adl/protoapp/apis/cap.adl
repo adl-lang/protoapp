@@ -14,6 +14,7 @@ import protoapp.db.AppUserId;
 import protoapp.db.MessageId;
 
 import protoapp.apis.types.*;
+import common.capability.CapabilityToken;
 
 struct Capability {
   String user_id;
@@ -46,15 +47,17 @@ struct ApiRequests {
     "path": "/logout"
   };
 
-  /// API endpoints accessible when logged in
-  CapabilityApi<AccessToken,Capability,AccessApiRequests> accessTokenApi = {
-    "service": {},
-    "name": "Logged-in API"
+  HttpPost<Unit, A_ApiResp> a = {
+    "path": "/a"
+  };
+
+  CapabilityApi<A_ApiToken,Unit,A_Api> accessTokenApi = {
+    "service": {}
   };
 
   // This is a simple refresh model, hence the Unit as the S type.
   // If a more complex model (eg. with user blacklisting) was required the S payload would be different
-  /// API Enpoint used to refresh the access token
+  /// API Endpoint used to refresh the access token
   CapabilityApi<RefreshToken,Unit,RefreshApiRequests> refreshTokenApi = {
     "service": {},
     "name": "Refresh Token API"
@@ -65,6 +68,7 @@ struct ApiRequests {
     "service": {},
     "name": "User Admin API"
   };
+  
 };
 
 struct AccessApiRequests {
@@ -87,10 +91,64 @@ struct RefreshApiRequests {
   /// Get a refreshed access token
   ///
   /// If the refresh token is not provided in the request body, then it will
-  /// be read from the refrestToken cookie in the request.
-  HttpPost<RefreshReq, RefreshResp> refresh = {
+  /// be read from the refreshToken cookie in the request.
+  HttpPost<CapRefreshReq, RefreshResp> refresh = {
     "path": "/refresh"
   };
+
+  /// API endpoints accessible when logged in
+  CapabilityApi<AccessToken,Capability,AccessApiRequests> accessTokenApi = {
+    "service": {},
+    "name": "Logged-in API"
+  };
+
+};
+
+type A_ApiToken = String;
+type A_ApiTokenMarker = CapabilityToken<A_ApiToken>;
+type B_ApiToken = String;
+type B_ApiTokenMarker = CapabilityToken<B_ApiToken>;
+type C_ApiToken = String;
+type C_ApiTokenMarker = CapabilityToken<C_ApiToken>;
+
+struct A_Api {
+  HttpPost<A_ApiToken, B_ApiResp> b = {
+    "path": "/b"
+  };
+
+  CapabilityApi<A_ApiToken,Unit,B_Api> accessTokenApi = {
+    "service": {}
+  };
+};
+
+
+struct B_Api {
+  HttpPost<B_ApiToken, C_ApiResp> c = {
+    "path": "/c"
+  };
+
+  CapabilityApi<B_ApiToken,Unit,C_Api> accessTokenApi = {
+    "service": {}
+  };
+};
+
+struct C_Api {
+  HttpPost<C_ApiToken, String> hello = {
+    "path": "/hello"
+  };
+};
+
+union A_ApiResp {
+  @A_ApiTokenMarker {}
+  String token;
+};
+union B_ApiResp {
+  @B_ApiTokenMarker {}
+  String token;
+};
+union C_ApiResp {
+  @C_ApiTokenMarker {}
+  String token;
 };
 
 struct UserApiRequests {

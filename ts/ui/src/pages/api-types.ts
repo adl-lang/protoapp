@@ -13,15 +13,18 @@ export type Endpoint =
 export type HttpEndpoint = HttpPostEndpoint<unknown, unknown> | HttpGetEndpoint<unknown>;
 // export type CapHttpEndpoint = CapHttpPostEndpoint<unknown, unknown> | CapHttpGetEndpoint<unknown>;
 
+// inteface 
+
 export interface Api<C> {
   name: string;
   docString: string,
   kind: 'api';
   typetoken: ADL.ATypeExpr<C>;
+  token_val_parents: unknown[];
   token_val: C;
-  // endpoints: Endpoint[];
-  endpoints: HttpEndpoint[];
-  parent: AST.Struct;
+  endpoints: Endpoint[];
+  // endpoints: HttpEndpoint[];
+  // parents: AST.Struct[];
 }
 
 // export type CapHttpGetEndpoint<O> = Omit<HttpGetEndpoint<O>, "security">;
@@ -35,7 +38,8 @@ export interface HttpGetEndpoint<O> {
   docString: string,
   veditorO: VEditor<O>;
   jsonBindingO: JsonBinding<O>;
-  parent: AST.Struct;
+  token_val_parents?: unknown[];
+  // parents: AST.Struct[];
 }
 
 export interface HttpPostEndpoint<I, O> {
@@ -48,7 +52,8 @@ export interface HttpPostEndpoint<I, O> {
   veditorO: VEditor<O>;
   jsonBindingI: JsonBinding<I>;
   jsonBindingO: JsonBinding<O>;
-  parent: AST.Struct;
+  token_val_parents?: unknown[];
+  // parents: AST.Struct[];
 }
 
 export type ExecutingRequest = {

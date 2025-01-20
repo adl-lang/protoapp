@@ -74,9 +74,36 @@ export function texprHttpPost<I, O>(texprI : ADL.ATypeExpr<I>, texprO : ADL.ATyp
   return {value : {typeRef : {kind: "reference", value : {moduleName : "common.capability",name : "HttpPost"}}, parameters : [texprI.value, texprO.value]}};
 }
 
+export interface CapCall<C, P> {
+  token: C;
+  payload: P;
+}
+
+export function makeCapCall<C, P>(
+  input: {
+    token: C,
+    payload: P,
+  }
+): CapCall<C, P> {
+  return {
+    token: input.token,
+    payload: input.payload,
+  };
+}
+
+const CapCall_AST : ADL.ScopedDecl =
+  {"decl":{"annotations":[],"name":"CapCall","type_":{"kind":"struct_","value":{"fields":[{"annotations":[],"default":{"kind":"nothing"},"name":"token","serializedName":"token","typeExpr":{"parameters":[],"typeRef":{"kind":"typeParam","value":"C"}}},{"annotations":[],"default":{"kind":"nothing"},"name":"payload","serializedName":"payload","typeExpr":{"parameters":[],"typeRef":{"kind":"typeParam","value":"P"}}}],"typeParams":["C","P"]}},"version":{"kind":"nothing"}},"moduleName":"common.capability"};
+
+export const snCapCall: ADL.ScopedName = {moduleName:"common.capability", name:"CapCall"};
+
+export function texprCapCall<C, P>(texprC : ADL.ATypeExpr<C>, texprP : ADL.ATypeExpr<P>): ADL.ATypeExpr<CapCall<C, P>> {
+  return {value : {typeRef : {kind: "reference", value : {moduleName : "common.capability",name : "CapCall"}}, parameters : [texprC.value, texprP.value]}};
+}
+
 export const _AST_MAP: { [key: string]: ADL.ScopedDecl } = {
   "common.capability.CapabilityApi" : CapabilityApi_AST,
   "common.capability.CapabilityToken" : CapabilityToken_AST,
   "common.capability.HttpGet" : HttpGet_AST,
-  "common.capability.HttpPost" : HttpPost_AST
+  "common.capability.HttpPost" : HttpPost_AST,
+  "common.capability.CapCall" : CapCall_AST
 };

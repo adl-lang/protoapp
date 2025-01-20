@@ -63,17 +63,19 @@ func (sc *srvCmd) Run() error {
 
 	db.Mapper = reflectx.NewMapperFunc("json", func(s string) string { return s })
 
+	tokenS := &tokenSvr{
+		db: db,
+	}
+
 	ps := &publicSvr{
 		db:         db,
 		pswdHasher: sc.Cfg.Password_hashing_algo,
 		cfg:        sc.Cfg,
-		tokenApi: &tokenSvr{
-			db: db,
-		},
 		refreshApi: &refreshSvr{
 			db:              db,
 			refresh_tokener: sc.Cfg,
 			access_tokener:  sc.Cfg,
+			tokenApi:        tokenS,
 			// tokener: sc.Cfg,
 		},
 		userApi: &userSvr{
@@ -94,8 +96,8 @@ func (sc *srvCmd) Run() error {
 	cap.Register_ApiRequests(
 		&sc.mux,
 		ps,
-		acr,
 		rcr,
+		acr,
 		aacr,
 	)
 	// cap_api.Register_TokenApi(&sc.mux, tcr, ts)
