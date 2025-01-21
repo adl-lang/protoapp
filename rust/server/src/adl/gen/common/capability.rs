@@ -25,16 +25,19 @@ pub struct CapabilityApi<C, S, V> {
 
   #[serde(default="CapabilityApi::<C, S, V>::def_name")]
   pub name: String,
+
+  pub token_delivery: DeliveryMethod,
 }
 
 impl<C, S, V> CapabilityApi<C, S, V> {
-  pub fn new(service: V) -> CapabilityApi<C, S, V> {
+  pub fn new(service: V, token_delivery: DeliveryMethod) -> CapabilityApi<C, S, V> {
     CapabilityApi {
       token: CapabilityApi::<C, S, V>::def_token(),
       cap: CapabilityApi::<C, S, V>::def_cap(),
       service_prefix: CapabilityApi::<C, S, V>::def_service_prefix(),
       service: service,
       name: CapabilityApi::<C, S, V>::def_name(),
+      token_delivery: token_delivery,
     }
   }
 
@@ -53,6 +56,33 @@ impl<C, S, V> CapabilityApi<C, S, V> {
   pub fn def_name() -> String {
     "".to_string()
   }
+}
+
+#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
+pub enum DeliveryMethod {
+  /**
+   * don't send the token back to the server
+   */
+  #[serde(rename="none")]
+  None,
+
+  /**
+   * post the CapCall type ie. {"token": xxx, "payload": yyy}
+   */
+  #[serde(rename="post_cap_call")]
+  PostCapCall,
+
+  /**
+   * add as an "authorization: Bearer" headder
+   */
+  #[serde(rename="bearer")]
+  Bearer,
+
+  /**
+   * add as a cookie, the provided string in the cookie name
+   */
+  #[serde(rename="cookie")]
+  Cookie(String),
 }
 
 /**

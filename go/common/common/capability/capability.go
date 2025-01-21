@@ -2,6 +2,7 @@
 package capability
 
 import (
+	"fmt"
 	"github.com/adl-lang/goadl_common/common/http"
 	"github.com/adl-lang/goadl_rt/v3/sys/adlast"
 )
@@ -50,6 +51,7 @@ type _CapabilityApi[C any, S any, V any] struct {
 	Service_prefix string              `json:"service_prefix"`
 	Service        V                   `json:"service"`
 	Name           string              `json:"name"`
+	Token_delivery DeliveryMethod      `json:"token_delivery"`
 }
 
 func MakeAll_CapabilityApi[C any, S any, V any](
@@ -58,6 +60,7 @@ func MakeAll_CapabilityApi[C any, S any, V any](
 	service_prefix string,
 	service V,
 	name string,
+	token_delivery DeliveryMethod,
 ) CapabilityApi[C, S, V] {
 	return CapabilityApi[C, S, V]{
 		_CapabilityApi[C, S, V]{
@@ -66,6 +69,7 @@ func MakeAll_CapabilityApi[C any, S any, V any](
 			Service_prefix: service_prefix,
 			Service:        service,
 			Name:           name,
+			Token_delivery: token_delivery,
 		},
 	}
 }
@@ -91,6 +95,154 @@ func MakeAll_CapabilityToken[S any](
 }
 
 // struct CapabilityToken contains at least one TypeToken, not generating Make_ funcs
+
+type DeliveryMethod struct {
+	Branch DeliveryMethodBranch
+}
+
+type DeliveryMethodBranch interface {
+	isDeliveryMethodBranch()
+}
+
+func (*DeliveryMethod) MakeNewBranch(key string) (any, error) {
+	switch key {
+	case "none":
+		return &_DeliveryMethod_None{}, nil
+	case "post_cap_call":
+		return &_DeliveryMethod_Post_cap_call{}, nil
+	case "bearer":
+		return &_DeliveryMethod_Bearer{}, nil
+	case "cookie":
+		return &_DeliveryMethod_Cookie{}, nil
+	}
+	return nil, fmt.Errorf("unknown branch is : %s", key)
+}
+
+type _DeliveryMethod_None struct {
+	V struct{} `branch:"none"`
+}
+type _DeliveryMethod_Post_cap_call struct {
+	V struct{} `branch:"post_cap_call"`
+}
+type _DeliveryMethod_Bearer struct {
+	V struct{} `branch:"bearer"`
+}
+type _DeliveryMethod_Cookie struct {
+	V string `branch:"cookie"`
+}
+
+func (_DeliveryMethod_None) isDeliveryMethodBranch()          {}
+func (_DeliveryMethod_Post_cap_call) isDeliveryMethodBranch() {}
+func (_DeliveryMethod_Bearer) isDeliveryMethodBranch()        {}
+func (_DeliveryMethod_Cookie) isDeliveryMethodBranch()        {}
+
+func Make_DeliveryMethod_none() DeliveryMethod {
+	return DeliveryMethod{
+		_DeliveryMethod_None{struct{}{}},
+	}
+}
+
+func Make_DeliveryMethod_post_cap_call() DeliveryMethod {
+	return DeliveryMethod{
+		_DeliveryMethod_Post_cap_call{struct{}{}},
+	}
+}
+
+func Make_DeliveryMethod_bearer() DeliveryMethod {
+	return DeliveryMethod{
+		_DeliveryMethod_Bearer{struct{}{}},
+	}
+}
+
+func Make_DeliveryMethod_cookie(v string) DeliveryMethod {
+	return DeliveryMethod{
+		_DeliveryMethod_Cookie{v},
+	}
+}
+
+func (un DeliveryMethod) Cast_none() (struct{}, bool) {
+	br, ok := un.Branch.(_DeliveryMethod_None)
+	return br.V, ok
+}
+
+func (un DeliveryMethod) Cast_post_cap_call() (struct{}, bool) {
+	br, ok := un.Branch.(_DeliveryMethod_Post_cap_call)
+	return br.V, ok
+}
+
+func (un DeliveryMethod) Cast_bearer() (struct{}, bool) {
+	br, ok := un.Branch.(_DeliveryMethod_Bearer)
+	return br.V, ok
+}
+
+func (un DeliveryMethod) Cast_cookie() (string, bool) {
+	br, ok := un.Branch.(_DeliveryMethod_Cookie)
+	return br.V, ok
+}
+
+func Handle_DeliveryMethod[T any](
+	_in DeliveryMethod,
+	none func(none struct{}) T,
+	post_cap_call func(post_cap_call struct{}) T,
+	bearer func(bearer struct{}) T,
+	cookie func(cookie string) T,
+	_default func() T,
+) T {
+	switch _b := _in.Branch.(type) {
+	case _DeliveryMethod_None:
+		if none != nil {
+			return none(_b.V)
+		}
+	case _DeliveryMethod_Post_cap_call:
+		if post_cap_call != nil {
+			return post_cap_call(_b.V)
+		}
+	case _DeliveryMethod_Bearer:
+		if bearer != nil {
+			return bearer(_b.V)
+		}
+	case _DeliveryMethod_Cookie:
+		if cookie != nil {
+			return cookie(_b.V)
+		}
+	}
+	if _default != nil {
+		return _default()
+	}
+	panic("unhandled branch in : DeliveryMethod")
+}
+
+func HandleWithErr_DeliveryMethod[T any](
+	_in DeliveryMethod,
+	none func(none struct{}) (T, error),
+	post_cap_call func(post_cap_call struct{}) (T, error),
+	bearer func(bearer struct{}) (T, error),
+	cookie func(cookie string) (T, error),
+	_default func() (T, error),
+) (T, error) {
+	switch _b := _in.Branch.(type) {
+	case _DeliveryMethod_None:
+		if none != nil {
+			return none(_b.V)
+		}
+	case _DeliveryMethod_Post_cap_call:
+		if post_cap_call != nil {
+			return post_cap_call(_b.V)
+		}
+	case _DeliveryMethod_Bearer:
+		if bearer != nil {
+			return bearer(_b.V)
+		}
+	case _DeliveryMethod_Cookie:
+		if cookie != nil {
+			return cookie(_b.V)
+		}
+	}
+	if _default != nil {
+		return _default()
+	}
+	panic("unhandled branch in : DeliveryMethod")
+}
 
 type HttpGet[O any] struct {
 	_HttpGet[O]

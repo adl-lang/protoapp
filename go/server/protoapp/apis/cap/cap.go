@@ -414,9 +414,13 @@ func (*ApiRequests) Default_refreshTokenApi() capability.CapabilityApi[types.Ref
 					),
 				),
 				"Logged-in API",
+				capability.Make_DeliveryMethod_bearer(),
 			),
 		),
 		"Refresh Token API",
+		capability.Make_DeliveryMethod_cookie(
+			"refreshToken",
+		),
 	)
 }
 func (*ApiRequests) Default_userApi() capability.CapabilityApi[types.AdminAccessToken, Capability, UserApiRequests] {
@@ -538,6 +542,7 @@ func (*ApiRequests) Default_userApi() capability.CapabilityApi[types.AdminAccess
 			),
 		),
 		"User Admin API",
+		capability.Make_DeliveryMethod_bearer(),
 	)
 }
 
@@ -721,6 +726,7 @@ func (*RefreshApiRequests) Default_accessTokenApi() capability.CapabilityApi[typ
 			),
 		),
 		"Logged-in API",
+		capability.Make_DeliveryMethod_bearer(),
 	)
 }
 

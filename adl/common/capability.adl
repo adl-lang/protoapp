@@ -27,6 +27,23 @@ struct CapabilityApi<C,S,V> {
   String service_prefix = "";
   V service;
   String name = "";
+  DeliveryMethod token_delivery;
+};
+
+union DeliveryMethod {
+  /// don't send the token back to the server
+  Void none;
+  // /// Use a stardard http mechanism.
+  // /// The mechanism differs depending on the http method
+  // /// post
+  // /// Uses the CapCall type ie. {"token": xxx, "payload": yyy}
+  // /// get
+  // /// Add the token as a query param ie. ?token=xxx
+  // Void http;
+  /// add as an "authorization: Bearer" headder
+  Void bearer;
+  /// add as a cookie, the provided string in the cookie name
+  String cookie;
 };
 
 // /// Used to annotation api field as an api call which creates a cap.

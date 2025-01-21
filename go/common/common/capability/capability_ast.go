@@ -172,6 +172,21 @@ func AST_CapabilityApi() adlast.ScopedDecl {
 						),
 						customtypes.MapMap[adlast.ScopedName, any]{},
 					),
+					adlast.MakeAll_Field(
+						"token_delivery",
+						"token_delivery",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"common.capability",
+									"DeliveryMethod",
+								),
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_nothing[any](),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
 				},
 			),
 		),
@@ -240,6 +255,87 @@ func init() {
 	goadl.RESOLVER.Register(
 		adlast.Make_ScopedName("common.capability", "CapabilityToken"),
 		AST_CapabilityToken(),
+	)
+}
+
+func Texpr_DeliveryMethod() adlast.ATypeExpr[DeliveryMethod] {
+	te := adlast.Make_TypeExpr(
+		adlast.Make_TypeRef_reference(
+			adlast.Make_ScopedName("common.capability", "DeliveryMethod"),
+		),
+		[]adlast.TypeExpr{},
+	)
+	return adlast.Make_ATypeExpr[DeliveryMethod](te)
+}
+
+func AST_DeliveryMethod() adlast.ScopedDecl {
+	decl := adlast.MakeAll_Decl(
+		"DeliveryMethod",
+		types.Make_Maybe_nothing[uint32](),
+		adlast.Make_DeclType_union_(
+			adlast.MakeAll_Union(
+				[]adlast.Ident{},
+				[]adlast.Field{
+					adlast.MakeAll_Field(
+						"none",
+						"none",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_primitive(
+								"Void",
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_nothing[any](),
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "don't send the token back to the server\n"},
+					),
+					adlast.MakeAll_Field(
+						"post_cap_call",
+						"post_cap_call",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_primitive(
+								"Void",
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_nothing[any](),
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "post the CapCall type ie. {\"token\": xxx, \"payload\": yyy}\n"},
+					),
+					adlast.MakeAll_Field(
+						"bearer",
+						"bearer",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_primitive(
+								"Void",
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_nothing[any](),
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "add as an \"authorization: Bearer\" headder\n"},
+					),
+					adlast.MakeAll_Field(
+						"cookie",
+						"cookie",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_primitive(
+								"String",
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_nothing[any](),
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "add as a cookie, the provided string in the cookie name\n"},
+					),
+				},
+			),
+		),
+		customtypes.MapMap[adlast.ScopedName, any]{},
+	)
+	return adlast.Make_ScopedDecl("common.capability", decl)
+}
+
+func init() {
+	goadl.RESOLVER.Register(
+		adlast.Make_ScopedName("common.capability", "DeliveryMethod"),
+		AST_DeliveryMethod(),
 	)
 }
 

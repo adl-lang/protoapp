@@ -52,13 +52,15 @@ struct ApiRequests {
   /// API Endpoint used to refresh the access token
   CapabilityApi<RefreshToken,Unit,RefreshApiRequests> refreshTokenApi = {
     "service": {},
-    "name": "Refresh Token API"
+    "name": "Refresh Token API",
+    "token_delivery": {"cookie": "refreshToken"}
   };
 
   /// API endpoints accessible when logged in as admin
   CapabilityApi<AdminAccessToken,Capability,UserApiRequests> userApi = {
     "service": {},
-    "name": "User Admin API"
+    "name": "User Admin API",
+    "token_delivery": "bearer"
   };
   
 };
@@ -91,7 +93,8 @@ struct RefreshApiRequests {
   /// API endpoints accessible when logged in
   CapabilityApi<AccessToken,Capability,AccessApiRequests> accessTokenApi = {
     "service": {},
-    "name": "Logged-in API"
+    "name": "Logged-in API",
+    "token_delivery": "bearer"
   };
 
 };

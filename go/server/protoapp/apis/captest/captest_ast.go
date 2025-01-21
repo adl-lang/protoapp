@@ -103,7 +103,7 @@ func AST_A_Api() adlast.ScopedDecl {
 							},
 						),
 						types.Make_Maybe_just[any](
-							map[string]interface{}{"service": map[string]interface{}{}},
+							map[string]interface{}{"service": map[string]interface{}{}, "token_delivery": map[string]interface{}{"cookie": "b_cookie"}},
 						),
 						customtypes.MapMap[adlast.ScopedName, any]{},
 					),
@@ -349,7 +349,7 @@ func AST_ApiRequests() adlast.ScopedDecl {
 							},
 						),
 						types.Make_Maybe_just[any](
-							map[string]interface{}{"service": map[string]interface{}{}},
+							map[string]interface{}{"service": map[string]interface{}{}, "token_delivery": map[string]interface{}{"cookie": "a_cookie"}},
 						),
 						customtypes.MapMap[adlast.ScopedName, any]{},
 					),
@@ -463,7 +463,7 @@ func AST_B_Api() adlast.ScopedDecl {
 							},
 						),
 						types.Make_Maybe_just[any](
-							map[string]interface{}{"service": map[string]interface{}{}},
+							map[string]interface{}{"service": map[string]interface{}{}, "token_delivery": map[string]interface{}{"cookie": "c_cookie"}},
 						),
 						customtypes.MapMap[adlast.ScopedName, any]{},
 					),
@@ -809,69 +809,5 @@ func init() {
 	goadl.RESOLVER.Register(
 		adlast.Make_ScopedName("protoapp.apis.captest", "C_ApiTokenMarker"),
 		AST_C_ApiTokenMarker(),
-	)
-}
-
-func Texpr_Capability() adlast.ATypeExpr[Capability] {
-	te := adlast.Make_TypeExpr(
-		adlast.Make_TypeRef_reference(
-			adlast.Make_ScopedName("protoapp.apis.captest", "Capability"),
-		),
-		[]adlast.TypeExpr{},
-	)
-	return adlast.Make_ATypeExpr[Capability](te)
-}
-
-func AST_Capability() adlast.ScopedDecl {
-	decl := adlast.MakeAll_Decl(
-		"Capability",
-		types.Make_Maybe_nothing[uint32](),
-		adlast.Make_DeclType_struct_(
-			adlast.MakeAll_Struct(
-				[]adlast.Ident{},
-				[]adlast.Field{
-					adlast.MakeAll_Field(
-						"user_id",
-						"user_id",
-						adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_primitive(
-								"String",
-							),
-							[]adlast.TypeExpr{},
-						),
-						types.Make_Maybe_nothing[any](),
-						customtypes.MapMap[adlast.ScopedName, any]{},
-					),
-					adlast.MakeAll_Field(
-						"roles",
-						"roles",
-						adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_primitive(
-								"Vector",
-							),
-							[]adlast.TypeExpr{
-								adlast.MakeAll_TypeExpr(
-									adlast.Make_TypeRef_primitive(
-										"String",
-									),
-									[]adlast.TypeExpr{},
-								),
-							},
-						),
-						types.Make_Maybe_nothing[any](),
-						customtypes.MapMap[adlast.ScopedName, any]{},
-					),
-				},
-			),
-		),
-		customtypes.MapMap[adlast.ScopedName, any]{},
-	)
-	return adlast.Make_ScopedDecl("protoapp.apis.captest", decl)
-}
-
-func init() {
-	goadl.RESOLVER.Register(
-		adlast.Make_ScopedName("protoapp.apis.captest", "Capability"),
-		AST_Capability(),
 	)
 }

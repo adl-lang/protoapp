@@ -149,9 +149,15 @@ func (*A_Api) Default_accessTokenApi() capability.CapabilityApi[B_ApiToken, http
 					),
 				),
 				"",
+				capability.Make_DeliveryMethod_cookie(
+					"c_cookie",
+				),
 			),
 		),
 		"",
+		capability.Make_DeliveryMethod_cookie(
+			"b_cookie",
+		),
 	)
 }
 
@@ -410,12 +416,21 @@ func (*ApiRequests) Default_accessTokenApi() capability.CapabilityApi[A_ApiToken
 							),
 						),
 						"",
+						capability.Make_DeliveryMethod_cookie(
+							"c_cookie",
+						),
 					),
 				),
 				"",
+				capability.Make_DeliveryMethod_cookie(
+					"b_cookie",
+				),
 			),
 		),
 		"",
+		capability.Make_DeliveryMethod_cookie(
+			"a_cookie",
+		),
 	)
 }
 
@@ -517,6 +532,9 @@ func (*B_Api) Default_accessTokenApi() capability.CapabilityApi[C_ApiToken, http
 			),
 		),
 		"",
+		capability.Make_DeliveryMethod_cookie(
+			"c_cookie",
+		),
 	)
 }
 
@@ -710,37 +728,3 @@ func HandleWithErr_C_ApiResp[T any](
 type C_ApiToken = string
 
 type C_ApiTokenMarker = capability.CapabilityToken[C_ApiToken]
-
-type Capability struct {
-	_Capability
-}
-
-type _Capability struct {
-	User_id string   `json:"user_id"`
-	Roles   []string `json:"roles"`
-}
-
-func MakeAll_Capability(
-	user_id string,
-	roles []string,
-) Capability {
-	return Capability{
-		_Capability{
-			User_id: user_id,
-			Roles:   roles,
-		},
-	}
-}
-
-func Make_Capability(
-	user_id string,
-	roles []string,
-) Capability {
-	ret := Capability{
-		_Capability{
-			User_id: user_id,
-			Roles:   roles,
-		},
-	}
-	return ret
-}

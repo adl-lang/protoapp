@@ -15,15 +15,62 @@ export interface CapabilityApi<C, S, V> {
   service_prefix: string;
   service: V;
   name: string;
+  token_delivery: DeliveryMethod;
 }
 
 const CapabilityApi_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Used to create a field inside an API struct which represents a section of the api requiring a token.\nC is the type of the client-side token\nS is the type of the server-side capability\nV is the type of the API struct requiring the capability\n"}],"name":"CapabilityApi","type_":{"kind":"struct_","value":{"fields":[{"annotations":[],"default":{"kind":"just","value":null},"name":"token","serializedName":"token","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"typeParam","value":"C"}}],"typeRef":{"kind":"primitive","value":"TypeToken"}}},{"annotations":[],"default":{"kind":"just","value":null},"name":"cap","serializedName":"cap","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"typeParam","value":"S"}}],"typeRef":{"kind":"primitive","value":"TypeToken"}}},{"annotations":[],"default":{"kind":"just","value":""},"name":"service_prefix","serializedName":"service_prefix","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"String"}}},{"annotations":[],"default":{"kind":"nothing"},"name":"service","serializedName":"service","typeExpr":{"parameters":[],"typeRef":{"kind":"typeParam","value":"V"}}},{"annotations":[],"default":{"kind":"just","value":""},"name":"name","serializedName":"name","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"String"}}}],"typeParams":["C","S","V"]}},"version":{"kind":"nothing"}},"moduleName":"common.capability"};
+  {"decl":{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Used to create a field inside an API struct which represents a section of the api requiring a token.\nC is the type of the client-side token\nS is the type of the server-side capability\nV is the type of the API struct requiring the capability\n"}],"name":"CapabilityApi","type_":{"kind":"struct_","value":{"fields":[{"annotations":[],"default":{"kind":"just","value":null},"name":"token","serializedName":"token","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"typeParam","value":"C"}}],"typeRef":{"kind":"primitive","value":"TypeToken"}}},{"annotations":[],"default":{"kind":"just","value":null},"name":"cap","serializedName":"cap","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"typeParam","value":"S"}}],"typeRef":{"kind":"primitive","value":"TypeToken"}}},{"annotations":[],"default":{"kind":"just","value":""},"name":"service_prefix","serializedName":"service_prefix","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"String"}}},{"annotations":[],"default":{"kind":"nothing"},"name":"service","serializedName":"service","typeExpr":{"parameters":[],"typeRef":{"kind":"typeParam","value":"V"}}},{"annotations":[],"default":{"kind":"just","value":""},"name":"name","serializedName":"name","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"String"}}},{"annotations":[],"default":{"kind":"nothing"},"name":"token_delivery","serializedName":"token_delivery","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"DeliveryMethod"}}}}],"typeParams":["C","S","V"]}},"version":{"kind":"nothing"}},"moduleName":"common.capability"};
 
 export const snCapabilityApi: ADL.ScopedName = {moduleName:"common.capability", name:"CapabilityApi"};
 
 export function texprCapabilityApi<C, S, V>(texprC : ADL.ATypeExpr<C>, texprS : ADL.ATypeExpr<S>, texprV : ADL.ATypeExpr<V>): ADL.ATypeExpr<CapabilityApi<C, S, V>> {
   return {value : {typeRef : {kind: "reference", value : {moduleName : "common.capability",name : "CapabilityApi"}}, parameters : [texprC.value, texprS.value, texprV.value]}};
+}
+
+export interface DeliveryMethod_None {
+  kind: 'none';
+}
+export interface DeliveryMethod_Post_cap_call {
+  kind: 'post_cap_call';
+}
+export interface DeliveryMethod_Bearer {
+  kind: 'bearer';
+}
+export interface DeliveryMethod_Cookie {
+  kind: 'cookie';
+  value: string;
+}
+
+export type DeliveryMethod = DeliveryMethod_None | DeliveryMethod_Post_cap_call | DeliveryMethod_Bearer | DeliveryMethod_Cookie;
+
+export interface DeliveryMethodOpts {
+  /**
+   * don't send the token back to the server
+   */
+  none: null;
+  /**
+   * post the CapCall type ie. {"token": xxx, "payload": yyy}
+   */
+  post_cap_call: null;
+  /**
+   * add as an "authorization: Bearer" headder
+   */
+  bearer: null;
+  /**
+   * add as a cookie, the provided string in the cookie name
+   */
+  cookie: string;
+}
+
+export function makeDeliveryMethod<K extends keyof DeliveryMethodOpts>(kind: K, value: DeliveryMethodOpts[K]) { return {kind, value}; }
+
+const DeliveryMethod_AST : ADL.ScopedDecl =
+  {"decl":{"annotations":[],"name":"DeliveryMethod","type_":{"kind":"union_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"don't send the token back to the server\n"}],"default":{"kind":"nothing"},"name":"none","serializedName":"none","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"post the CapCall type ie. {\"token\": xxx, \"payload\": yyy}\n"}],"default":{"kind":"nothing"},"name":"post_cap_call","serializedName":"post_cap_call","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"add as an \"authorization: Bearer\" headder\n"}],"default":{"kind":"nothing"},"name":"bearer","serializedName":"bearer","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"add as a cookie, the provided string in the cookie name\n"}],"default":{"kind":"nothing"},"name":"cookie","serializedName":"cookie","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"String"}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"common.capability"};
+
+export const snDeliveryMethod: ADL.ScopedName = {moduleName:"common.capability", name:"DeliveryMethod"};
+
+export function texprDeliveryMethod(): ADL.ATypeExpr<DeliveryMethod> {
+  return {value : {typeRef : {kind: "reference", value : snDeliveryMethod}, parameters : []}};
 }
 
 /**
@@ -102,6 +149,7 @@ export function texprCapCall<C, P>(texprC : ADL.ATypeExpr<C>, texprP : ADL.AType
 
 export const _AST_MAP: { [key: string]: ADL.ScopedDecl } = {
   "common.capability.CapabilityApi" : CapabilityApi_AST,
+  "common.capability.DeliveryMethod" : DeliveryMethod_AST,
   "common.capability.CapabilityToken" : CapabilityToken_AST,
   "common.capability.HttpGet" : HttpGet_AST,
   "common.capability.HttpPost" : HttpPost_AST,
