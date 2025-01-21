@@ -49,7 +49,7 @@
     },
     {
       "ApiStruct": {
-        "moduleName": "protoapp.apis.cap_test",
+        "moduleName": "protoapp.apis.captest",
         "name": "ApiRequests"
       },
       "Outputdir": "./go/server",

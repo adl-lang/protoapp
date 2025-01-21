@@ -49,7 +49,7 @@ func Register_ApiRequests(
 }
 
 type RefreshApiRequests_Service[C any, S any] interface {
-	Refresh(ctx context.Context, cp S, req http2.Unit) (types.RefreshResp, error)
+	Refresh(ctx context.Context, cp S, req types.RefreshReq) (types.RefreshResp, error)
 	GetAccessTokenApi() AccessApiRequests_Service[types.AccessToken, Capability]
 }
 

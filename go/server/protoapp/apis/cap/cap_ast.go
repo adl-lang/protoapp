@@ -540,8 +540,8 @@ func AST_RefreshApiRequests() adlast.ScopedDecl {
 								adlast.MakeAll_TypeExpr(
 									adlast.Make_TypeRef_reference(
 										adlast.MakeAll_ScopedName(
-											"common.http",
-											"Unit",
+											"protoapp.apis.types",
+											"RefreshReq",
 										),
 									),
 									[]adlast.TypeExpr{},

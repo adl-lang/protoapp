@@ -84,7 +84,7 @@ struct RefreshApiRequests {
   ///
   /// If the refresh token is not provided in the request body, then it will
   /// be read from the refreshToken cookie in the request.
-  HttpPost<Unit, RefreshResp> refresh = {
+  HttpPost<RefreshReq, RefreshResp> refresh = {
     "path": "/refresh"
   };
 

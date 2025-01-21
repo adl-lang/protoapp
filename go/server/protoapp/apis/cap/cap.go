@@ -302,14 +302,14 @@ func (*ApiRequests) Default_refreshTokenApi() capability.CapabilityApi[types.Ref
 		)),
 		"",
 		MakeAll_RefreshApiRequests(
-			capability.MakeAll_HttpPost[http.Unit, types.RefreshResp](
+			capability.MakeAll_HttpPost[types.RefreshReq, types.RefreshResp](
 				"/refresh",
 				nil,
-				adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
+				adlast.Make_ATypeExpr[types.RefreshReq](adlast.MakeAll_TypeExpr(
 					adlast.Make_TypeRef_reference(
 						adlast.MakeAll_ScopedName(
-							"common.http",
-							"Unit",
+							"protoapp.apis.types",
+							"RefreshReq",
 						),
 					),
 					[]adlast.TypeExpr{},
@@ -580,12 +580,12 @@ type RefreshApiRequests struct {
 }
 
 type _RefreshApiRequests struct {
-	Refresh        capability.HttpPost[http.Unit, types.RefreshResp]                          `json:"refresh"`
+	Refresh        capability.HttpPost[types.RefreshReq, types.RefreshResp]                   `json:"refresh"`
 	AccessTokenApi capability.CapabilityApi[types.AccessToken, Capability, AccessApiRequests] `json:"accessTokenApi"`
 }
 
 func MakeAll_RefreshApiRequests(
-	refresh capability.HttpPost[http.Unit, types.RefreshResp],
+	refresh capability.HttpPost[types.RefreshReq, types.RefreshResp],
 	accesstokenapi capability.CapabilityApi[types.AccessToken, Capability, AccessApiRequests],
 ) RefreshApiRequests {
 	return RefreshApiRequests{
@@ -606,15 +606,15 @@ func Make_RefreshApiRequests() RefreshApiRequests {
 	return ret
 }
 
-func (*RefreshApiRequests) Default_refresh() capability.HttpPost[http.Unit, types.RefreshResp] {
-	return capability.MakeAll_HttpPost[http.Unit, types.RefreshResp](
+func (*RefreshApiRequests) Default_refresh() capability.HttpPost[types.RefreshReq, types.RefreshResp] {
+	return capability.MakeAll_HttpPost[types.RefreshReq, types.RefreshResp](
 		"/refresh",
 		nil,
-		adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
+		adlast.Make_ATypeExpr[types.RefreshReq](adlast.MakeAll_TypeExpr(
 			adlast.Make_TypeRef_reference(
 				adlast.MakeAll_ScopedName(
-					"common.http",
-					"Unit",
+					"protoapp.apis.types",
+					"RefreshReq",
 				),
 			),
 			[]adlast.TypeExpr{},

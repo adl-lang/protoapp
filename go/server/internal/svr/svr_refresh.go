@@ -29,20 +29,20 @@ func (rs *refreshSvr) GetAccessTokenApi() cap.AccessApiRequests_Service[types.Ac
 }
 
 // Refresh implements cap.RefreshApiRequests_Service.
-func (rs *refreshSvr) Refresh(ctx context.Context, cp http2.Unit, req http2.Unit) (resp types.RefreshResp, rerr error) {
+func (rs *refreshSvr) Refresh(ctx context.Context, cp http2.Unit, req types.RefreshReq) (resp types.RefreshResp, rerr error) {
 	hr := ctx.Value(capability.REQ_KEY).(*http.Request)
 	var refresh_token string
-	// if req.Refresh_token != nil {
-	// 	refresh_token = *req.Refresh_token
-	// } else {
-	if co, err := hr.Cookie(REFRESH_TOKEN); err != nil {
-		rerr = fmt.Errorf("refresh token not provided")
-		fmt.Printf("%v %v\n", rerr, err)
-		return
+	if req.Refresh_token != nil {
+		refresh_token = *req.Refresh_token
 	} else {
-		refresh_token = co.Value
+		if co, err := hr.Cookie(REFRESH_TOKEN); err != nil {
+			rerr = fmt.Errorf("refresh token not provided")
+			fmt.Printf("%v %v\n", rerr, err)
+			return
+		} else {
+			refresh_token = co.Value
+		}
 	}
-	// }
 	claims, err := rs.refresh_tokener.ParseRefreshToken(refresh_token)
 	if err != nil {
 		rerr = fmt.Errorf("invalid refresh token")
