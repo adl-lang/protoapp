@@ -108,8 +108,8 @@ func (*DeliveryMethod) MakeNewBranch(key string) (any, error) {
 	switch key {
 	case "none":
 		return &_DeliveryMethod_None{}, nil
-	case "jwt":
-		return &_DeliveryMethod_Jwt{}, nil
+	case "auth_bearer":
+		return &_DeliveryMethod_Auth_bearer{}, nil
 	case "header":
 		return &_DeliveryMethod_Header{}, nil
 	}
@@ -119,16 +119,16 @@ func (*DeliveryMethod) MakeNewBranch(key string) (any, error) {
 type _DeliveryMethod_None struct {
 	V struct{} `branch:"none"`
 }
-type _DeliveryMethod_Jwt struct {
-	V struct{} `branch:"jwt"`
+type _DeliveryMethod_Auth_bearer struct {
+	V struct{} `branch:"auth_bearer"`
 }
 type _DeliveryMethod_Header struct {
 	V string `branch:"header"`
 }
 
-func (_DeliveryMethod_None) isDeliveryMethodBranch()   {}
-func (_DeliveryMethod_Jwt) isDeliveryMethodBranch()    {}
-func (_DeliveryMethod_Header) isDeliveryMethodBranch() {}
+func (_DeliveryMethod_None) isDeliveryMethodBranch()        {}
+func (_DeliveryMethod_Auth_bearer) isDeliveryMethodBranch() {}
+func (_DeliveryMethod_Header) isDeliveryMethodBranch()      {}
 
 func Make_DeliveryMethod_none() DeliveryMethod {
 	return DeliveryMethod{
@@ -136,9 +136,9 @@ func Make_DeliveryMethod_none() DeliveryMethod {
 	}
 }
 
-func Make_DeliveryMethod_jwt() DeliveryMethod {
+func Make_DeliveryMethod_auth_bearer() DeliveryMethod {
 	return DeliveryMethod{
-		_DeliveryMethod_Jwt{struct{}{}},
+		_DeliveryMethod_Auth_bearer{struct{}{}},
 	}
 }
 
@@ -153,8 +153,8 @@ func (un DeliveryMethod) Cast_none() (struct{}, bool) {
 	return br.V, ok
 }
 
-func (un DeliveryMethod) Cast_jwt() (struct{}, bool) {
-	br, ok := un.Branch.(_DeliveryMethod_Jwt)
+func (un DeliveryMethod) Cast_auth_bearer() (struct{}, bool) {
+	br, ok := un.Branch.(_DeliveryMethod_Auth_bearer)
 	return br.V, ok
 }
 
@@ -166,7 +166,7 @@ func (un DeliveryMethod) Cast_header() (string, bool) {
 func Handle_DeliveryMethod[T any](
 	_in DeliveryMethod,
 	none func(none struct{}) T,
-	jwt func(jwt struct{}) T,
+	auth_bearer func(auth_bearer struct{}) T,
 	header func(header string) T,
 	_default func() T,
 ) T {
@@ -175,9 +175,9 @@ func Handle_DeliveryMethod[T any](
 		if none != nil {
 			return none(_b.V)
 		}
-	case _DeliveryMethod_Jwt:
-		if jwt != nil {
-			return jwt(_b.V)
+	case _DeliveryMethod_Auth_bearer:
+		if auth_bearer != nil {
+			return auth_bearer(_b.V)
 		}
 	case _DeliveryMethod_Header:
 		if header != nil {
@@ -193,7 +193,7 @@ func Handle_DeliveryMethod[T any](
 func HandleWithErr_DeliveryMethod[T any](
 	_in DeliveryMethod,
 	none func(none struct{}) (T, error),
-	jwt func(jwt struct{}) (T, error),
+	auth_bearer func(auth_bearer struct{}) (T, error),
 	header func(header string) (T, error),
 	_default func() (T, error),
 ) (T, error) {
@@ -202,9 +202,9 @@ func HandleWithErr_DeliveryMethod[T any](
 		if none != nil {
 			return none(_b.V)
 		}
-	case _DeliveryMethod_Jwt:
-		if jwt != nil {
-			return jwt(_b.V)
+	case _DeliveryMethod_Auth_bearer:
+		if auth_bearer != nil {
+			return auth_bearer(_b.V)
 		}
 	case _DeliveryMethod_Header:
 		if header != nil {

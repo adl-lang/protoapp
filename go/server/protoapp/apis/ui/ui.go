@@ -20,6 +20,7 @@ type _ApiRequests struct {
 	Logout          http.HttpPost[http.Unit, http.Unit]                                     `json:"logout"`
 	New_message     http.HttpPost[types.NewMessageReq, db.MessageId]                        `json:"new_message"`
 	Recent_messages http.HttpPost[types.RecentMessagesReq, types.Paginated[types.Message]]  `json:"recent_messages"`
+	Message_api     MessageApi                                                              `json:"message_api"`
 	Who_am_i        http.HttpGet[types.UserWithId]                                          `json:"who_am_i"`
 	Create_user     http.HttpPost[types.UserDetails, db.AppUserId]                          `json:"create_user"`
 	Update_user     http.HttpPost[types.WithId[db.AppUserId, types.UserDetails], http.Unit] `json:"update_user"`
@@ -34,6 +35,7 @@ func MakeAll_ApiRequests(
 	logout http.HttpPost[http.Unit, http.Unit],
 	new_message http.HttpPost[types.NewMessageReq, db.MessageId],
 	recent_messages http.HttpPost[types.RecentMessagesReq, types.Paginated[types.Message]],
+	message_api MessageApi,
 	who_am_i http.HttpGet[types.UserWithId],
 	create_user http.HttpPost[types.UserDetails, db.AppUserId],
 	update_user http.HttpPost[types.WithId[db.AppUserId, types.UserDetails], http.Unit],
@@ -48,6 +50,7 @@ func MakeAll_ApiRequests(
 			Logout:          logout,
 			New_message:     new_message,
 			Recent_messages: recent_messages,
+			Message_api:     message_api,
 			Who_am_i:        who_am_i,
 			Create_user:     create_user,
 			Update_user:     update_user,
@@ -66,6 +69,7 @@ func Make_ApiRequests() ApiRequests {
 			Logout:          ((*ApiRequests)(nil)).Default_logout(),
 			New_message:     ((*ApiRequests)(nil)).Default_new_message(),
 			Recent_messages: ((*ApiRequests)(nil)).Default_recent_messages(),
+			Message_api:     ((*ApiRequests)(nil)).Default_message_api(),
 			Who_am_i:        ((*ApiRequests)(nil)).Default_who_am_i(),
 			Create_user:     ((*ApiRequests)(nil)).Default_create_user(),
 			Update_user:     ((*ApiRequests)(nil)).Default_update_user(),
@@ -251,6 +255,66 @@ func (*ApiRequests) Default_recent_messages() http.HttpPost[types.RecentMessages
 		)),
 	)
 }
+func (*ApiRequests) Default_message_api() MessageApi {
+	return MakeAll_MessageApi(
+		http.MakeAll_HttpPost[types.NewMessageReq, db.MessageId](
+			"/messages/new",
+			http.Make_HttpSecurity_token(),
+			nil,
+			adlast.Make_ATypeExpr[types.NewMessageReq](adlast.MakeAll_TypeExpr(
+				adlast.Make_TypeRef_reference(
+					adlast.MakeAll_ScopedName(
+						"protoapp.apis.types",
+						"NewMessageReq",
+					),
+				),
+				[]adlast.TypeExpr{},
+			)),
+			adlast.Make_ATypeExpr[db.MessageId](adlast.MakeAll_TypeExpr(
+				adlast.Make_TypeRef_reference(
+					adlast.MakeAll_ScopedName(
+						"protoapp.db",
+						"MessageId",
+					),
+				),
+				[]adlast.TypeExpr{},
+			)),
+		),
+		http.MakeAll_HttpPost[types.RecentMessagesReq, types.Paginated[types.Message]](
+			"/messages/recent",
+			http.Make_HttpSecurity_token(),
+			nil,
+			adlast.Make_ATypeExpr[types.RecentMessagesReq](adlast.MakeAll_TypeExpr(
+				adlast.Make_TypeRef_reference(
+					adlast.MakeAll_ScopedName(
+						"protoapp.apis.types",
+						"RecentMessagesReq",
+					),
+				),
+				[]adlast.TypeExpr{},
+			)),
+			adlast.Make_ATypeExpr[types.Paginated[types.Message]](adlast.MakeAll_TypeExpr(
+				adlast.Make_TypeRef_reference(
+					adlast.MakeAll_ScopedName(
+						"protoapp.apis.types",
+						"Paginated",
+					),
+				),
+				[]adlast.TypeExpr{
+					adlast.MakeAll_TypeExpr(
+						adlast.Make_TypeRef_reference(
+							adlast.MakeAll_ScopedName(
+								"protoapp.apis.types",
+								"Message",
+							),
+						),
+						[]adlast.TypeExpr{},
+					),
+				},
+			)),
+		),
+	)
+}
 func (*ApiRequests) Default_who_am_i() http.HttpGet[types.UserWithId] {
 	return http.MakeAll_HttpGet[types.UserWithId](
 		"/whoami",
@@ -369,6 +433,98 @@ func (*ApiRequests) Default_query_users() http.HttpPost[types.QueryUsersReq, typ
 						adlast.MakeAll_ScopedName(
 							"protoapp.apis.types",
 							"UserWithId",
+						),
+					),
+					[]adlast.TypeExpr{},
+				),
+			},
+		)),
+	)
+}
+
+type MessageApi struct {
+	_MessageApi
+}
+
+type _MessageApi struct {
+	New_message     http.HttpPost[types.NewMessageReq, db.MessageId]                       `json:"new_message"`
+	Recent_messages http.HttpPost[types.RecentMessagesReq, types.Paginated[types.Message]] `json:"recent_messages"`
+}
+
+func MakeAll_MessageApi(
+	new_message http.HttpPost[types.NewMessageReq, db.MessageId],
+	recent_messages http.HttpPost[types.RecentMessagesReq, types.Paginated[types.Message]],
+) MessageApi {
+	return MessageApi{
+		_MessageApi{
+			New_message:     new_message,
+			Recent_messages: recent_messages,
+		},
+	}
+}
+
+func Make_MessageApi() MessageApi {
+	ret := MessageApi{
+		_MessageApi{
+			New_message:     ((*MessageApi)(nil)).Default_new_message(),
+			Recent_messages: ((*MessageApi)(nil)).Default_recent_messages(),
+		},
+	}
+	return ret
+}
+
+func (*MessageApi) Default_new_message() http.HttpPost[types.NewMessageReq, db.MessageId] {
+	return http.MakeAll_HttpPost[types.NewMessageReq, db.MessageId](
+		"/messages/new",
+		http.Make_HttpSecurity_token(),
+		nil,
+		adlast.Make_ATypeExpr[types.NewMessageReq](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.types",
+					"NewMessageReq",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+		adlast.Make_ATypeExpr[db.MessageId](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.db",
+					"MessageId",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+	)
+}
+func (*MessageApi) Default_recent_messages() http.HttpPost[types.RecentMessagesReq, types.Paginated[types.Message]] {
+	return http.MakeAll_HttpPost[types.RecentMessagesReq, types.Paginated[types.Message]](
+		"/messages/recent",
+		http.Make_HttpSecurity_token(),
+		nil,
+		adlast.Make_ATypeExpr[types.RecentMessagesReq](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.types",
+					"RecentMessagesReq",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+		adlast.Make_ATypeExpr[types.Paginated[types.Message]](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.types",
+					"Paginated",
+				),
+			),
+			[]adlast.TypeExpr{
+				adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"protoapp.apis.types",
+							"Message",
 						),
 					),
 					[]adlast.TypeExpr{},

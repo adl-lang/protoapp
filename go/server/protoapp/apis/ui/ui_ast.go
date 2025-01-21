@@ -280,6 +280,23 @@ func AST_ApiRequests() adlast.ScopedDecl {
 						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Get recent noticeboard messages\n"},
 					),
 					adlast.MakeAll_Field(
+						"message_api",
+						"message_api",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"protoapp.apis.ui",
+									"MessageApi",
+								),
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_just[any](
+							map[string]interface{}{},
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+					adlast.MakeAll_Field(
 						"who_am_i",
 						"who_am_i",
 						adlast.MakeAll_TypeExpr(
@@ -455,5 +472,120 @@ func init() {
 	goadl.RESOLVER.Register(
 		adlast.Make_ScopedName("protoapp.apis.ui", "ApiRequests"),
 		AST_ApiRequests(),
+	)
+}
+
+func Texpr_MessageApi() adlast.ATypeExpr[MessageApi] {
+	te := adlast.Make_TypeExpr(
+		adlast.Make_TypeRef_reference(
+			adlast.Make_ScopedName("protoapp.apis.ui", "MessageApi"),
+		),
+		[]adlast.TypeExpr{},
+	)
+	return adlast.Make_ATypeExpr[MessageApi](te)
+}
+
+func AST_MessageApi() adlast.ScopedDecl {
+	decl := adlast.MakeAll_Decl(
+		"MessageApi",
+		types.Make_Maybe_nothing[uint32](),
+		adlast.Make_DeclType_struct_(
+			adlast.MakeAll_Struct(
+				[]adlast.Ident{},
+				[]adlast.Field{
+					adlast.MakeAll_Field(
+						"new_message",
+						"new_message",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"common.http",
+									"HttpPost",
+								),
+							),
+							[]adlast.TypeExpr{
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"protoapp.apis.types",
+											"NewMessageReq",
+										),
+									),
+									[]adlast.TypeExpr{},
+								),
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"protoapp.db",
+											"MessageId",
+										),
+									),
+									[]adlast.TypeExpr{},
+								),
+							},
+						),
+						types.Make_Maybe_just[any](
+							map[string]interface{}{"path": "/messages/new", "security": "token"},
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Post a message to the noticeboard\n"},
+					),
+					adlast.MakeAll_Field(
+						"recent_messages",
+						"recent_messages",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"common.http",
+									"HttpPost",
+								),
+							),
+							[]adlast.TypeExpr{
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"protoapp.apis.types",
+											"RecentMessagesReq",
+										),
+									),
+									[]adlast.TypeExpr{},
+								),
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"protoapp.apis.types",
+											"Paginated",
+										),
+									),
+									[]adlast.TypeExpr{
+										adlast.MakeAll_TypeExpr(
+											adlast.Make_TypeRef_reference(
+												adlast.MakeAll_ScopedName(
+													"protoapp.apis.types",
+													"Message",
+												),
+											),
+											[]adlast.TypeExpr{},
+										),
+									},
+								),
+							},
+						),
+						types.Make_Maybe_just[any](
+							map[string]interface{}{"path": "/messages/recent", "security": "token"},
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Get recent noticeboard messages\n"},
+					),
+				},
+			),
+		),
+		customtypes.MapMap[adlast.ScopedName, any]{},
+	)
+	return adlast.Make_ScopedDecl("protoapp.apis.ui", decl)
+}
+
+func init() {
+	goadl.RESOLVER.Register(
+		adlast.Make_ScopedName("protoapp.apis.ui", "MessageApi"),
+		AST_MessageApi(),
 	)
 }

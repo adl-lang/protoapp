@@ -57,12 +57,13 @@ struct ApiRequests {
     "path": "/messages/new",
     "security" : "token"
   };
-
   /// Get recent noticeboard messages
   HttpPost<RecentMessagesReq, Paginated<Message> > recent_messages = {
     "path": "/messages/recent",
     "security" : "token"
   };
+
+  MessageApi message_api = {};
 
   /// Gets info about the logged in user
   // NOTE: Fails with 401 if the token is invalid or user does not exist
@@ -89,5 +90,19 @@ struct ApiRequests {
     "security" : { "tokenWithRole": "admin" }
   };
 };
+
+struct MessageApi {
+  /// Post a message to the noticeboard
+  HttpPost<NewMessageReq, MessageId> new_message = {
+    "path": "/messages/new",
+    "security" : "token"
+  };
+  /// Get recent noticeboard messages
+  HttpPost<RecentMessagesReq, Paginated<Message> > recent_messages = {
+    "path": "/messages/recent",
+    "security" : "token"
+  };
+};
+
 
 };

@@ -71,7 +71,13 @@ export function texprC_ApiTokenMarker(): ADL.ATypeExpr<C_ApiTokenMarker> {
 }
 
 export interface ApiRequests {
+  /**
+   * Post a unit and get a token to access a_api
+   */
   a: common_capability.HttpPost<common_http.Unit, A_ApiResp>;
+  /**
+   * A_api
+   */
   accessTokenApi: common_capability.CapabilityApi<A_ApiToken, common_http.Unit, A_Api>;
 }
 
@@ -88,7 +94,7 @@ export function makeApiRequests(
 }
 
 const ApiRequests_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"ApiRequests","type_":{"kind":"struct_","value":{"fields":[{"annotations":[],"default":{"kind":"just","value":{"path":"/a"}},"name":"a","serializedName":"a","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"A_ApiResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpPost"}}}},{"annotations":[],"default":{"kind":"just","value":{"service":{},"token_delivery":{"header":"a_cookie"}}},"name":"accessTokenApi","serializedName":"accessTokenApi","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"A_ApiToken"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"A_Api"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"CapabilityApi"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.captest"};
+  {"decl":{"annotations":[],"name":"ApiRequests","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Post a unit and get a token to access a_api\n"}],"default":{"kind":"just","value":{"path":"/a"}},"name":"a","serializedName":"a","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"A_ApiResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"A_api\n"}],"default":{"kind":"just","value":{"service":{},"token_delivery":{"header":"a_cookie"}}},"name":"accessTokenApi","serializedName":"accessTokenApi","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"A_ApiToken"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"A_Api"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"CapabilityApi"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.captest"};
 
 export const snApiRequests: ADL.ScopedName = {moduleName:"protoapp.apis.captest", name:"ApiRequests"};
 
@@ -97,8 +103,17 @@ export function texprApiRequests(): ADL.ATypeExpr<ApiRequests> {
 }
 
 export interface A_Api {
+  /**
+   * Post a AB and get a token to access b_api
+   */
   b: common_capability.HttpPost<AB, B_ApiResp>;
+  /**
+   * Get a get a token to access b_api
+   */
   a2: common_capability.HttpGet<B_ApiResp>;
+  /**
+   * B api
+   */
   accessTokenApi: common_capability.CapabilityApi<B_ApiToken, common_http.Unit, B_Api>;
 }
 
@@ -117,7 +132,7 @@ export function makeA_Api(
 }
 
 const A_Api_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"A_Api","type_":{"kind":"struct_","value":{"fields":[{"annotations":[],"default":{"kind":"just","value":{"path":"/b"}},"name":"b","serializedName":"b","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"AB"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"B_ApiResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpPost"}}}},{"annotations":[],"default":{"kind":"just","value":{"path":"/a2"}},"name":"a2","serializedName":"a2","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"B_ApiResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpGet"}}}},{"annotations":[],"default":{"kind":"just","value":{"service":{},"token_delivery":{"header":"b_cookie"}}},"name":"accessTokenApi","serializedName":"accessTokenApi","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"B_ApiToken"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"B_Api"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"CapabilityApi"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.captest"};
+  {"decl":{"annotations":[],"name":"A_Api","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Post a AB and get a token to access b_api\n"}],"default":{"kind":"just","value":{"path":"/b"}},"name":"b","serializedName":"b","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"AB"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"B_ApiResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Get a get a token to access b_api\n"}],"default":{"kind":"just","value":{"path":"/a2"}},"name":"a2","serializedName":"a2","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"B_ApiResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpGet"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"B api\n"}],"default":{"kind":"just","value":{"service":{},"token_delivery":{"header":"b_cookie"}}},"name":"accessTokenApi","serializedName":"accessTokenApi","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"B_ApiToken"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"B_Api"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"CapabilityApi"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.captest"};
 
 export const snA_Api: ADL.ScopedName = {moduleName:"protoapp.apis.captest", name:"A_Api"};
 
@@ -152,7 +167,13 @@ export function texprAB(): ADL.ATypeExpr<AB> {
 }
 
 export interface B_Api {
+  /**
+   * Post a B_ApiToken and get a token to access c_api
+   */
   c: common_capability.HttpPost<B_ApiToken, C_ApiResp>;
+  /**
+   * C api
+   */
   accessTokenApi: common_capability.CapabilityApi<C_ApiToken, common_http.Unit, C_Api>;
 }
 
@@ -169,7 +190,7 @@ export function makeB_Api(
 }
 
 const B_Api_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"B_Api","type_":{"kind":"struct_","value":{"fields":[{"annotations":[],"default":{"kind":"just","value":{"path":"/c"}},"name":"c","serializedName":"c","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"B_ApiToken"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"C_ApiResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpPost"}}}},{"annotations":[],"default":{"kind":"just","value":{"service":{},"token_delivery":{"header":"c_cookie"}}},"name":"accessTokenApi","serializedName":"accessTokenApi","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"C_ApiToken"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"C_Api"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"CapabilityApi"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.captest"};
+  {"decl":{"annotations":[],"name":"B_Api","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Post a B_ApiToken and get a token to access c_api\n"}],"default":{"kind":"just","value":{"path":"/c"}},"name":"c","serializedName":"c","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"B_ApiToken"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"C_ApiResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"C api\n"}],"default":{"kind":"just","value":{"service":{},"token_delivery":{"header":"c_cookie"}}},"name":"accessTokenApi","serializedName":"accessTokenApi","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"C_ApiToken"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"C_Api"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"CapabilityApi"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.captest"};
 
 export const snB_Api: ADL.ScopedName = {moduleName:"protoapp.apis.captest", name:"B_Api"};
 
