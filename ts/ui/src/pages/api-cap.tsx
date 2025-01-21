@@ -17,7 +17,7 @@ import { Box, Container } from "@mui/material";
 import { useMemo, useState } from "react";
 import { ApiWorkbenchPresent } from "./api-workbench";
 import { Api, CapToken, CompletedRequest, CompletedResponse, Endpoint, HttpEndpoint, HttpGetEndpoint, HttpPostEndpoint } from "./api-types";
-import { LoginResp } from "@/adl-gen/protoapp/apis/types";
+import { LoginResp, RefreshResp } from "@/adl-gen/protoapp/apis/types";
 import { getEndpoints } from "./api-cap-get-eps";
 
 export function CapWorkbench() {
@@ -71,7 +71,9 @@ export function CapWorkbench() {
     }
     // All the endpoint handling is generic except for here, where we update the auth state when the
     // login or logout endpoints are called.
+    console.log("endpoint.name", endpoint.name)
     switch (endpoint.name) {
+      case 'refresh': appState.setAuthStateFromRefreshResp(resp as RefreshResp); break;
       case 'login': appState.setAuthStateFromLogin(resp as LoginResp); break;
       case 'logout': appState.logout(); break;
     }

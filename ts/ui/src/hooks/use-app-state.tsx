@@ -5,7 +5,7 @@ import { FetchHttp } from '../service/fetch-http';
 import { ApiWithToken, Auth, JwtClaims, expiry_secs } from '../auth';
 import { jwtDecode } from "jwt-decode";
 
-import { LoginResp, makeRefreshReq } from '@/adl-gen/protoapp/apis/types';
+import { LoginResp, makeRefreshReq, RefreshResp } from '@/adl-gen/protoapp/apis/types';
 import { logoutUrl } from '@/navigation';
 import { useNavigate } from 'raviger';
 
@@ -19,6 +19,7 @@ export interface AppState {
   api: Service,
   authState: AuthState,
   setAuthStateFromLogin(resp: LoginResp): void,
+  setAuthStateFromRefreshResp(resp: RefreshResp): void,
   logout(): Promise<void>,
 }
 
@@ -39,6 +40,23 @@ export function AppStateProvider(props: {
 }) {
   const [authState, setAuthState] = useState<AuthState>({ kind: "loading" });
   const navigate = useNavigate();
+
+  async function setAuthStateFromRefreshResp(resp: RefreshResp) {
+    switch (resp.kind) {
+      case "access_token": {
+        const jwt = resp.value;
+        const jwt_decoded = jwtDecode(jwt) as JwtClaims;
+        console.log("jwt", jwt_decoded);
+        let auth = { jwt, jwt_decoded };
+        setAuthState({ kind: "auth", auth });
+        break;
+      }
+      case "invalid_refresh_token": {
+        setAuthState({ kind: "authfailed" });
+        break;
+      }
+    }
+  }
 
   async function setAuthStateFromLogin(resp: LoginResp) {
     switch (resp.kind) {
@@ -106,6 +124,7 @@ export function AppStateProvider(props: {
     api: protoappApi,
     authState,
     setAuthStateFromLogin,
+    setAuthStateFromRefreshResp,
     logout
   };
 
