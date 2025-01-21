@@ -1,24 +1,16 @@
-// import { snHttpGet, snHttpPost, texprHttpGet, texprHttpPost } from "@/adl-gen/common/http";
-
-// import * as API from "@/adl-gen/protoapp/apis/ui";
 import * as capability from "@/adl-gen/common/capability";
 import * as CAP from "@/adl-gen/protoapp/apis/cap";
-import * as AST from "@/adl-gen/sys/adlast";
-import * as ADL from "@adllang/adl-runtime";
 
+import { LoginResp, RefreshResp } from "@/adl-gen/protoapp/apis/types";
 import { RESOLVER } from "@/adl-gen/resolver";
-import { texprDoc } from "@/adl-gen/sys/annotations";
-import { createUiFactory } from "@/components/forms/factory";
-import { createVEditor } from "@/components/forms/model/veditor/adlfactory";
-import { AppState, useAppState } from "@/hooks/use-app-state";
+import { useAppState } from "@/hooks/use-app-state";
 import { AdlRequestError, ServiceBase } from "@/service/service-base";
-import { Json, createJsonBinding, scopedNamesEqual } from "@adllang/adl-runtime";
+import { Json, scopedNamesEqual } from "@adllang/adl-runtime";
 import { Box, Container } from "@mui/material";
 import { useMemo, useState } from "react";
-import { ApiWorkbenchPresent } from "./api-workbench";
-import { Api, CapToken, CompletedRequest, CompletedResponse, Endpoint, HttpEndpoint, HttpGetEndpoint, HttpPostEndpoint } from "./api-types";
-import { LoginResp, RefreshResp } from "@/adl-gen/protoapp/apis/types";
 import { getEndpoints } from "./api-cap-get-eps";
+import { CapToken, CompletedRequest, CompletedResponse, HttpEndpoint } from "./api-types";
+import { ApiWorkbenchPresent } from "./api-workbench";
 
 export function CapWorkbench() {
   const appState = useAppState();
