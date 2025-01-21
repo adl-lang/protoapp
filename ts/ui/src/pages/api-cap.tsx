@@ -1,5 +1,5 @@
 import * as capability from "@/adl-gen/common/capability";
-import * as CAP from "@/adl-gen/protoapp/apis/cap";
+import * as CAP from "@/adl-gen/protoapp/apis/captest";
 
 import { LoginResp, RefreshResp } from "@/adl-gen/protoapp/apis/types";
 import { RESOLVER } from "@/adl-gen/resolver";

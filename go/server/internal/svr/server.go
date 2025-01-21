@@ -20,6 +20,7 @@ import (
 
 	"github.com/adl-lang/goadl_protoapp/internal/types"
 	"github.com/adl-lang/goadl_protoapp/protoapp/apis/cap"
+	"github.com/adl-lang/goadl_protoapp/protoapp/apis/captest"
 	"github.com/adl-lang/goadl_protoapp/protoapp/config/server"
 
 	_ "github.com/lib/pq"
@@ -99,6 +100,23 @@ func (sc *srvCmd) Run() error {
 		rcr,
 		acr,
 		aacr,
+	)
+	cSvr := &c_svr{}
+	bSvr := &b_svr{
+		c: cSvr,
+	}
+	aSvr := &a_svr{
+		b: bSvr,
+	}
+	apiSvr := &api_svr{
+		a: aSvr,
+	}
+	captest.Register_ApiRequests(
+		&sc.mux,
+		apiSvr,
+		&a_capr{},
+		&b_capr{},
+		&c_capr{},
 	)
 	// cap_api.Register_TokenApi(&sc.mux, tcr, ts)
 	// cap_api.Register_AdminTokenApi(&sc.mux, ecr, es)
