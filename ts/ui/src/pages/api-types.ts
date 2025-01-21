@@ -6,29 +6,31 @@ import * as AST from "@/adl-gen/sys/adlast";
 import * as ADL from "@adllang/adl-runtime";
 
 export type Endpoint =
-  HttpEndpoint
-  // | CapHttpEndpoint 
+    HttpEndpoint
   | Api<unknown>;
 
 export type HttpEndpoint = HttpPostEndpoint<unknown, unknown> | HttpGetEndpoint<unknown>;
-// export type CapHttpEndpoint = CapHttpPostEndpoint<unknown, unknown> | CapHttpGetEndpoint<unknown>;
 
-// inteface 
+export interface CalledApi<C> {
+  token_type: ADL.ATypeExpr<C>;
+  value: C;
+}
+
+export interface CapToken<C> {
+  type: AST.TypeExpr;
+  apis_called: CalledApi<unknown>[],
+  token_value: C;
+};
 
 export interface Api<C> {
   name: string;
   docString: string,
   kind: 'api';
+  apis_called: CalledApi<unknown>[],
   typetoken: ADL.ATypeExpr<C>;
-  token_val_parents: unknown[];
-  token_val: C;
+  token_value: C;
   endpoints: Endpoint[];
-  // endpoints: HttpEndpoint[];
-  // parents: AST.Struct[];
 }
-
-// export type CapHttpGetEndpoint<O> = Omit<HttpGetEndpoint<O>, "security">;
-// export type CapHttpPostEndpoint<I, O> = Omit<HttpPostEndpoint<I, O>, "security">;
 
 export interface HttpGetEndpoint<O> {
   kind: 'get';
@@ -38,8 +40,7 @@ export interface HttpGetEndpoint<O> {
   docString: string,
   veditorO: VEditor<O>;
   jsonBindingO: JsonBinding<O>;
-  token_val_parents?: unknown[];
-  // parents: AST.Struct[];
+  apis_called?: CalledApi<unknown>[],
 }
 
 export interface HttpPostEndpoint<I, O> {
@@ -52,8 +53,7 @@ export interface HttpPostEndpoint<I, O> {
   veditorO: VEditor<O>;
   jsonBindingI: JsonBinding<I>;
   jsonBindingO: JsonBinding<O>;
-  token_val_parents?: unknown[];
-  // parents: AST.Struct[];
+  apis_called?: CalledApi<unknown>[],
 }
 
 export type ExecutingRequest = {

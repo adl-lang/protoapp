@@ -46,6 +46,14 @@
       },
       "Outputdir": "./go/server",
       "GoAdlCommonImport": "github.com/adl-lang/goadl_common"
+    },
+    {
+      "ApiStruct": {
+        "moduleName": "protoapp.apis.cap_test",
+        "name": "ApiRequests"
+      },
+      "Outputdir": "./go/server",
+      "GoAdlCommonImport": "github.com/adl-lang/goadl_common"
     }
   ]
 }

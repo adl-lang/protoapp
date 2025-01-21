@@ -22,6 +22,7 @@ async function main() {
       adlModules: [
         "protoapp.apis.ui",
         "protoapp.apis.cap",
+        "protoapp.apis.captest",
         "sys.adlast",
         "common.ui",
       ],

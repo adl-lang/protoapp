@@ -1,0 +1,70 @@
+module protoapp.apis.captest {
+
+import common.http.Unit;
+import common.capability.HttpPost;
+import common.capability.HttpGet;
+import common.capability.CapabilityApi;
+import common.capability.CapabilityToken;
+
+struct Capability {
+  String user_id;
+  Vector<String> roles;
+};
+
+struct ApiRequests {
+  HttpPost<Unit, A_ApiResp> a = {
+    "path": "/a"
+  };
+  CapabilityApi<A_ApiToken,Unit,A_Api> accessTokenApi = {
+    "service": {}
+  };
+};
+
+type A_ApiToken = String;
+type A_ApiTokenMarker = CapabilityToken<A_ApiToken>;
+type B_ApiToken = String;
+type B_ApiTokenMarker = CapabilityToken<B_ApiToken>;
+type C_ApiToken = String;
+type C_ApiTokenMarker = CapabilityToken<C_ApiToken>;
+
+struct A_Api {
+  HttpPost<A_ApiToken, B_ApiResp> b = {
+    "path": "/b"
+  };
+
+  CapabilityApi<B_ApiToken,Unit,B_Api> accessTokenApi = {
+    "service": {}
+  };
+};
+
+
+struct B_Api {
+  HttpPost<B_ApiToken, C_ApiResp> c = {
+    "path": "/c"
+  };
+
+  CapabilityApi<C_ApiToken,Unit,C_Api> accessTokenApi = {
+    "service": {}
+  };
+};
+
+struct C_Api {
+  HttpPost<C_ApiToken, String> hello = {
+    "path": "/hello"
+  };
+};
+
+union A_ApiResp {
+  @A_ApiTokenMarker {}
+  String token;
+};
+union B_ApiResp {
+  @B_ApiTokenMarker {}
+  String token;
+};
+union C_ApiResp {
+  @C_ApiTokenMarker {}
+  String token;
+};
+
+};

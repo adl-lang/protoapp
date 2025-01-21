@@ -6,6 +6,7 @@ common/strings.ts
 common/time.ts
 common/ui.ts
 protoapp/apis/cap.ts
+protoapp/apis/captest.ts
 protoapp/apis/types.ts
 protoapp/apis/ui.ts
 protoapp/db.ts

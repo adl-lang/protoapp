@@ -161,7 +161,7 @@ function ApiView(props: {
         >
           <Box>
               <Typography component="span">{props.endpoint.name}</Typography>
-          <Tooltip title={`${props.endpoint.token_val}`}>
+          <Tooltip title={`${props.endpoint.token_value}`}>
             <IconButton>
               <HelpIcon />
             </IconButton>

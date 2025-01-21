@@ -2,231 +2,12 @@
 package cap
 
 import (
-	"fmt"
 	"github.com/adl-lang/goadl_common/common/capability"
 	"github.com/adl-lang/goadl_common/common/http"
 	"github.com/adl-lang/goadl_protoapp/protoapp/apis/types"
 	"github.com/adl-lang/goadl_protoapp/protoapp/db"
 	"github.com/adl-lang/goadl_rt/v3/sys/adlast"
 )
-
-type A_Api struct {
-	_A_Api
-}
-
-type _A_Api struct {
-	B              capability.HttpPost[A_ApiToken, B_ApiResp]             `json:"b"`
-	AccessTokenApi capability.CapabilityApi[A_ApiToken, http.Unit, B_Api] `json:"accessTokenApi"`
-}
-
-func MakeAll_A_Api(
-	b capability.HttpPost[A_ApiToken, B_ApiResp],
-	accesstokenapi capability.CapabilityApi[A_ApiToken, http.Unit, B_Api],
-) A_Api {
-	return A_Api{
-		_A_Api{
-			B:              b,
-			AccessTokenApi: accesstokenapi,
-		},
-	}
-}
-
-func Make_A_Api() A_Api {
-	ret := A_Api{
-		_A_Api{
-			B:              ((*A_Api)(nil)).Default_b(),
-			AccessTokenApi: ((*A_Api)(nil)).Default_accessTokenApi(),
-		},
-	}
-	return ret
-}
-
-func (*A_Api) Default_b() capability.HttpPost[A_ApiToken, B_ApiResp] {
-	return capability.MakeAll_HttpPost[A_ApiToken, B_ApiResp](
-		"/b",
-		nil,
-		adlast.Make_ATypeExpr[A_ApiToken](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_reference(
-				adlast.MakeAll_ScopedName(
-					"protoapp.apis.cap",
-					"A_ApiToken",
-				),
-			),
-			[]adlast.TypeExpr{},
-		)),
-		adlast.Make_ATypeExpr[B_ApiResp](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_reference(
-				adlast.MakeAll_ScopedName(
-					"protoapp.apis.cap",
-					"B_ApiResp",
-				),
-			),
-			[]adlast.TypeExpr{},
-		)),
-	)
-}
-func (*A_Api) Default_accessTokenApi() capability.CapabilityApi[A_ApiToken, http.Unit, B_Api] {
-	return capability.MakeAll_CapabilityApi[A_ApiToken, http.Unit, B_Api](
-		adlast.Make_ATypeExpr[A_ApiToken](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_reference(
-				adlast.MakeAll_ScopedName(
-					"protoapp.apis.cap",
-					"A_ApiToken",
-				),
-			),
-			[]adlast.TypeExpr{},
-		)),
-		adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_reference(
-				adlast.MakeAll_ScopedName(
-					"common.http",
-					"Unit",
-				),
-			),
-			[]adlast.TypeExpr{},
-		)),
-		"",
-		MakeAll_B_Api(
-			capability.MakeAll_HttpPost[B_ApiToken, C_ApiResp](
-				"/c",
-				nil,
-				adlast.Make_ATypeExpr[B_ApiToken](adlast.MakeAll_TypeExpr(
-					adlast.Make_TypeRef_reference(
-						adlast.MakeAll_ScopedName(
-							"protoapp.apis.cap",
-							"B_ApiToken",
-						),
-					),
-					[]adlast.TypeExpr{},
-				)),
-				adlast.Make_ATypeExpr[C_ApiResp](adlast.MakeAll_TypeExpr(
-					adlast.Make_TypeRef_reference(
-						adlast.MakeAll_ScopedName(
-							"protoapp.apis.cap",
-							"C_ApiResp",
-						),
-					),
-					[]adlast.TypeExpr{},
-				)),
-			),
-			capability.MakeAll_CapabilityApi[B_ApiToken, http.Unit, C_Api](
-				adlast.Make_ATypeExpr[B_ApiToken](adlast.MakeAll_TypeExpr(
-					adlast.Make_TypeRef_reference(
-						adlast.MakeAll_ScopedName(
-							"protoapp.apis.cap",
-							"B_ApiToken",
-						),
-					),
-					[]adlast.TypeExpr{},
-				)),
-				adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
-					adlast.Make_TypeRef_reference(
-						adlast.MakeAll_ScopedName(
-							"common.http",
-							"Unit",
-						),
-					),
-					[]adlast.TypeExpr{},
-				)),
-				"",
-				MakeAll_C_Api(
-					capability.MakeAll_HttpPost[C_ApiToken, string](
-						"/hello",
-						nil,
-						adlast.Make_ATypeExpr[C_ApiToken](adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_reference(
-								adlast.MakeAll_ScopedName(
-									"protoapp.apis.cap",
-									"C_ApiToken",
-								),
-							),
-							[]adlast.TypeExpr{},
-						)),
-						adlast.Make_ATypeExpr[string](adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_primitive(
-								"String",
-							),
-							[]adlast.TypeExpr{},
-						)),
-					),
-				),
-				"",
-			),
-		),
-		"",
-	)
-}
-
-type A_ApiResp struct {
-	Branch A_ApiRespBranch
-}
-
-type A_ApiRespBranch interface {
-	isA_ApiRespBranch()
-}
-
-func (*A_ApiResp) MakeNewBranch(key string) (any, error) {
-	switch key {
-	case "token":
-		return &_A_ApiResp_Token{}, nil
-	}
-	return nil, fmt.Errorf("unknown branch is : %s", key)
-}
-
-type _A_ApiResp_Token struct {
-	V string `branch:"token"`
-}
-
-func (_A_ApiResp_Token) isA_ApiRespBranch() {}
-
-func Make_A_ApiResp_token(v string) A_ApiResp {
-	return A_ApiResp{
-		_A_ApiResp_Token{v},
-	}
-}
-
-func (un A_ApiResp) Cast_token() (string, bool) {
-	br, ok := un.Branch.(_A_ApiResp_Token)
-	return br.V, ok
-}
-
-func Handle_A_ApiResp[T any](
-	_in A_ApiResp,
-	token func(token string) T,
-	_default func() T,
-) T {
-	switch _b := _in.Branch.(type) {
-	case _A_ApiResp_Token:
-		if token != nil {
-			return token(_b.V)
-		}
-	}
-	if _default != nil {
-		return _default()
-	}
-	panic("unhandled branch in : A_ApiResp")
-}
-
-func HandleWithErr_A_ApiResp[T any](
-	_in A_ApiResp,
-	token func(token string) (T, error),
-	_default func() (T, error),
-) (T, error) {
-	switch _b := _in.Branch.(type) {
-	case _A_ApiResp_Token:
-		if token != nil {
-			return token(_b.V)
-		}
-	}
-	if _default != nil {
-		return _default()
-	}
-	panic("unhandled branch in : A_ApiResp")
-}
-
-type A_ApiToken = string
-
-type A_ApiTokenMarker = capability.CapabilityToken[A_ApiToken]
 
 type AccessApiRequests struct {
 	_AccessApiRequests
@@ -347,8 +128,6 @@ type _ApiRequests struct {
 	Login           capability.HttpPost[types.LoginReq, types.LoginResp]                          `json:"login"`
 	New_refresh     capability.HttpPost[types.LoginReq, types.NewRefreshResp]                     `json:"new_refresh"`
 	Logout          capability.HttpPost[http.Unit, http.Unit]                                     `json:"logout"`
-	A               capability.HttpPost[http.Unit, A_ApiResp]                                     `json:"a"`
-	AccessTokenApi  capability.CapabilityApi[A_ApiToken, http.Unit, A_Api]                        `json:"accessTokenApi"`
 	RefreshTokenApi capability.CapabilityApi[types.RefreshToken, http.Unit, RefreshApiRequests]   `json:"refreshTokenApi"`
 	UserApi         capability.CapabilityApi[types.AdminAccessToken, Capability, UserApiRequests] `json:"userApi"`
 }
@@ -359,8 +138,6 @@ func MakeAll_ApiRequests(
 	login capability.HttpPost[types.LoginReq, types.LoginResp],
 	new_refresh capability.HttpPost[types.LoginReq, types.NewRefreshResp],
 	logout capability.HttpPost[http.Unit, http.Unit],
-	a capability.HttpPost[http.Unit, A_ApiResp],
-	accesstokenapi capability.CapabilityApi[A_ApiToken, http.Unit, A_Api],
 	refreshtokenapi capability.CapabilityApi[types.RefreshToken, http.Unit, RefreshApiRequests],
 	userapi capability.CapabilityApi[types.AdminAccessToken, Capability, UserApiRequests],
 ) ApiRequests {
@@ -371,8 +148,6 @@ func MakeAll_ApiRequests(
 			Login:           login,
 			New_refresh:     new_refresh,
 			Logout:          logout,
-			A:               a,
-			AccessTokenApi:  accesstokenapi,
 			RefreshTokenApi: refreshtokenapi,
 			UserApi:         userapi,
 		},
@@ -387,8 +162,6 @@ func Make_ApiRequests() ApiRequests {
 			Login:           ((*ApiRequests)(nil)).Default_login(),
 			New_refresh:     ((*ApiRequests)(nil)).Default_new_refresh(),
 			Logout:          ((*ApiRequests)(nil)).Default_logout(),
-			A:               ((*ApiRequests)(nil)).Default_a(),
-			AccessTokenApi:  ((*ApiRequests)(nil)).Default_accessTokenApi(),
 			RefreshTokenApi: ((*ApiRequests)(nil)).Default_refreshTokenApi(),
 			UserApi:         ((*ApiRequests)(nil)).Default_userApi(),
 		},
@@ -507,167 +280,6 @@ func (*ApiRequests) Default_logout() capability.HttpPost[http.Unit, http.Unit] {
 		)),
 	)
 }
-func (*ApiRequests) Default_a() capability.HttpPost[http.Unit, A_ApiResp] {
-	return capability.MakeAll_HttpPost[http.Unit, A_ApiResp](
-		"/a",
-		nil,
-		adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_reference(
-				adlast.MakeAll_ScopedName(
-					"common.http",
-					"Unit",
-				),
-			),
-			[]adlast.TypeExpr{},
-		)),
-		adlast.Make_ATypeExpr[A_ApiResp](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_reference(
-				adlast.MakeAll_ScopedName(
-					"protoapp.apis.cap",
-					"A_ApiResp",
-				),
-			),
-			[]adlast.TypeExpr{},
-		)),
-	)
-}
-func (*ApiRequests) Default_accessTokenApi() capability.CapabilityApi[A_ApiToken, http.Unit, A_Api] {
-	return capability.MakeAll_CapabilityApi[A_ApiToken, http.Unit, A_Api](
-		adlast.Make_ATypeExpr[A_ApiToken](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_reference(
-				adlast.MakeAll_ScopedName(
-					"protoapp.apis.cap",
-					"A_ApiToken",
-				),
-			),
-			[]adlast.TypeExpr{},
-		)),
-		adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_reference(
-				adlast.MakeAll_ScopedName(
-					"common.http",
-					"Unit",
-				),
-			),
-			[]adlast.TypeExpr{},
-		)),
-		"",
-		MakeAll_A_Api(
-			capability.MakeAll_HttpPost[A_ApiToken, B_ApiResp](
-				"/b",
-				nil,
-				adlast.Make_ATypeExpr[A_ApiToken](adlast.MakeAll_TypeExpr(
-					adlast.Make_TypeRef_reference(
-						adlast.MakeAll_ScopedName(
-							"protoapp.apis.cap",
-							"A_ApiToken",
-						),
-					),
-					[]adlast.TypeExpr{},
-				)),
-				adlast.Make_ATypeExpr[B_ApiResp](adlast.MakeAll_TypeExpr(
-					adlast.Make_TypeRef_reference(
-						adlast.MakeAll_ScopedName(
-							"protoapp.apis.cap",
-							"B_ApiResp",
-						),
-					),
-					[]adlast.TypeExpr{},
-				)),
-			),
-			capability.MakeAll_CapabilityApi[A_ApiToken, http.Unit, B_Api](
-				adlast.Make_ATypeExpr[A_ApiToken](adlast.MakeAll_TypeExpr(
-					adlast.Make_TypeRef_reference(
-						adlast.MakeAll_ScopedName(
-							"protoapp.apis.cap",
-							"A_ApiToken",
-						),
-					),
-					[]adlast.TypeExpr{},
-				)),
-				adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
-					adlast.Make_TypeRef_reference(
-						adlast.MakeAll_ScopedName(
-							"common.http",
-							"Unit",
-						),
-					),
-					[]adlast.TypeExpr{},
-				)),
-				"",
-				MakeAll_B_Api(
-					capability.MakeAll_HttpPost[B_ApiToken, C_ApiResp](
-						"/c",
-						nil,
-						adlast.Make_ATypeExpr[B_ApiToken](adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_reference(
-								adlast.MakeAll_ScopedName(
-									"protoapp.apis.cap",
-									"B_ApiToken",
-								),
-							),
-							[]adlast.TypeExpr{},
-						)),
-						adlast.Make_ATypeExpr[C_ApiResp](adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_reference(
-								adlast.MakeAll_ScopedName(
-									"protoapp.apis.cap",
-									"C_ApiResp",
-								),
-							),
-							[]adlast.TypeExpr{},
-						)),
-					),
-					capability.MakeAll_CapabilityApi[B_ApiToken, http.Unit, C_Api](
-						adlast.Make_ATypeExpr[B_ApiToken](adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_reference(
-								adlast.MakeAll_ScopedName(
-									"protoapp.apis.cap",
-									"B_ApiToken",
-								),
-							),
-							[]adlast.TypeExpr{},
-						)),
-						adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_reference(
-								adlast.MakeAll_ScopedName(
-									"common.http",
-									"Unit",
-								),
-							),
-							[]adlast.TypeExpr{},
-						)),
-						"",
-						MakeAll_C_Api(
-							capability.MakeAll_HttpPost[C_ApiToken, string](
-								"/hello",
-								nil,
-								adlast.Make_ATypeExpr[C_ApiToken](adlast.MakeAll_TypeExpr(
-									adlast.Make_TypeRef_reference(
-										adlast.MakeAll_ScopedName(
-											"protoapp.apis.cap",
-											"C_ApiToken",
-										),
-									),
-									[]adlast.TypeExpr{},
-								)),
-								adlast.Make_ATypeExpr[string](adlast.MakeAll_TypeExpr(
-									adlast.Make_TypeRef_primitive(
-										"String",
-									),
-									[]adlast.TypeExpr{},
-								)),
-							),
-						),
-						"",
-					),
-				),
-				"",
-			),
-		),
-		"",
-	)
-}
 func (*ApiRequests) Default_refreshTokenApi() capability.CapabilityApi[types.RefreshToken, http.Unit, RefreshApiRequests] {
 	return capability.MakeAll_CapabilityApi[types.RefreshToken, http.Unit, RefreshApiRequests](
 		adlast.Make_ATypeExpr[types.RefreshToken](adlast.MakeAll_TypeExpr(
@@ -690,14 +302,14 @@ func (*ApiRequests) Default_refreshTokenApi() capability.CapabilityApi[types.Ref
 		)),
 		"",
 		MakeAll_RefreshApiRequests(
-			capability.MakeAll_HttpPost[types.CapRefreshReq, types.RefreshResp](
+			capability.MakeAll_HttpPost[http.Unit, types.RefreshResp](
 				"/refresh",
 				nil,
-				adlast.Make_ATypeExpr[types.CapRefreshReq](adlast.MakeAll_TypeExpr(
+				adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
 					adlast.Make_TypeRef_reference(
 						adlast.MakeAll_ScopedName(
-							"protoapp.apis.types",
-							"CapRefreshReq",
+							"common.http",
+							"Unit",
 						),
 					),
 					[]adlast.TypeExpr{},
@@ -929,298 +541,6 @@ func (*ApiRequests) Default_userApi() capability.CapabilityApi[types.AdminAccess
 	)
 }
 
-type B_Api struct {
-	_B_Api
-}
-
-type _B_Api struct {
-	C              capability.HttpPost[B_ApiToken, C_ApiResp]             `json:"c"`
-	AccessTokenApi capability.CapabilityApi[B_ApiToken, http.Unit, C_Api] `json:"accessTokenApi"`
-}
-
-func MakeAll_B_Api(
-	c capability.HttpPost[B_ApiToken, C_ApiResp],
-	accesstokenapi capability.CapabilityApi[B_ApiToken, http.Unit, C_Api],
-) B_Api {
-	return B_Api{
-		_B_Api{
-			C:              c,
-			AccessTokenApi: accesstokenapi,
-		},
-	}
-}
-
-func Make_B_Api() B_Api {
-	ret := B_Api{
-		_B_Api{
-			C:              ((*B_Api)(nil)).Default_c(),
-			AccessTokenApi: ((*B_Api)(nil)).Default_accessTokenApi(),
-		},
-	}
-	return ret
-}
-
-func (*B_Api) Default_c() capability.HttpPost[B_ApiToken, C_ApiResp] {
-	return capability.MakeAll_HttpPost[B_ApiToken, C_ApiResp](
-		"/c",
-		nil,
-		adlast.Make_ATypeExpr[B_ApiToken](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_reference(
-				adlast.MakeAll_ScopedName(
-					"protoapp.apis.cap",
-					"B_ApiToken",
-				),
-			),
-			[]adlast.TypeExpr{},
-		)),
-		adlast.Make_ATypeExpr[C_ApiResp](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_reference(
-				adlast.MakeAll_ScopedName(
-					"protoapp.apis.cap",
-					"C_ApiResp",
-				),
-			),
-			[]adlast.TypeExpr{},
-		)),
-	)
-}
-func (*B_Api) Default_accessTokenApi() capability.CapabilityApi[B_ApiToken, http.Unit, C_Api] {
-	return capability.MakeAll_CapabilityApi[B_ApiToken, http.Unit, C_Api](
-		adlast.Make_ATypeExpr[B_ApiToken](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_reference(
-				adlast.MakeAll_ScopedName(
-					"protoapp.apis.cap",
-					"B_ApiToken",
-				),
-			),
-			[]adlast.TypeExpr{},
-		)),
-		adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_reference(
-				adlast.MakeAll_ScopedName(
-					"common.http",
-					"Unit",
-				),
-			),
-			[]adlast.TypeExpr{},
-		)),
-		"",
-		MakeAll_C_Api(
-			capability.MakeAll_HttpPost[C_ApiToken, string](
-				"/hello",
-				nil,
-				adlast.Make_ATypeExpr[C_ApiToken](adlast.MakeAll_TypeExpr(
-					adlast.Make_TypeRef_reference(
-						adlast.MakeAll_ScopedName(
-							"protoapp.apis.cap",
-							"C_ApiToken",
-						),
-					),
-					[]adlast.TypeExpr{},
-				)),
-				adlast.Make_ATypeExpr[string](adlast.MakeAll_TypeExpr(
-					adlast.Make_TypeRef_primitive(
-						"String",
-					),
-					[]adlast.TypeExpr{},
-				)),
-			),
-		),
-		"",
-	)
-}
-
-type B_ApiResp struct {
-	Branch B_ApiRespBranch
-}
-
-type B_ApiRespBranch interface {
-	isB_ApiRespBranch()
-}
-
-func (*B_ApiResp) MakeNewBranch(key string) (any, error) {
-	switch key {
-	case "token":
-		return &_B_ApiResp_Token{}, nil
-	}
-	return nil, fmt.Errorf("unknown branch is : %s", key)
-}
-
-type _B_ApiResp_Token struct {
-	V string `branch:"token"`
-}
-
-func (_B_ApiResp_Token) isB_ApiRespBranch() {}
-
-func Make_B_ApiResp_token(v string) B_ApiResp {
-	return B_ApiResp{
-		_B_ApiResp_Token{v},
-	}
-}
-
-func (un B_ApiResp) Cast_token() (string, bool) {
-	br, ok := un.Branch.(_B_ApiResp_Token)
-	return br.V, ok
-}
-
-func Handle_B_ApiResp[T any](
-	_in B_ApiResp,
-	token func(token string) T,
-	_default func() T,
-) T {
-	switch _b := _in.Branch.(type) {
-	case _B_ApiResp_Token:
-		if token != nil {
-			return token(_b.V)
-		}
-	}
-	if _default != nil {
-		return _default()
-	}
-	panic("unhandled branch in : B_ApiResp")
-}
-
-func HandleWithErr_B_ApiResp[T any](
-	_in B_ApiResp,
-	token func(token string) (T, error),
-	_default func() (T, error),
-) (T, error) {
-	switch _b := _in.Branch.(type) {
-	case _B_ApiResp_Token:
-		if token != nil {
-			return token(_b.V)
-		}
-	}
-	if _default != nil {
-		return _default()
-	}
-	panic("unhandled branch in : B_ApiResp")
-}
-
-type B_ApiToken = string
-
-type B_ApiTokenMarker = capability.CapabilityToken[B_ApiToken]
-
-type C_Api struct {
-	_C_Api
-}
-
-type _C_Api struct {
-	Hello capability.HttpPost[C_ApiToken, string] `json:"hello"`
-}
-
-func MakeAll_C_Api(
-	hello capability.HttpPost[C_ApiToken, string],
-) C_Api {
-	return C_Api{
-		_C_Api{
-			Hello: hello,
-		},
-	}
-}
-
-func Make_C_Api() C_Api {
-	ret := C_Api{
-		_C_Api{
-			Hello: ((*C_Api)(nil)).Default_hello(),
-		},
-	}
-	return ret
-}
-
-func (*C_Api) Default_hello() capability.HttpPost[C_ApiToken, string] {
-	return capability.MakeAll_HttpPost[C_ApiToken, string](
-		"/hello",
-		nil,
-		adlast.Make_ATypeExpr[C_ApiToken](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_reference(
-				adlast.MakeAll_ScopedName(
-					"protoapp.apis.cap",
-					"C_ApiToken",
-				),
-			),
-			[]adlast.TypeExpr{},
-		)),
-		adlast.Make_ATypeExpr[string](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_primitive(
-				"String",
-			),
-			[]adlast.TypeExpr{},
-		)),
-	)
-}
-
-type C_ApiResp struct {
-	Branch C_ApiRespBranch
-}
-
-type C_ApiRespBranch interface {
-	isC_ApiRespBranch()
-}
-
-func (*C_ApiResp) MakeNewBranch(key string) (any, error) {
-	switch key {
-	case "token":
-		return &_C_ApiResp_Token{}, nil
-	}
-	return nil, fmt.Errorf("unknown branch is : %s", key)
-}
-
-type _C_ApiResp_Token struct {
-	V string `branch:"token"`
-}
-
-func (_C_ApiResp_Token) isC_ApiRespBranch() {}
-
-func Make_C_ApiResp_token(v string) C_ApiResp {
-	return C_ApiResp{
-		_C_ApiResp_Token{v},
-	}
-}
-
-func (un C_ApiResp) Cast_token() (string, bool) {
-	br, ok := un.Branch.(_C_ApiResp_Token)
-	return br.V, ok
-}
-
-func Handle_C_ApiResp[T any](
-	_in C_ApiResp,
-	token func(token string) T,
-	_default func() T,
-) T {
-	switch _b := _in.Branch.(type) {
-	case _C_ApiResp_Token:
-		if token != nil {
-			return token(_b.V)
-		}
-	}
-	if _default != nil {
-		return _default()
-	}
-	panic("unhandled branch in : C_ApiResp")
-}
-
-func HandleWithErr_C_ApiResp[T any](
-	_in C_ApiResp,
-	token func(token string) (T, error),
-	_default func() (T, error),
-) (T, error) {
-	switch _b := _in.Branch.(type) {
-	case _C_ApiResp_Token:
-		if token != nil {
-			return token(_b.V)
-		}
-	}
-	if _default != nil {
-		return _default()
-	}
-	panic("unhandled branch in : C_ApiResp")
-}
-
-type C_ApiToken = string
-
-type C_ApiTokenMarker = capability.CapabilityToken[C_ApiToken]
-
 type Capability struct {
 	_Capability
 }
@@ -1260,12 +580,12 @@ type RefreshApiRequests struct {
 }
 
 type _RefreshApiRequests struct {
-	Refresh        capability.HttpPost[types.CapRefreshReq, types.RefreshResp]                `json:"refresh"`
+	Refresh        capability.HttpPost[http.Unit, types.RefreshResp]                          `json:"refresh"`
 	AccessTokenApi capability.CapabilityApi[types.AccessToken, Capability, AccessApiRequests] `json:"accessTokenApi"`
 }
 
 func MakeAll_RefreshApiRequests(
-	refresh capability.HttpPost[types.CapRefreshReq, types.RefreshResp],
+	refresh capability.HttpPost[http.Unit, types.RefreshResp],
 	accesstokenapi capability.CapabilityApi[types.AccessToken, Capability, AccessApiRequests],
 ) RefreshApiRequests {
 	return RefreshApiRequests{
@@ -1286,15 +606,15 @@ func Make_RefreshApiRequests() RefreshApiRequests {
 	return ret
 }
 
-func (*RefreshApiRequests) Default_refresh() capability.HttpPost[types.CapRefreshReq, types.RefreshResp] {
-	return capability.MakeAll_HttpPost[types.CapRefreshReq, types.RefreshResp](
+func (*RefreshApiRequests) Default_refresh() capability.HttpPost[http.Unit, types.RefreshResp] {
+	return capability.MakeAll_HttpPost[http.Unit, types.RefreshResp](
 		"/refresh",
 		nil,
-		adlast.Make_ATypeExpr[types.CapRefreshReq](adlast.MakeAll_TypeExpr(
+		adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
 			adlast.Make_TypeRef_reference(
 				adlast.MakeAll_ScopedName(
-					"protoapp.apis.types",
-					"CapRefreshReq",
+					"common.http",
+					"Unit",
 				),
 			),
 			[]adlast.TypeExpr{},
