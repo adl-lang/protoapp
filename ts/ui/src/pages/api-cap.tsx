@@ -1,5 +1,5 @@
 import * as capability from "@/adl-gen/common/capability";
-import * as CAP from "@/adl-gen/protoapp/apis/cap";
+import * as CAP from "@/adl-gen/protoapp/apis/captest";
 
 import { LoginResp, RefreshResp } from "@/adl-gen/protoapp/apis/types";
 import { RESOLVER } from "@/adl-gen/resolver";
@@ -77,8 +77,29 @@ export function CapWorkbench() {
         <ApiWorkbenchPresent
           endpoints={endpoints}
           executeRequest={(endpoint, startedAt, req, reqbody) => {
-            const jwt = authState.kind == 'auth' ? authState.auth.jwt : undefined;
-            return executeRequest(api, jwt, endpoint, startedAt, req, reqbody)
+            let body: unknown = reqbody
+            let cap_token: unknown = undefined;
+            let jwt = authState.kind == 'auth' ? authState.auth.jwt : undefined;
+            const headers: Record<string,string> = {}
+            if (endpoint.token !== undefined && reqbody !== undefined) {
+              if (endpoint.method === "get") {
+                body = undefined
+              } else {
+                body = (reqbody as unknown as capability.CapCall<unknown,unknown>).payload
+              }
+              cap_token = (reqbody as unknown as capability.CapCall<unknown,unknown>).token
+              switch( endpoint.token.delivery_method.kind ) {
+                case "none":
+                  break
+                case "header":
+                  headers[endpoint.token.delivery_method.value] = cap_token as string
+                  break
+                case "jwt":
+                  jwt = cap_token as string
+              }
+              console.log("cap_token", cap_token)
+            }
+            return executeRequest(api, jwt, endpoint, startedAt, headers, req, body)
           }}
           updateAppState={updateAppState}
         />
@@ -93,13 +114,21 @@ async function executeRequest<I>(
   jwt: string | undefined,
   endpoint: HttpEndpoint,
   startedAt: Date,
+  headers: { [key: string]: string },
   req?: I,
-  reqbody?: Json,
+  reqbody?: unknown,
 ): Promise<CompletedRequest> {
 
   let resp: CompletedResponse;
   try {
-    const value = await service.requestAdl(endpoint.method, endpoint.path, reqbody, endpoint.jsonBindingO, jwt);
+    const value = await service.requestAdl(
+      endpoint.method,
+      endpoint.path,
+      reqbody,
+      endpoint.jsonBindingO,
+      jwt,
+      headers,
+    );
     resp = { success: true, value };
   } catch (e: unknown) {
     if (e instanceof AdlRequestError) {

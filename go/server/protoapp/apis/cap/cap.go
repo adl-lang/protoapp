@@ -4,7 +4,6 @@ package cap
 import (
 	"github.com/adl-lang/goadl_common/common/capability"
 	"github.com/adl-lang/goadl_common/common/http"
-	"github.com/adl-lang/goadl_protoapp/protoapp/apis/captest"
 	"github.com/adl-lang/goadl_protoapp/protoapp/apis/types"
 	"github.com/adl-lang/goadl_protoapp/protoapp/db"
 	"github.com/adl-lang/goadl_rt/v3/sys/adlast"
@@ -129,8 +128,6 @@ type _ApiRequests struct {
 	Login           capability.HttpPost[types.LoginReq, types.LoginResp]                          `json:"login"`
 	New_refresh     capability.HttpPost[types.LoginReq, types.NewRefreshResp]                     `json:"new_refresh"`
 	Logout          capability.HttpPost[http.Unit, http.Unit]                                     `json:"logout"`
-	A               capability.HttpPost[http.Unit, captest.A_ApiResp]                             `json:"a"`
-	AccessTokenApi  capability.CapabilityApi[captest.A_ApiToken, http.Unit, captest.A_Api]        `json:"accessTokenApi"`
 	RefreshTokenApi capability.CapabilityApi[types.RefreshToken, http.Unit, RefreshApiRequests]   `json:"refreshTokenApi"`
 	UserApi         capability.CapabilityApi[types.AdminAccessToken, Capability, UserApiRequests] `json:"userApi"`
 }
@@ -141,8 +138,6 @@ func MakeAll_ApiRequests(
 	login capability.HttpPost[types.LoginReq, types.LoginResp],
 	new_refresh capability.HttpPost[types.LoginReq, types.NewRefreshResp],
 	logout capability.HttpPost[http.Unit, http.Unit],
-	a capability.HttpPost[http.Unit, captest.A_ApiResp],
-	accesstokenapi capability.CapabilityApi[captest.A_ApiToken, http.Unit, captest.A_Api],
 	refreshtokenapi capability.CapabilityApi[types.RefreshToken, http.Unit, RefreshApiRequests],
 	userapi capability.CapabilityApi[types.AdminAccessToken, Capability, UserApiRequests],
 ) ApiRequests {
@@ -153,8 +148,6 @@ func MakeAll_ApiRequests(
 			Login:           login,
 			New_refresh:     new_refresh,
 			Logout:          logout,
-			A:               a,
-			AccessTokenApi:  accesstokenapi,
 			RefreshTokenApi: refreshtokenapi,
 			UserApi:         userapi,
 		},
@@ -169,8 +162,6 @@ func Make_ApiRequests() ApiRequests {
 			Login:           ((*ApiRequests)(nil)).Default_login(),
 			New_refresh:     ((*ApiRequests)(nil)).Default_new_refresh(),
 			Logout:          ((*ApiRequests)(nil)).Default_logout(),
-			A:               ((*ApiRequests)(nil)).Default_a(),
-			AccessTokenApi:  ((*ApiRequests)(nil)).Default_accessTokenApi(),
 			RefreshTokenApi: ((*ApiRequests)(nil)).Default_refreshTokenApi(),
 			UserApi:         ((*ApiRequests)(nil)).Default_userApi(),
 		},
@@ -287,176 +278,6 @@ func (*ApiRequests) Default_logout() capability.HttpPost[http.Unit, http.Unit] {
 			),
 			[]adlast.TypeExpr{},
 		)),
-	)
-}
-func (*ApiRequests) Default_a() capability.HttpPost[http.Unit, captest.A_ApiResp] {
-	return capability.MakeAll_HttpPost[http.Unit, captest.A_ApiResp](
-		"/a",
-		nil,
-		adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_reference(
-				adlast.MakeAll_ScopedName(
-					"common.http",
-					"Unit",
-				),
-			),
-			[]adlast.TypeExpr{},
-		)),
-		adlast.Make_ATypeExpr[captest.A_ApiResp](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_reference(
-				adlast.MakeAll_ScopedName(
-					"protoapp.apis.captest",
-					"A_ApiResp",
-				),
-			),
-			[]adlast.TypeExpr{},
-		)),
-	)
-}
-func (*ApiRequests) Default_accessTokenApi() capability.CapabilityApi[captest.A_ApiToken, http.Unit, captest.A_Api] {
-	return capability.MakeAll_CapabilityApi[captest.A_ApiToken, http.Unit, captest.A_Api](
-		adlast.Make_ATypeExpr[captest.A_ApiToken](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_reference(
-				adlast.MakeAll_ScopedName(
-					"protoapp.apis.captest",
-					"A_ApiToken",
-				),
-			),
-			[]adlast.TypeExpr{},
-		)),
-		adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
-			adlast.Make_TypeRef_reference(
-				adlast.MakeAll_ScopedName(
-					"common.http",
-					"Unit",
-				),
-			),
-			[]adlast.TypeExpr{},
-		)),
-		"",
-		captest.MakeAll_A_Api(
-			capability.MakeAll_HttpPost[captest.A_ApiToken, captest.B_ApiResp](
-				"/b",
-				nil,
-				adlast.Make_ATypeExpr[captest.A_ApiToken](adlast.MakeAll_TypeExpr(
-					adlast.Make_TypeRef_reference(
-						adlast.MakeAll_ScopedName(
-							"protoapp.apis.captest",
-							"A_ApiToken",
-						),
-					),
-					[]adlast.TypeExpr{},
-				)),
-				adlast.Make_ATypeExpr[captest.B_ApiResp](adlast.MakeAll_TypeExpr(
-					adlast.Make_TypeRef_reference(
-						adlast.MakeAll_ScopedName(
-							"protoapp.apis.captest",
-							"B_ApiResp",
-						),
-					),
-					[]adlast.TypeExpr{},
-				)),
-			),
-			capability.MakeAll_CapabilityApi[captest.B_ApiToken, http.Unit, captest.B_Api](
-				adlast.Make_ATypeExpr[captest.B_ApiToken](adlast.MakeAll_TypeExpr(
-					adlast.Make_TypeRef_reference(
-						adlast.MakeAll_ScopedName(
-							"protoapp.apis.captest",
-							"B_ApiToken",
-						),
-					),
-					[]adlast.TypeExpr{},
-				)),
-				adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
-					adlast.Make_TypeRef_reference(
-						adlast.MakeAll_ScopedName(
-							"common.http",
-							"Unit",
-						),
-					),
-					[]adlast.TypeExpr{},
-				)),
-				"",
-				captest.MakeAll_B_Api(
-					capability.MakeAll_HttpPost[captest.B_ApiToken, captest.C_ApiResp](
-						"/c",
-						nil,
-						adlast.Make_ATypeExpr[captest.B_ApiToken](adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_reference(
-								adlast.MakeAll_ScopedName(
-									"protoapp.apis.captest",
-									"B_ApiToken",
-								),
-							),
-							[]adlast.TypeExpr{},
-						)),
-						adlast.Make_ATypeExpr[captest.C_ApiResp](adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_reference(
-								adlast.MakeAll_ScopedName(
-									"protoapp.apis.captest",
-									"C_ApiResp",
-								),
-							),
-							[]adlast.TypeExpr{},
-						)),
-					),
-					capability.MakeAll_CapabilityApi[captest.C_ApiToken, http.Unit, captest.C_Api](
-						adlast.Make_ATypeExpr[captest.C_ApiToken](adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_reference(
-								adlast.MakeAll_ScopedName(
-									"protoapp.apis.captest",
-									"C_ApiToken",
-								),
-							),
-							[]adlast.TypeExpr{},
-						)),
-						adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_reference(
-								adlast.MakeAll_ScopedName(
-									"common.http",
-									"Unit",
-								),
-							),
-							[]adlast.TypeExpr{},
-						)),
-						"",
-						captest.MakeAll_C_Api(
-							capability.MakeAll_HttpPost[captest.C_ApiToken, string](
-								"/hello",
-								nil,
-								adlast.Make_ATypeExpr[captest.C_ApiToken](adlast.MakeAll_TypeExpr(
-									adlast.Make_TypeRef_reference(
-										adlast.MakeAll_ScopedName(
-											"protoapp.apis.captest",
-											"C_ApiToken",
-										),
-									),
-									[]adlast.TypeExpr{},
-								)),
-								adlast.Make_ATypeExpr[string](adlast.MakeAll_TypeExpr(
-									adlast.Make_TypeRef_primitive(
-										"String",
-									),
-									[]adlast.TypeExpr{},
-								)),
-							),
-						),
-						"",
-						capability.Make_DeliveryMethod_cookie(
-							"c_cookie",
-						),
-					),
-				),
-				"",
-				capability.Make_DeliveryMethod_cookie(
-					"b_cookie",
-				),
-			),
-		),
-		"",
-		capability.Make_DeliveryMethod_cookie(
-			"a_cookie",
-		),
 	)
 }
 func (*ApiRequests) Default_refreshTokenApi() capability.CapabilityApi[types.RefreshToken, http.Unit, RefreshApiRequests] {
@@ -593,11 +414,11 @@ func (*ApiRequests) Default_refreshTokenApi() capability.CapabilityApi[types.Ref
 					),
 				),
 				"Logged-in API",
-				capability.Make_DeliveryMethod_bearer(),
+				capability.Make_DeliveryMethod_jwt(),
 			),
 		),
 		"Refresh Token API",
-		capability.Make_DeliveryMethod_cookie(
+		capability.Make_DeliveryMethod_header(
 			"refreshToken",
 		),
 	)
@@ -721,7 +542,7 @@ func (*ApiRequests) Default_userApi() capability.CapabilityApi[types.AdminAccess
 			),
 		),
 		"User Admin API",
-		capability.Make_DeliveryMethod_bearer(),
+		capability.Make_DeliveryMethod_jwt(),
 	)
 }
 
@@ -905,7 +726,7 @@ func (*RefreshApiRequests) Default_accessTokenApi() capability.CapabilityApi[typ
 			),
 		),
 		"Logged-in API",
-		capability.Make_DeliveryMethod_bearer(),
+		capability.Make_DeliveryMethod_jwt(),
 	)
 }
 

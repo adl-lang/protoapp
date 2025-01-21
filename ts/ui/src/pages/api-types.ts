@@ -49,6 +49,11 @@ type Method = 'get' | 'post'
 //   token_delivery_method?: DeliveryMethod,
 // }
 
+export interface CapTokenInstance {
+  delivery_method: DeliveryMethod,
+  value: unknown,
+}
+
 export interface HttpXEndpoint<I, O> {
   kind: 'callable';
   method: 'post' | 'get';
@@ -61,7 +66,7 @@ export interface HttpXEndpoint<I, O> {
   jsonBindingI: JsonBinding<I>;
   jsonBindingO: JsonBinding<O>;
   apis_called?: CalledApi<unknown>[],
-  token_delivery_method?: DeliveryMethod,
+  token?: CapTokenInstance
 }
 
 export type ExecutingRequest = {

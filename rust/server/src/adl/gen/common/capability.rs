@@ -69,14 +69,14 @@ pub enum DeliveryMethod {
   /**
    * add as an "authorization: Bearer" headder
    */
-  #[serde(rename="bearer")]
-  Bearer,
+  #[serde(rename="jwt")]
+  Jwt,
 
   /**
    * add as a cookie, the provided string in the cookie name
    */
-  #[serde(rename="cookie")]
-  Cookie(String),
+  #[serde(rename="header")]
+  Header(String),
 }
 
 /**

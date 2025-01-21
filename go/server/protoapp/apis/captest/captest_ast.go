@@ -8,6 +8,63 @@ import (
 	"github.com/adl-lang/goadl_rt/v3/sys/types"
 )
 
+func Texpr_AB() adlast.ATypeExpr[AB] {
+	te := adlast.Make_TypeExpr(
+		adlast.Make_TypeRef_reference(
+			adlast.Make_ScopedName("protoapp.apis.captest", "AB"),
+		),
+		[]adlast.TypeExpr{},
+	)
+	return adlast.Make_ATypeExpr[AB](te)
+}
+
+func AST_AB() adlast.ScopedDecl {
+	decl := adlast.MakeAll_Decl(
+		"AB",
+		types.Make_Maybe_nothing[uint32](),
+		adlast.Make_DeclType_struct_(
+			adlast.MakeAll_Struct(
+				[]adlast.Ident{},
+				[]adlast.Field{
+					adlast.MakeAll_Field(
+						"a",
+						"a",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_primitive(
+								"String",
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_nothing[any](),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+					adlast.MakeAll_Field(
+						"b",
+						"b",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_primitive(
+								"String",
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_nothing[any](),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+				},
+			),
+		),
+		customtypes.MapMap[adlast.ScopedName, any]{},
+	)
+	return adlast.Make_ScopedDecl("protoapp.apis.captest", decl)
+}
+
+func init() {
+	goadl.RESOLVER.Register(
+		adlast.Make_ScopedName("protoapp.apis.captest", "AB"),
+		AST_AB(),
+	)
+}
+
 func Texpr_A_Api() adlast.ATypeExpr[A_Api] {
 	te := adlast.Make_TypeExpr(
 		adlast.Make_TypeRef_reference(
@@ -41,7 +98,7 @@ func AST_A_Api() adlast.ScopedDecl {
 									adlast.Make_TypeRef_reference(
 										adlast.MakeAll_ScopedName(
 											"protoapp.apis.captest",
-											"A_ApiToken",
+											"AB",
 										),
 									),
 									[]adlast.TypeExpr{},
@@ -59,6 +116,33 @@ func AST_A_Api() adlast.ScopedDecl {
 						),
 						types.Make_Maybe_just[any](
 							map[string]interface{}{"path": "/b"},
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+					adlast.MakeAll_Field(
+						"a2",
+						"a2",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"common.capability",
+									"HttpGet",
+								),
+							),
+							[]adlast.TypeExpr{
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"protoapp.apis.captest",
+											"B_ApiResp",
+										),
+									),
+									[]adlast.TypeExpr{},
+								),
+							},
+						),
+						types.Make_Maybe_just[any](
+							map[string]interface{}{"path": "/a2"},
 						),
 						customtypes.MapMap[adlast.ScopedName, any]{},
 					),
@@ -103,7 +187,7 @@ func AST_A_Api() adlast.ScopedDecl {
 							},
 						),
 						types.Make_Maybe_just[any](
-							map[string]interface{}{"service": map[string]interface{}{}, "token_delivery": map[string]interface{}{"cookie": "b_cookie"}},
+							map[string]interface{}{"service": map[string]interface{}{}, "token_delivery": map[string]interface{}{"header": "b_cookie"}},
 						),
 						customtypes.MapMap[adlast.ScopedName, any]{},
 					),
@@ -349,7 +433,7 @@ func AST_ApiRequests() adlast.ScopedDecl {
 							},
 						),
 						types.Make_Maybe_just[any](
-							map[string]interface{}{"service": map[string]interface{}{}, "token_delivery": map[string]interface{}{"cookie": "a_cookie"}},
+							map[string]interface{}{"service": map[string]interface{}{}, "token_delivery": map[string]interface{}{"header": "a_cookie"}},
 						),
 						customtypes.MapMap[adlast.ScopedName, any]{},
 					),
@@ -463,7 +547,7 @@ func AST_B_Api() adlast.ScopedDecl {
 							},
 						),
 						types.Make_Maybe_just[any](
-							map[string]interface{}{"service": map[string]interface{}{}, "token_delivery": map[string]interface{}{"cookie": "c_cookie"}},
+							map[string]interface{}{"service": map[string]interface{}{}, "token_delivery": map[string]interface{}{"header": "c_cookie"}},
 						),
 						customtypes.MapMap[adlast.ScopedName, any]{},
 					),

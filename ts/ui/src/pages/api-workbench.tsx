@@ -40,7 +40,7 @@ export function ApiWorkbenchPresent(props: ApiWorkbenchPresentProps) {
     const startedAt = new Date();
     setCurrentRequest({ startedAt, endpoint, req });
     let reqbody: Json | undefined = undefined;
-    if (endpoint.method === 'post' || endpoint.token_delivery_method !== undefined) {
+    if (endpoint.method === 'post' || endpoint.token !== undefined) {
       reqbody = endpoint.jsonBindingI.toJson(req);
     }
     const completed = await props.executeRequest(endpoint, startedAt, req, reqbody);
@@ -77,6 +77,16 @@ export function ApiWorkbenchPresent(props: ApiWorkbenchPresentProps) {
         );
         case 'create-request': {
           if (modal.endpoint.kind === "callable") {
+            if (modal.endpoint.token !== undefined) {
+              return (
+                <ModalCreatePostRequest
+                  cancel={() => setModal(undefined)}
+                  endpoint={modal.endpoint}
+                  execute={execute}
+                  initial={modal.initial}
+                />
+              )
+            }
             switch (modal.endpoint.method) {
               case 'get': return (
                 <ModalCreateGetRequest
@@ -235,10 +245,10 @@ function ModalCreatePostRequest<I, O>(props: {
   );
 }
 
-function ModalCreateGetRequest<I,O>(props: {
-  endpoint: apiTypes.HttpXEndpoint<I,O>,
+function ModalCreateGetRequest<I, O>(props: {
+  endpoint: apiTypes.HttpXEndpoint<I, O>,
   cancel: () => void,
-  execute: (endpoint: apiTypes.HttpXEndpoint<I,O>) => void,
+  execute: (endpoint: apiTypes.HttpXEndpoint<I, O>) => void,
 }) {
   return (
     <Modal onClickBackground={() => props.cancel()}>

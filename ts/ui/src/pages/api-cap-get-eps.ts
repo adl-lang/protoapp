@@ -7,7 +7,7 @@ import { texprDoc } from "@/adl-gen/sys/annotations";
 import { createUiFactory } from "@/components/forms/factory";
 import { createVEditor } from "@/components/forms/model/veditor/adlfactory";
 import { createJsonBinding, scopedNamesEqual } from "@adllang/adl-runtime";
-import { Api, CalledApi, CapToken, Endpoint, HttpXEndpoint } from "./api-types";
+import { Api, CalledApi, CapToken, CapTokenInstance, Endpoint, HttpXEndpoint } from "./api-types";
 
 export function getEndpoints<API>(
   resolver: ADL.DeclResolver,
@@ -22,7 +22,7 @@ function getEndpoints0<API>(
   texpr: ADL.ATypeExpr<API>,
   capTokens: CapToken<unknown>[],
   apis_called: CalledApi<unknown>[],
-  token_delivery_method?: capability.DeliveryMethod,
+  token_delivery_method?: CapTokenInstance,
 ): Endpoint[] {
   if (texpr.value.typeRef.kind !== 'reference') {
     throw new Error("API must be a monomorphic declaration");
@@ -93,12 +93,16 @@ function getApiEndpoint<C, S, V>(
     const capApi = jb.fromJson(field.default.value);
     const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
     const apis_called0 = [...ct.apis_called, { token_type: texprC, value: ct.token_value }]
+    const token: CapTokenInstance = {
+      delivery_method: capApi.token_delivery,
+      value: ct.token_value,
+    }
     apis.push({
       kind: 'api',
       name: capApi.name === "" ? field.name : capApi.name,
       typetoken: texprC,
       docString,
-      endpoints: getEndpoints0(resolver, texprV, capTokens, apis_called0, capApi.token_delivery),
+      endpoints: getEndpoints0(resolver, texprV, capTokens, apis_called0, token),
       token_value: ct.token_value as C,
       apis_called: ct.apis_called,
     })
@@ -110,13 +114,15 @@ function getHttpPostEndpoint<I, O>(
   resolver: ADL.DeclResolver,
   field: AST.Field,
   apis_called: CalledApi<unknown>[],
-  token_delivery_method?: capability.DeliveryMethod,
+  token?: CapTokenInstance,
 ): HttpXEndpoint<I, O> {
   if (field.default.kind !== 'just') {
     throw new Error("API endpoint must have a default value");
   }
-  // capability.texprCapCall(field.typeExpr.parameters[0])
-  const texprI = ADL.makeATypeExpr<I>(field.typeExpr.parameters[0]);
+  let texprI = ADL.makeATypeExpr<I>(field.typeExpr.parameters[0]);
+  if (token !== undefined) {
+    texprI = capability.texprCapCall(apis_called[apis_called.length-1].token_type, texprI)
+  }
   const texprO = ADL.makeATypeExpr<O>(field.typeExpr.parameters[1]);
 
   const jb = createJsonBinding(resolver, capability.texprHttpPost(texprI, texprO));
@@ -140,7 +146,7 @@ function getHttpPostEndpoint<I, O>(
     jsonBindingI,
     jsonBindingO,
     apis_called,
-    token_delivery_method,
+    token,
   }
 }
 
@@ -148,12 +154,16 @@ function getHttpGetEndpoint<O>(
   resolver: ADL.DeclResolver,
   field: AST.Field,
   apis_called: CalledApi<unknown>[],
-  token_delivery_method?: capability.DeliveryMethod,
-): HttpXEndpoint<null,O> {
+  token?: CapTokenInstance,
+): HttpXEndpoint<null, O> {
   if (field.default.kind !== 'just') {
     throw new Error("API endpoint must have a default value");
   }
-  const texprI = ADL.texprVoid();
+  let texprI = ADL.texprVoid();
+  if (token !== undefined) {
+    texprI = capability.texprCapCall(apis_called[apis_called.length-1].token_type, texprI)
+  }
+
   const texprO = ADL.makeATypeExpr<O>(field.typeExpr.parameters[0]);
 
   const jb = createJsonBinding(resolver, capability.texprHttpGet(texprO));
@@ -177,7 +187,7 @@ function getHttpGetEndpoint<O>(
     jsonBindingI,
     jsonBindingO,
     apis_called,
-    token_delivery_method,
+    token,
   }
 }
 

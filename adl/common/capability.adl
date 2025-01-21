@@ -41,9 +41,9 @@ union DeliveryMethod {
   // /// Add the token as a query param ie. ?token=xxx
   // Void http;
   /// add as an "authorization: Bearer" headder
-  Void bearer;
+  Void jwt;
   /// add as a cookie, the provided string in the cookie name
-  String cookie;
+  String header;
 };
 
 // /// Used to annotation api field as an api call which creates a cap.

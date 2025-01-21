@@ -19,21 +19,28 @@ struct ApiRequests {
   };
   CapabilityApi<A_ApiToken,Unit,A_Api> accessTokenApi = {
     "service": {},
-    "token_delivery": {"cookie": "a_cookie"}
+    "token_delivery": {"header": "a_cookie"}
   };
 };
 
 struct A_Api {
-  HttpPost<A_ApiToken, B_ApiResp> b = {
+  HttpPost<AB, B_ApiResp> b = {
     "path": "/b"
+  };
+  HttpGet<B_ApiResp> a2 = {
+    "path": "/a2"
   };
 
   CapabilityApi<B_ApiToken,Unit,B_Api> accessTokenApi = {
     "service": {},
-    "token_delivery": {"cookie": "b_cookie"}
+    "token_delivery": {"header": "b_cookie"}
   };
 };
 
+struct AB {
+  String a;
+  String b;
+};
 
 struct B_Api {
   HttpPost<B_ApiToken, C_ApiResp> c = {
@@ -42,7 +49,7 @@ struct B_Api {
 
   CapabilityApi<C_ApiToken,Unit,C_Api> accessTokenApi = {
     "service": {},
-    "token_delivery": {"cookie": "c_cookie"}
+    "token_delivery": {"header": "c_cookie"}
   };
 };
 

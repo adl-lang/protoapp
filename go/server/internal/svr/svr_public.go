@@ -10,6 +10,7 @@ import (
 	"github.com/adl-lang/goadl_common/common/db"
 	"github.com/adl-lang/goadl_common/common/hashing"
 	"github.com/adl-lang/goadl_common/common/http"
+
 	"github.com/adl-lang/goadl_common/common/sql/postgres"
 	"github.com/adl-lang/goadl_protoapp/protoapp/apis/cap"
 	"github.com/adl-lang/goadl_protoapp/protoapp/apis/types"

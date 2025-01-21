@@ -33,7 +33,8 @@ func Register_ApiRequests(
 }
 
 type A_Api_Service[C any, S any] interface {
-	B(ctx context.Context, cp S, req A_ApiToken) (B_ApiResp, error)
+	B(ctx context.Context, cp S, req AB) (B_ApiResp, error)
+	A2(ctx context.Context, cp S) (B_ApiResp, error)
 	GetAccessTokenApi() B_Api_Service[B_ApiToken, http2.Unit]
 }
 
@@ -47,6 +48,7 @@ func Register_A_Api[C any, S any](
 ) {
 	reqs := api.Service
 	capability.AdlCapPost(mux, reqs.B, srv.B, api, capr)
+	capability.AdlCapGet(mux, reqs.A2, srv.A2, api, capr)
 	Register_B_Api(
 		mux,
 		srv.GetAccessTokenApi(),

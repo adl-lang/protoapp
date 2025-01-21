@@ -108,10 +108,10 @@ func (*DeliveryMethod) MakeNewBranch(key string) (any, error) {
 	switch key {
 	case "none":
 		return &_DeliveryMethod_None{}, nil
-	case "bearer":
-		return &_DeliveryMethod_Bearer{}, nil
-	case "cookie":
-		return &_DeliveryMethod_Cookie{}, nil
+	case "jwt":
+		return &_DeliveryMethod_Jwt{}, nil
+	case "header":
+		return &_DeliveryMethod_Header{}, nil
 	}
 	return nil, fmt.Errorf("unknown branch is : %s", key)
 }
@@ -119,16 +119,16 @@ func (*DeliveryMethod) MakeNewBranch(key string) (any, error) {
 type _DeliveryMethod_None struct {
 	V struct{} `branch:"none"`
 }
-type _DeliveryMethod_Bearer struct {
-	V struct{} `branch:"bearer"`
+type _DeliveryMethod_Jwt struct {
+	V struct{} `branch:"jwt"`
 }
-type _DeliveryMethod_Cookie struct {
-	V string `branch:"cookie"`
+type _DeliveryMethod_Header struct {
+	V string `branch:"header"`
 }
 
 func (_DeliveryMethod_None) isDeliveryMethodBranch()   {}
-func (_DeliveryMethod_Bearer) isDeliveryMethodBranch() {}
-func (_DeliveryMethod_Cookie) isDeliveryMethodBranch() {}
+func (_DeliveryMethod_Jwt) isDeliveryMethodBranch()    {}
+func (_DeliveryMethod_Header) isDeliveryMethodBranch() {}
 
 func Make_DeliveryMethod_none() DeliveryMethod {
 	return DeliveryMethod{
@@ -136,15 +136,15 @@ func Make_DeliveryMethod_none() DeliveryMethod {
 	}
 }
 
-func Make_DeliveryMethod_bearer() DeliveryMethod {
+func Make_DeliveryMethod_jwt() DeliveryMethod {
 	return DeliveryMethod{
-		_DeliveryMethod_Bearer{struct{}{}},
+		_DeliveryMethod_Jwt{struct{}{}},
 	}
 }
 
-func Make_DeliveryMethod_cookie(v string) DeliveryMethod {
+func Make_DeliveryMethod_header(v string) DeliveryMethod {
 	return DeliveryMethod{
-		_DeliveryMethod_Cookie{v},
+		_DeliveryMethod_Header{v},
 	}
 }
 
@@ -153,21 +153,21 @@ func (un DeliveryMethod) Cast_none() (struct{}, bool) {
 	return br.V, ok
 }
 
-func (un DeliveryMethod) Cast_bearer() (struct{}, bool) {
-	br, ok := un.Branch.(_DeliveryMethod_Bearer)
+func (un DeliveryMethod) Cast_jwt() (struct{}, bool) {
+	br, ok := un.Branch.(_DeliveryMethod_Jwt)
 	return br.V, ok
 }
 
-func (un DeliveryMethod) Cast_cookie() (string, bool) {
-	br, ok := un.Branch.(_DeliveryMethod_Cookie)
+func (un DeliveryMethod) Cast_header() (string, bool) {
+	br, ok := un.Branch.(_DeliveryMethod_Header)
 	return br.V, ok
 }
 
 func Handle_DeliveryMethod[T any](
 	_in DeliveryMethod,
 	none func(none struct{}) T,
-	bearer func(bearer struct{}) T,
-	cookie func(cookie string) T,
+	jwt func(jwt struct{}) T,
+	header func(header string) T,
 	_default func() T,
 ) T {
 	switch _b := _in.Branch.(type) {
@@ -175,13 +175,13 @@ func Handle_DeliveryMethod[T any](
 		if none != nil {
 			return none(_b.V)
 		}
-	case _DeliveryMethod_Bearer:
-		if bearer != nil {
-			return bearer(_b.V)
+	case _DeliveryMethod_Jwt:
+		if jwt != nil {
+			return jwt(_b.V)
 		}
-	case _DeliveryMethod_Cookie:
-		if cookie != nil {
-			return cookie(_b.V)
+	case _DeliveryMethod_Header:
+		if header != nil {
+			return header(_b.V)
 		}
 	}
 	if _default != nil {
@@ -193,8 +193,8 @@ func Handle_DeliveryMethod[T any](
 func HandleWithErr_DeliveryMethod[T any](
 	_in DeliveryMethod,
 	none func(none struct{}) (T, error),
-	bearer func(bearer struct{}) (T, error),
-	cookie func(cookie string) (T, error),
+	jwt func(jwt struct{}) (T, error),
+	header func(header string) (T, error),
 	_default func() (T, error),
 ) (T, error) {
 	switch _b := _in.Branch.(type) {
@@ -202,13 +202,13 @@ func HandleWithErr_DeliveryMethod[T any](
 		if none != nil {
 			return none(_b.V)
 		}
-	case _DeliveryMethod_Bearer:
-		if bearer != nil {
-			return bearer(_b.V)
+	case _DeliveryMethod_Jwt:
+		if jwt != nil {
+			return jwt(_b.V)
 		}
-	case _DeliveryMethod_Cookie:
-		if cookie != nil {
-			return cookie(_b.V)
+	case _DeliveryMethod_Header:
+		if header != nil {
+			return header(_b.V)
 		}
 	}
 	if _default != nil {

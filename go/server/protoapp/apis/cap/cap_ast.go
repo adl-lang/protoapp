@@ -340,87 +340,6 @@ func AST_ApiRequests() adlast.ScopedDecl {
 						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Clear the `refreshToken` cookie.\n"},
 					),
 					adlast.MakeAll_Field(
-						"a",
-						"a",
-						adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_reference(
-								adlast.MakeAll_ScopedName(
-									"common.capability",
-									"HttpPost",
-								),
-							),
-							[]adlast.TypeExpr{
-								adlast.MakeAll_TypeExpr(
-									adlast.Make_TypeRef_reference(
-										adlast.MakeAll_ScopedName(
-											"common.http",
-											"Unit",
-										),
-									),
-									[]adlast.TypeExpr{},
-								),
-								adlast.MakeAll_TypeExpr(
-									adlast.Make_TypeRef_reference(
-										adlast.MakeAll_ScopedName(
-											"protoapp.apis.captest",
-											"A_ApiResp",
-										),
-									),
-									[]adlast.TypeExpr{},
-								),
-							},
-						),
-						types.Make_Maybe_just[any](
-							map[string]interface{}{"path": "/a"},
-						),
-						customtypes.MapMap[adlast.ScopedName, any]{},
-					),
-					adlast.MakeAll_Field(
-						"accessTokenApi",
-						"accessTokenApi",
-						adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_reference(
-								adlast.MakeAll_ScopedName(
-									"common.capability",
-									"CapabilityApi",
-								),
-							),
-							[]adlast.TypeExpr{
-								adlast.MakeAll_TypeExpr(
-									adlast.Make_TypeRef_reference(
-										adlast.MakeAll_ScopedName(
-											"protoapp.apis.captest",
-											"A_ApiToken",
-										),
-									),
-									[]adlast.TypeExpr{},
-								),
-								adlast.MakeAll_TypeExpr(
-									adlast.Make_TypeRef_reference(
-										adlast.MakeAll_ScopedName(
-											"common.http",
-											"Unit",
-										),
-									),
-									[]adlast.TypeExpr{},
-								),
-								adlast.MakeAll_TypeExpr(
-									adlast.Make_TypeRef_reference(
-										adlast.MakeAll_ScopedName(
-											"protoapp.apis.captest",
-											"A_Api",
-										),
-									),
-									[]adlast.TypeExpr{},
-								),
-							},
-						),
-						types.Make_Maybe_just[any](
-							map[string]interface{}{"service": map[string]interface{}{}, "token_delivery": map[string]interface{}{"cookie": "a_cookie"}},
-						),
-						customtypes.MapMap[adlast.ScopedName, any]{},
-					),
-					adlast.MakeAll_Field(
 						"refreshTokenApi",
 						"refreshTokenApi",
 						adlast.MakeAll_TypeExpr(
@@ -461,7 +380,7 @@ func AST_ApiRequests() adlast.ScopedDecl {
 							},
 						),
 						types.Make_Maybe_just[any](
-							map[string]interface{}{"name": "Refresh Token API", "service": map[string]interface{}{}, "token_delivery": map[string]interface{}{"cookie": "refreshToken"}},
+							map[string]interface{}{"name": "Refresh Token API", "service": map[string]interface{}{}, "token_delivery": map[string]interface{}{"header": "refreshToken"}},
 						),
 						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "API Endpoint used to refresh the access token\n"},
 					),
@@ -506,7 +425,7 @@ func AST_ApiRequests() adlast.ScopedDecl {
 							},
 						),
 						types.Make_Maybe_just[any](
-							map[string]interface{}{"name": "User Admin API", "service": map[string]interface{}{}, "token_delivery": "bearer"},
+							map[string]interface{}{"name": "User Admin API", "service": map[string]interface{}{}, "token_delivery": "jwt"},
 						),
 						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "API endpoints accessible when logged in as admin\n"},
 					),
@@ -684,7 +603,7 @@ func AST_RefreshApiRequests() adlast.ScopedDecl {
 							},
 						),
 						types.Make_Maybe_just[any](
-							map[string]interface{}{"name": "Logged-in API", "service": map[string]interface{}{}, "token_delivery": "bearer"},
+							map[string]interface{}{"name": "Logged-in API", "service": map[string]interface{}{}, "token_delivery": "jwt"},
 						),
 						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "API endpoints accessible when logged in\n"},
 					),

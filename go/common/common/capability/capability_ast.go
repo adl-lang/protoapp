@@ -289,8 +289,8 @@ func AST_DeliveryMethod() adlast.ScopedDecl {
 						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "don't send the token back to the server\n"},
 					),
 					adlast.MakeAll_Field(
-						"bearer",
-						"bearer",
+						"jwt",
+						"jwt",
 						adlast.MakeAll_TypeExpr(
 							adlast.Make_TypeRef_primitive(
 								"Void",
@@ -301,8 +301,8 @@ func AST_DeliveryMethod() adlast.ScopedDecl {
 						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "add as an \"authorization: Bearer\" headder\n"},
 					),
 					adlast.MakeAll_Field(
-						"cookie",
-						"cookie",
+						"header",
+						"header",
 						adlast.MakeAll_TypeExpr(
 							adlast.Make_TypeRef_primitive(
 								"String",

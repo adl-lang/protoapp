@@ -43,9 +43,10 @@ export class ServiceBase {
     jsonArgs: {} | null | undefined,
     respJB: JsonBinding<O>,
     authToken: string | undefined,
+    headers: { [key: string]: string } = {},
   ): Promise<O> {
     // Construct request
-    const headers: { [key: string]: string } = {};
+    // const headers: { [key: string]: string } = {};
     if (authToken) {
       headers["Authorization"] = "Bearer " + authToken;
     }

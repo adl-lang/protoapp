@@ -47,13 +47,14 @@ struct ApiRequests {
     "path": "/logout"
   };
 
-  HttpPost<Unit, protoapp.apis.captest.A_ApiResp> a = {
-    "path": "/a"
-  };
-  CapabilityApi<protoapp.apis.captest.A_ApiToken,Unit,protoapp.apis.captest.A_Api> accessTokenApi = {
-    "service": {},
-    "token_delivery": {"cookie": "a_cookie"}
-  };
+  // // bug is go cap server side interface generator
+  // HttpPost<Unit, protoapp.apis.captest.A_ApiResp> a = {
+  //   "path": "/a"
+  // };
+  // CapabilityApi<protoapp.apis.captest.A_ApiToken,Unit,protoapp.apis.captest.A_Api> accessTokenApi = {
+  //   "service": {},
+  //   "token_delivery": {"header": "a_cookie"}
+  // };
 
   // This is a simple refresh model, hence the Unit as the S type.
   // If a more complex model (eg. with user blacklisting) was required the S payload would be different
@@ -61,14 +62,14 @@ struct ApiRequests {
   CapabilityApi<RefreshToken,Unit,RefreshApiRequests> refreshTokenApi = {
     "service": {},
     "name": "Refresh Token API",
-    "token_delivery": {"cookie": "refreshToken"}
+    "token_delivery": {"header": "refreshToken"}
   };
 
   /// API endpoints accessible when logged in as admin
   CapabilityApi<AdminAccessToken,Capability,UserApiRequests> userApi = {
     "service": {},
     "name": "User Admin API",
-    "token_delivery": "bearer"
+    "token_delivery": "jwt"
   };
   
 };
@@ -102,7 +103,7 @@ struct RefreshApiRequests {
   CapabilityApi<AccessToken,Capability,AccessApiRequests> accessTokenApi = {
     "service": {},
     "name": "Logged-in API",
-    "token_delivery": "bearer"
+    "token_delivery": "jwt"
   };
 
 };

@@ -33,7 +33,12 @@ func (a *api_svr) GetAccessTokenApi() captest.A_Api_Service[captest.A_ApiToken, 
 }
 
 // B implements captest.A_Api_Service.
-func (a *a_svr) B(ctx context.Context, cp http2.Unit, req captest.A_ApiToken) (captest.B_ApiResp, error) {
+func (a *a_svr) B(ctx context.Context, cp http2.Unit, req captest.AB) (captest.B_ApiResp, error) {
+	return captest.Make_B_ApiResp_token("B-" + time.Now().Format(time.RFC3339Nano)), nil
+}
+
+// B implements captest.A_Api_Service.
+func (a *a_svr) A2(ctx context.Context, cp http2.Unit) (captest.B_ApiResp, error) {
 	return captest.Make_B_ApiResp_token("B-" + time.Now().Format(time.RFC3339Nano)), nil
 }
 

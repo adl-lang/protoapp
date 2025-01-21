@@ -8,22 +8,59 @@ import (
 	"github.com/adl-lang/goadl_rt/v3/sys/adlast"
 )
 
+type AB struct {
+	_AB
+}
+
+type _AB struct {
+	A string `json:"a"`
+	B string `json:"b"`
+}
+
+func MakeAll_AB(
+	a string,
+	b string,
+) AB {
+	return AB{
+		_AB{
+			A: a,
+			B: b,
+		},
+	}
+}
+
+func Make_AB(
+	a string,
+	b string,
+) AB {
+	ret := AB{
+		_AB{
+			A: a,
+			B: b,
+		},
+	}
+	return ret
+}
+
 type A_Api struct {
 	_A_Api
 }
 
 type _A_Api struct {
-	B              capability.HttpPost[A_ApiToken, B_ApiResp]             `json:"b"`
+	B              capability.HttpPost[AB, B_ApiResp]                     `json:"b"`
+	A2             capability.HttpGet[B_ApiResp]                          `json:"a2"`
 	AccessTokenApi capability.CapabilityApi[B_ApiToken, http.Unit, B_Api] `json:"accessTokenApi"`
 }
 
 func MakeAll_A_Api(
-	b capability.HttpPost[A_ApiToken, B_ApiResp],
+	b capability.HttpPost[AB, B_ApiResp],
+	a2 capability.HttpGet[B_ApiResp],
 	accesstokenapi capability.CapabilityApi[B_ApiToken, http.Unit, B_Api],
 ) A_Api {
 	return A_Api{
 		_A_Api{
 			B:              b,
+			A2:             a2,
 			AccessTokenApi: accesstokenapi,
 		},
 	}
@@ -33,25 +70,41 @@ func Make_A_Api() A_Api {
 	ret := A_Api{
 		_A_Api{
 			B:              ((*A_Api)(nil)).Default_b(),
+			A2:             ((*A_Api)(nil)).Default_a2(),
 			AccessTokenApi: ((*A_Api)(nil)).Default_accessTokenApi(),
 		},
 	}
 	return ret
 }
 
-func (*A_Api) Default_b() capability.HttpPost[A_ApiToken, B_ApiResp] {
-	return capability.MakeAll_HttpPost[A_ApiToken, B_ApiResp](
+func (*A_Api) Default_b() capability.HttpPost[AB, B_ApiResp] {
+	return capability.MakeAll_HttpPost[AB, B_ApiResp](
 		"/b",
 		nil,
-		adlast.Make_ATypeExpr[A_ApiToken](adlast.MakeAll_TypeExpr(
+		adlast.Make_ATypeExpr[AB](adlast.MakeAll_TypeExpr(
 			adlast.Make_TypeRef_reference(
 				adlast.MakeAll_ScopedName(
 					"protoapp.apis.captest",
-					"A_ApiToken",
+					"AB",
 				),
 			),
 			[]adlast.TypeExpr{},
 		)),
+		adlast.Make_ATypeExpr[B_ApiResp](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.captest",
+					"B_ApiResp",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+	)
+}
+func (*A_Api) Default_a2() capability.HttpGet[B_ApiResp] {
+	return capability.MakeAll_HttpGet[B_ApiResp](
+		"/a2",
+		nil,
 		adlast.Make_ATypeExpr[B_ApiResp](adlast.MakeAll_TypeExpr(
 			adlast.Make_TypeRef_reference(
 				adlast.MakeAll_ScopedName(
@@ -149,13 +202,13 @@ func (*A_Api) Default_accessTokenApi() capability.CapabilityApi[B_ApiToken, http
 					),
 				),
 				"",
-				capability.Make_DeliveryMethod_cookie(
+				capability.Make_DeliveryMethod_header(
 					"c_cookie",
 				),
 			),
 		),
 		"",
-		capability.Make_DeliveryMethod_cookie(
+		capability.Make_DeliveryMethod_header(
 			"b_cookie",
 		),
 	)
@@ -309,18 +362,31 @@ func (*ApiRequests) Default_accessTokenApi() capability.CapabilityApi[A_ApiToken
 		)),
 		"",
 		MakeAll_A_Api(
-			capability.MakeAll_HttpPost[A_ApiToken, B_ApiResp](
+			capability.MakeAll_HttpPost[AB, B_ApiResp](
 				"/b",
 				nil,
-				adlast.Make_ATypeExpr[A_ApiToken](adlast.MakeAll_TypeExpr(
+				adlast.Make_ATypeExpr[AB](adlast.MakeAll_TypeExpr(
 					adlast.Make_TypeRef_reference(
 						adlast.MakeAll_ScopedName(
 							"protoapp.apis.captest",
-							"A_ApiToken",
+							"AB",
 						),
 					),
 					[]adlast.TypeExpr{},
 				)),
+				adlast.Make_ATypeExpr[B_ApiResp](adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"protoapp.apis.captest",
+							"B_ApiResp",
+						),
+					),
+					[]adlast.TypeExpr{},
+				)),
+			),
+			capability.MakeAll_HttpGet[B_ApiResp](
+				"/a2",
+				nil,
 				adlast.Make_ATypeExpr[B_ApiResp](adlast.MakeAll_TypeExpr(
 					adlast.Make_TypeRef_reference(
 						adlast.MakeAll_ScopedName(
@@ -416,19 +482,19 @@ func (*ApiRequests) Default_accessTokenApi() capability.CapabilityApi[A_ApiToken
 							),
 						),
 						"",
-						capability.Make_DeliveryMethod_cookie(
+						capability.Make_DeliveryMethod_header(
 							"c_cookie",
 						),
 					),
 				),
 				"",
-				capability.Make_DeliveryMethod_cookie(
+				capability.Make_DeliveryMethod_header(
 					"b_cookie",
 				),
 			),
 		),
 		"",
-		capability.Make_DeliveryMethod_cookie(
+		capability.Make_DeliveryMethod_header(
 			"a_cookie",
 		),
 	)
@@ -532,7 +598,7 @@ func (*B_Api) Default_accessTokenApi() capability.CapabilityApi[C_ApiToken, http
 			),
 		),
 		"",
-		capability.Make_DeliveryMethod_cookie(
+		capability.Make_DeliveryMethod_header(
 			"c_cookie",
 		),
 	)
