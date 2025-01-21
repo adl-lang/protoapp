@@ -10,7 +10,8 @@ export type Endpoint =
     HttpEndpoint
   | Api<unknown>;
 
-export type HttpEndpoint = HttpPostEndpoint<unknown, unknown> | HttpGetEndpoint<unknown>;
+// export type HttpEndpoint = HttpPostEndpoint<unknown, unknown> | HttpGetEndpoint<unknown>;
+export type HttpEndpoint = HttpXEndpoint<unknown, unknown>;
 
 export interface CalledApi<C> {
   token_type: ADL.ATypeExpr<C>;
@@ -35,22 +36,22 @@ export interface Api<C> {
 
 type Method = 'get' | 'post'
 
-export interface HttpGetEndpoint<O> {
-  kind: 'get';
-  method: 'get';
-  name: string;
-  path: string;
-  security?: HttpSecurity,
-  docString: string,
-  veditorO: VEditor<O>;
-  jsonBindingO: JsonBinding<O>;
-  apis_called?: CalledApi<unknown>[],
-  token_delivery_method?: DeliveryMethod,
-}
+// export interface HttpGetEndpoint<O> {
+//   kind: 'get';
+//   method: 'get';
+//   name: string;
+//   path: string;
+//   security?: HttpSecurity,
+//   docString: string,
+//   veditorO: VEditor<O>;
+//   jsonBindingO: JsonBinding<O>;
+//   apis_called?: CalledApi<unknown>[],
+//   token_delivery_method?: DeliveryMethod,
+// }
 
-export interface HttpPostEndpoint<I, O> {
-  kind: 'post';
-  method: 'post';
+export interface HttpXEndpoint<I, O> {
+  kind: 'callable';
+  method: 'post' | 'get';
   name: string;
   path: string;
   security?: HttpSecurity,

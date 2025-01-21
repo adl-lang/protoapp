@@ -7,7 +7,7 @@ import { texprDoc } from "@/adl-gen/sys/annotations";
 import { createUiFactory } from "@/components/forms/factory";
 import { createVEditor } from "@/components/forms/model/veditor/adlfactory";
 import { createJsonBinding, scopedNamesEqual } from "@adllang/adl-runtime";
-import { Api, CalledApi, CapToken, Endpoint, HttpGetEndpoint, HttpPostEndpoint } from "./api-types";
+import { Api, CalledApi, CapToken, Endpoint, HttpXEndpoint } from "./api-types";
 
 export function getEndpoints<API>(
   resolver: ADL.DeclResolver,
@@ -111,7 +111,7 @@ function getHttpPostEndpoint<I, O>(
   field: AST.Field,
   apis_called: CalledApi<unknown>[],
   token_delivery_method?: capability.DeliveryMethod,
-): HttpPostEndpoint<I, O> {
+): HttpXEndpoint<I, O> {
   if (field.default.kind !== 'just') {
     throw new Error("API endpoint must have a default value");
   }
@@ -129,7 +129,7 @@ function getHttpPostEndpoint<I, O>(
 
   const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
   return {
-    kind: 'post',
+    kind: 'callable',
     method: 'post',
     name: field.name,
     path: httpPost.path,
@@ -149,27 +149,32 @@ function getHttpGetEndpoint<O>(
   field: AST.Field,
   apis_called: CalledApi<unknown>[],
   token_delivery_method?: capability.DeliveryMethod,
-): HttpGetEndpoint<O> {
+): HttpXEndpoint<null,O> {
   if (field.default.kind !== 'just') {
     throw new Error("API endpoint must have a default value");
   }
+  const texprI = ADL.texprVoid();
   const texprO = ADL.makeATypeExpr<O>(field.typeExpr.parameters[0]);
 
   const jb = createJsonBinding(resolver, capability.texprHttpGet(texprO));
   const httpGet = jb.fromJson(field.default.value);
 
+  const veditorI = createVEditor(texprI, resolver, UI_FACTORY);
   const veditorO = createVEditor(texprO, resolver, UI_FACTORY);
+  const jsonBindingI = createJsonBinding(resolver, texprI);
   const jsonBindingO = createJsonBinding(resolver, texprO);
 
   const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
   return {
-    kind: 'get',
+    kind: 'callable',
     method: 'get',
     name: field.name,
     path: httpGet.path,
     docString,
     // security: httpGet.security,
+    veditorI,
     veditorO,
+    jsonBindingI,
     jsonBindingO,
     apis_called,
     token_delivery_method,

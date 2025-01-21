@@ -16,7 +16,7 @@ import { Json, createJsonBinding, scopedNamesEqual } from "@adllang/adl-runtime"
 import { Box, Container } from "@mui/material";
 import { useMemo } from "react";
 import { ApiWorkbenchPresent } from "./api-workbench";
-import { Api, CompletedRequest, CompletedResponse, Endpoint, HttpEndpoint, HttpGetEndpoint, HttpPostEndpoint } from "./api-types";
+import { Api, CompletedRequest, CompletedResponse, Endpoint, HttpEndpoint, HttpXEndpoint } from "./api-types";
 import { LoginResp } from "@/adl-gen/protoapp/apis/types";
 
 export function ApiWorkbench() {
@@ -71,7 +71,7 @@ async function executeRequest<I>(
 
   let resp: CompletedResponse;
   try {
-    const value = await service.requestAdl(endpoint.kind, endpoint.path, reqbody, endpoint.jsonBindingO, jwt);
+    const value = await service.requestAdl(endpoint.method, endpoint.path, reqbody, endpoint.jsonBindingO, jwt);
     resp = { success: true, value };
   } catch (e: unknown) {
     if (e instanceof AdlRequestError) {
@@ -120,11 +120,14 @@ function getEndpoints<API>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<API>
   return endpoints;
 }
 
-function getHttpPostEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field): HttpPostEndpoint<I, O> {
+function getHttpPostEndpoint<I, O>(
+  resolver: ADL.DeclResolver,
+  field: AST.Field,
+): HttpXEndpoint<I, O> {
   if (field.default.kind !== 'just') {
     throw new Error("API endpoint must have a default value");
   }
-  const texprI = ADL.makeATypeExpr<I>(field.typeExpr.parameters[0]);
+  let texprI = ADL.makeATypeExpr<I>(field.typeExpr.parameters[0]);
   const texprO = ADL.makeATypeExpr<O>(field.typeExpr.parameters[1]);
 
   const jb = createJsonBinding(resolver, texprHttpPost(texprI, texprO));
@@ -137,7 +140,7 @@ function getHttpPostEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field)
 
   const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
   return {
-    kind: 'post',
+    kind: 'callable',
     method: 'post',
     name: field.name,
     path: httpPost.path,
@@ -150,27 +153,35 @@ function getHttpPostEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field)
   }
 }
 
-function getHttpGetEndpoint<O>(resolver: ADL.DeclResolver, field: AST.Field): HttpGetEndpoint<O> {
+function getHttpGetEndpoint<O>(
+  resolver: ADL.DeclResolver,
+  field: AST.Field,
+): HttpXEndpoint<null,O> {
   if (field.default.kind !== 'just') {
     throw new Error("API endpoint must have a default value");
   }
+  const texprI = ADL.texprVoid();
   const texprO = ADL.makeATypeExpr<O>(field.typeExpr.parameters[0]);
 
   const jb = createJsonBinding(resolver, texprHttpGet(texprO));
   const httpGet = jb.fromJson(field.default.value);
 
+  const veditorI = createVEditor(texprI, resolver, UI_FACTORY);
   const veditorO = createVEditor(texprO, resolver, UI_FACTORY);
+  const jsonBindingI = createJsonBinding(resolver, texprI);
   const jsonBindingO = createJsonBinding(resolver, texprO);
 
   const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
   return {
-    kind: 'get',
+    kind: 'callable',
     method: 'get',
     name: field.name,
     path: httpGet.path,
     docString,
     security: httpGet.security,
+    veditorI,
     veditorO,
+    jsonBindingI,
     jsonBindingO,
   }
 }

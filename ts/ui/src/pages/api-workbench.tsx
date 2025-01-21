@@ -40,7 +40,7 @@ export function ApiWorkbenchPresent(props: ApiWorkbenchPresentProps) {
     const startedAt = new Date();
     setCurrentRequest({ startedAt, endpoint, req });
     let reqbody: Json | undefined = undefined;
-    if (endpoint.kind === 'post') {
+    if (endpoint.method === 'post' || endpoint.token_delivery_method !== undefined) {
       reqbody = endpoint.jsonBindingI.toJson(req);
     }
     const completed = await props.executeRequest(endpoint, startedAt, req, reqbody);
@@ -76,22 +76,24 @@ export function ApiWorkbenchPresent(props: ApiWorkbenchPresentProps) {
           />
         );
         case 'create-request': {
-          switch (modal.endpoint.kind) {
-            case 'get': return (
-              <ModalCreateGetRequest
-                cancel={() => setModal(undefined)}
-                endpoint={modal.endpoint}
-                execute={execute}
-              />
-            );
-            case 'post': return (
-              <ModalCreatePostRequest
-                cancel={() => setModal(undefined)}
-                endpoint={modal.endpoint}
-                execute={execute}
-                initial={modal.initial}
-              />
-            );
+          if (modal.endpoint.kind === "callable") {
+            switch (modal.endpoint.method) {
+              case 'get': return (
+                <ModalCreateGetRequest
+                  cancel={() => setModal(undefined)}
+                  endpoint={modal.endpoint}
+                  execute={execute}
+                />
+              );
+              case 'post': return (
+                <ModalCreatePostRequest
+                  cancel={() => setModal(undefined)}
+                  endpoint={modal.endpoint}
+                  execute={execute}
+                  initial={modal.initial}
+                />
+              );
+            }
           }
         }
       }
@@ -108,7 +110,7 @@ export function ApiWorkbenchPresent(props: ApiWorkbenchPresentProps) {
           return <CompletedRequestView
             key={i}
             value={value}
-            jsonI={value.endpoint.kind === "post" ? value.endpoint.jsonBindingI.toJson(value.req) : undefined}
+            jsonI={value.endpoint.method === "post" ? value.endpoint.jsonBindingI.toJson(value.req) : undefined}
             reexecute={reexecuteCompleted}
             remove={() => removeCompleted(i)}
           />
@@ -154,32 +156,32 @@ function ApiView(props: {
 }) {
   return <material.Box sx={{ marginTop: "20px", marginBottom: "20px" }}>
     <material.Accordion>
-    <material.AccordionSummary
-          expandIcon={<ExpandMoreIcon />}
-          aria-controls="panel2-content"
-          id="panel2-header"
-        >
-          <material.Box>
-              <material.Typography component="span">{props.endpoint.name}</material.Typography>
+      <material.AccordionSummary
+        expandIcon={<ExpandMoreIcon />}
+        aria-controls="panel2-content"
+        id="panel2-header"
+      >
+        <material.Box>
+          <material.Typography component="span">{props.endpoint.name}</material.Typography>
           <material.Tooltip title={`${props.endpoint.token_value}`}>
             <material.IconButton>
               <HelpIcon />
             </material.IconButton>
           </material.Tooltip>
-          </material.Box>
-        </material.AccordionSummary>
+        </material.Box>
+      </material.AccordionSummary>
       <material.AccordionDetails>
-    <material.Typography>{props.endpoint.docString}</material.Typography>
-    </material.AccordionDetails>
-    {/* todo change this to an accordion */}
-    {/* <Typography>{props.endpoint.docString}</Typography> */}
-    <material.Divider />
-    {props.endpoint.endpoints.map((e, i) => {
-      switch (e.kind) {
-        case 'api': return <ApiView key={i} endpoint={e} choose={props.choose} />;
-        default: return <HttpEndpointView key={i} endpoint={e} choose={props.choose} />;
-      }
-    })}
+        <material.Typography>{props.endpoint.docString}</material.Typography>
+      </material.AccordionDetails>
+      {/* todo change this to an accordion */}
+      {/* <Typography>{props.endpoint.docString}</Typography> */}
+      <material.Divider />
+      {props.endpoint.endpoints.map((e, i) => {
+        switch (e.kind) {
+          case 'api': return <ApiView key={i} endpoint={e} choose={props.choose} />;
+          default: return <HttpEndpointView key={i} endpoint={e} choose={props.choose} />;
+        }
+      })}
     </material.Accordion>
     <material.Divider />
   </material.Box>;
@@ -188,8 +190,7 @@ function ApiView(props: {
 function HttpEndpointView(props: {
   endpoint: apiTypes.HttpEndpoint;
   choose: (e: apiTypes.Endpoint) => void,
-}) 
-{
+}) {
   return <material.Box sx={{ marginTop: "20px", marginBottom: "20px" }}>
     <material.Button onClick={() => props.choose(props.endpoint)}>
       {props.endpoint.name}
@@ -199,9 +200,9 @@ function HttpEndpointView(props: {
 }
 
 function ModalCreatePostRequest<I, O>(props: {
-  endpoint: apiTypes.HttpPostEndpoint<I, O>,
+  endpoint: apiTypes.HttpXEndpoint<I, O>,
   cancel: () => void,
-  execute: (endpoint: apiTypes.HttpPostEndpoint<I, O>, req: I) => void,
+  execute: (endpoint: apiTypes.HttpXEndpoint<I, O>, req: I) => void,
   initial: I | undefined,
 }) {
   const state = useAdlFormState({
@@ -234,10 +235,10 @@ function ModalCreatePostRequest<I, O>(props: {
   );
 }
 
-function ModalCreateGetRequest<O>(props: {
-  endpoint: apiTypes.HttpGetEndpoint<O>,
+function ModalCreateGetRequest<I,O>(props: {
+  endpoint: apiTypes.HttpXEndpoint<I,O>,
   cancel: () => void,
-  execute: (endpoint: apiTypes.HttpGetEndpoint<O>) => void,
+  execute: (endpoint: apiTypes.HttpXEndpoint<I,O>) => void,
 }) {
   return (
     <Modal onClickBackground={() => props.cancel()}>
