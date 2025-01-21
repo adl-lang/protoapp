@@ -425,7 +425,7 @@ func AST_ApiRequests() adlast.ScopedDecl {
 							},
 						),
 						types.Make_Maybe_just[any](
-							map[string]interface{}{"name": "User Admin API", "service": map[string]interface{}{}, "token_delivery": "jwt"},
+							map[string]interface{}{"name": "User Admin API", "service": map[string]interface{}{}, "token_delivery": "auth_bearer"},
 						),
 						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "API endpoints accessible when logged in as admin\n"},
 					),
@@ -603,7 +603,7 @@ func AST_RefreshApiRequests() adlast.ScopedDecl {
 							},
 						),
 						types.Make_Maybe_just[any](
-							map[string]interface{}{"name": "Logged-in API", "service": map[string]interface{}{}, "token_delivery": "jwt"},
+							map[string]interface{}{"name": "Logged-in API", "service": map[string]interface{}{}, "token_delivery": "auth_bearer"},
 						),
 						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "API endpoints accessible when logged in\n"},
 					),
