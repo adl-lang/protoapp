@@ -108,8 +108,6 @@ func (*DeliveryMethod) MakeNewBranch(key string) (any, error) {
 	switch key {
 	case "none":
 		return &_DeliveryMethod_None{}, nil
-	case "post_cap_call":
-		return &_DeliveryMethod_Post_cap_call{}, nil
 	case "bearer":
 		return &_DeliveryMethod_Bearer{}, nil
 	case "cookie":
@@ -121,9 +119,6 @@ func (*DeliveryMethod) MakeNewBranch(key string) (any, error) {
 type _DeliveryMethod_None struct {
 	V struct{} `branch:"none"`
 }
-type _DeliveryMethod_Post_cap_call struct {
-	V struct{} `branch:"post_cap_call"`
-}
 type _DeliveryMethod_Bearer struct {
 	V struct{} `branch:"bearer"`
 }
@@ -131,20 +126,13 @@ type _DeliveryMethod_Cookie struct {
 	V string `branch:"cookie"`
 }
 
-func (_DeliveryMethod_None) isDeliveryMethodBranch()          {}
-func (_DeliveryMethod_Post_cap_call) isDeliveryMethodBranch() {}
-func (_DeliveryMethod_Bearer) isDeliveryMethodBranch()        {}
-func (_DeliveryMethod_Cookie) isDeliveryMethodBranch()        {}
+func (_DeliveryMethod_None) isDeliveryMethodBranch()   {}
+func (_DeliveryMethod_Bearer) isDeliveryMethodBranch() {}
+func (_DeliveryMethod_Cookie) isDeliveryMethodBranch() {}
 
 func Make_DeliveryMethod_none() DeliveryMethod {
 	return DeliveryMethod{
 		_DeliveryMethod_None{struct{}{}},
-	}
-}
-
-func Make_DeliveryMethod_post_cap_call() DeliveryMethod {
-	return DeliveryMethod{
-		_DeliveryMethod_Post_cap_call{struct{}{}},
 	}
 }
 
@@ -165,11 +153,6 @@ func (un DeliveryMethod) Cast_none() (struct{}, bool) {
 	return br.V, ok
 }
 
-func (un DeliveryMethod) Cast_post_cap_call() (struct{}, bool) {
-	br, ok := un.Branch.(_DeliveryMethod_Post_cap_call)
-	return br.V, ok
-}
-
 func (un DeliveryMethod) Cast_bearer() (struct{}, bool) {
 	br, ok := un.Branch.(_DeliveryMethod_Bearer)
 	return br.V, ok
@@ -183,7 +166,6 @@ func (un DeliveryMethod) Cast_cookie() (string, bool) {
 func Handle_DeliveryMethod[T any](
 	_in DeliveryMethod,
 	none func(none struct{}) T,
-	post_cap_call func(post_cap_call struct{}) T,
 	bearer func(bearer struct{}) T,
 	cookie func(cookie string) T,
 	_default func() T,
@@ -192,10 +174,6 @@ func Handle_DeliveryMethod[T any](
 	case _DeliveryMethod_None:
 		if none != nil {
 			return none(_b.V)
-		}
-	case _DeliveryMethod_Post_cap_call:
-		if post_cap_call != nil {
-			return post_cap_call(_b.V)
 		}
 	case _DeliveryMethod_Bearer:
 		if bearer != nil {
@@ -215,7 +193,6 @@ func Handle_DeliveryMethod[T any](
 func HandleWithErr_DeliveryMethod[T any](
 	_in DeliveryMethod,
 	none func(none struct{}) (T, error),
-	post_cap_call func(post_cap_call struct{}) (T, error),
 	bearer func(bearer struct{}) (T, error),
 	cookie func(cookie string) (T, error),
 	_default func() (T, error),
@@ -224,10 +201,6 @@ func HandleWithErr_DeliveryMethod[T any](
 	case _DeliveryMethod_None:
 		if none != nil {
 			return none(_b.V)
-		}
-	case _DeliveryMethod_Post_cap_call:
-		if post_cap_call != nil {
-			return post_cap_call(_b.V)
 		}
 	case _DeliveryMethod_Bearer:
 		if bearer != nil {

@@ -67,12 +67,6 @@ pub enum DeliveryMethod {
   None,
 
   /**
-   * post the CapCall type ie. {"token": xxx, "payload": yyy}
-   */
-  #[serde(rename="post_cap_call")]
-  PostCapCall,
-
-  /**
    * add as an "authorization: Bearer" headder
    */
   #[serde(rename="bearer")]

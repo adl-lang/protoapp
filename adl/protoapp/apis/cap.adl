@@ -47,6 +47,14 @@ struct ApiRequests {
     "path": "/logout"
   };
 
+  HttpPost<Unit, protoapp.apis.captest.A_ApiResp> a = {
+    "path": "/a"
+  };
+  CapabilityApi<protoapp.apis.captest.A_ApiToken,Unit,protoapp.apis.captest.A_Api> accessTokenApi = {
+    "service": {},
+    "token_delivery": {"cookie": "a_cookie"}
+  };
+
   // This is a simple refresh model, hence the Unit as the S type.
   // If a more complex model (eg. with user blacklisting) was required the S payload would be different
   /// API Endpoint used to refresh the access token

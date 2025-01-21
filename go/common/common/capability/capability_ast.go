@@ -289,18 +289,6 @@ func AST_DeliveryMethod() adlast.ScopedDecl {
 						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "don't send the token back to the server\n"},
 					),
 					adlast.MakeAll_Field(
-						"post_cap_call",
-						"post_cap_call",
-						adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_primitive(
-								"Void",
-							),
-							[]adlast.TypeExpr{},
-						),
-						types.Make_Maybe_nothing[any](),
-						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "post the CapCall type ie. {\"token\": xxx, \"payload\": yyy}\n"},
-					),
-					adlast.MakeAll_Field(
 						"bearer",
 						"bearer",
 						adlast.MakeAll_TypeExpr(

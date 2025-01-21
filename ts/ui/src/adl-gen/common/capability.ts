@@ -30,9 +30,6 @@ export function texprCapabilityApi<C, S, V>(texprC : ADL.ATypeExpr<C>, texprS : 
 export interface DeliveryMethod_None {
   kind: 'none';
 }
-export interface DeliveryMethod_Post_cap_call {
-  kind: 'post_cap_call';
-}
 export interface DeliveryMethod_Bearer {
   kind: 'bearer';
 }
@@ -41,17 +38,13 @@ export interface DeliveryMethod_Cookie {
   value: string;
 }
 
-export type DeliveryMethod = DeliveryMethod_None | DeliveryMethod_Post_cap_call | DeliveryMethod_Bearer | DeliveryMethod_Cookie;
+export type DeliveryMethod = DeliveryMethod_None | DeliveryMethod_Bearer | DeliveryMethod_Cookie;
 
 export interface DeliveryMethodOpts {
   /**
    * don't send the token back to the server
    */
   none: null;
-  /**
-   * post the CapCall type ie. {"token": xxx, "payload": yyy}
-   */
-  post_cap_call: null;
   /**
    * add as an "authorization: Bearer" headder
    */
@@ -65,7 +58,7 @@ export interface DeliveryMethodOpts {
 export function makeDeliveryMethod<K extends keyof DeliveryMethodOpts>(kind: K, value: DeliveryMethodOpts[K]) { return {kind, value}; }
 
 const DeliveryMethod_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"DeliveryMethod","type_":{"kind":"union_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"don't send the token back to the server\n"}],"default":{"kind":"nothing"},"name":"none","serializedName":"none","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"post the CapCall type ie. {\"token\": xxx, \"payload\": yyy}\n"}],"default":{"kind":"nothing"},"name":"post_cap_call","serializedName":"post_cap_call","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"add as an \"authorization: Bearer\" headder\n"}],"default":{"kind":"nothing"},"name":"bearer","serializedName":"bearer","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"add as a cookie, the provided string in the cookie name\n"}],"default":{"kind":"nothing"},"name":"cookie","serializedName":"cookie","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"String"}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"common.capability"};
+  {"decl":{"annotations":[],"name":"DeliveryMethod","type_":{"kind":"union_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"don't send the token back to the server\n"}],"default":{"kind":"nothing"},"name":"none","serializedName":"none","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"add as an \"authorization: Bearer\" headder\n"}],"default":{"kind":"nothing"},"name":"bearer","serializedName":"bearer","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"add as a cookie, the provided string in the cookie name\n"}],"default":{"kind":"nothing"},"name":"cookie","serializedName":"cookie","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"String"}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"common.capability"};
 
 export const snDeliveryMethod: ADL.ScopedName = {moduleName:"common.capability", name:"DeliveryMethod"};
 
