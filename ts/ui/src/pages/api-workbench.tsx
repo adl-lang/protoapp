@@ -164,8 +164,8 @@ function ApiView(props: {
   choose: (e: apiTypes.Endpoint) => void,
   // cancel: () => void
 }) {
-  return <material.Box sx={{ marginTop: "20px", marginBottom: "20px" }}>
-    <material.Accordion>
+  return <material.Box sx={{ marginLeft: "5px", marginTop: "5px", marginBottom: "5px" }}>
+    <material.Accordion defaultExpanded>
       <material.AccordionSummary
         expandIcon={<ExpandMoreIcon />}
         aria-controls="panel2-content"
@@ -180,7 +180,7 @@ function ApiView(props: {
           </material.Tooltip>
         </material.Box>
       </material.AccordionSummary>
-      <material.AccordionDetails>
+      <material.AccordionDetails sx={{ marginLeft: "5px", marginTop: "0px", marginBottom: "0px" }}>
         <material.Typography>{props.endpoint.docString}</material.Typography>
       </material.AccordionDetails>
       {/* todo change this to an accordion */}
@@ -201,7 +201,7 @@ function HttpEndpointView(props: {
   endpoint: apiTypes.HttpEndpoint;
   choose: (e: apiTypes.Endpoint) => void,
 }) {
-  return <material.Box sx={{ marginTop: "20px", marginBottom: "20px" }}>
+  return <material.Box sx={{ marginTop: "5px", marginBottom: "5px" }}>
     <material.Button onClick={() => props.choose(props.endpoint)}>
       {props.endpoint.name}
     </material.Button>

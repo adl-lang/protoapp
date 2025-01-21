@@ -69,7 +69,7 @@ struct ApiRequests {
   CapabilityApi<AdminAccessToken,Capability,UserApiRequests> userApi = {
     "service": {},
     "name": "User Admin API",
-    "token_delivery": "jwt"
+    "token_delivery": "auth_bearer"
   };
   
 };
@@ -103,7 +103,7 @@ struct RefreshApiRequests {
   CapabilityApi<AccessToken,Capability,AccessApiRequests> accessTokenApi = {
     "service": {},
     "name": "Logged-in API",
-    "token_delivery": "jwt"
+    "token_delivery": "auth_bearer"
   };
 
 };

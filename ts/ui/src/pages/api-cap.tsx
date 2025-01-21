@@ -11,6 +11,7 @@ import { useMemo, useState } from "react";
 import { getEndpoints } from "./api-cap-get-eps";
 import { CapToken, CompletedRequest, CompletedResponse, HttpEndpoint } from "./api-types";
 import { ApiWorkbenchPresent } from "./api-workbench";
+import { assertNever } from "@/utils/assertNever";
 
 export function CapWorkbench() {
   const appState = useAppState();
@@ -29,6 +30,18 @@ export function CapWorkbench() {
     if (endpoint.jsonBindingO.typeExpr.typeRef.kind === 'reference') {
       const sd_resp = RESOLVER(endpoint.jsonBindingO.typeExpr.typeRef.value);
       switch (sd_resp.decl.type_.kind) {
+        case "struct_":
+          /// TODO complete
+          console.error("not implmented")
+          break
+        case "type_":
+          /// TODO complete
+          console.error("not implmented")
+          break
+        case "newtype_":
+          /// TODO complete
+          console.error("not implmented")
+          break
         case "union_": {
           const union = sd_resp.decl.type_.value;
           const field = union.fields.find(f => f.name === (resp as any)["kind"]);
@@ -58,7 +71,10 @@ export function CapWorkbench() {
           } else {
             console.error("field not found", union.fields, resp);
           }
+          break
         }
+        default:
+          assertNever(sd_resp.decl.type_)
       }
     }
     // All the endpoint handling is generic except for here, where we update the auth state when the
@@ -80,21 +96,22 @@ export function CapWorkbench() {
             let body: unknown = reqbody
             let cap_token: unknown = undefined;
             let jwt = authState.kind == 'auth' ? authState.auth.jwt : undefined;
-            const headers: Record<string,string> = {}
+            const headers: Record<string, string> = {}
             if (endpoint.token !== undefined && reqbody !== undefined) {
               if (endpoint.method === "get") {
                 body = undefined
               } else {
-                body = (reqbody as unknown as capability.CapCall<unknown,unknown>).payload
+                body = (reqbody as unknown as capability.CapCall<unknown, unknown>).payload
               }
-              cap_token = (reqbody as unknown as capability.CapCall<unknown,unknown>).token
-              switch( endpoint.token.delivery_method.kind ) {
+              cap_token = (reqbody as unknown as capability.CapCall<unknown, unknown>).token
+              switch (endpoint.token.delivery_method.kind) {
                 case "none":
                   break
                 case "header":
+                  /// TODO use type info about cap_token to 'correctly;' turn cap_token into a string
                   headers[endpoint.token.delivery_method.value] = cap_token as string
                   break
-                case "jwt":
+                case "auth_bearer":
                   jwt = cap_token as string
               }
               console.log("cap_token", cap_token)

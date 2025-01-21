@@ -41,7 +41,7 @@ union DeliveryMethod {
   // /// Add the token as a query param ie. ?token=xxx
   // Void http;
   /// add as an "authorization: Bearer" headder
-  Void jwt;
+  Void auth_bearer;
   /// add as a cookie, the provided string in the cookie name
   String header;
 };

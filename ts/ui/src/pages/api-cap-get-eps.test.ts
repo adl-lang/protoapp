@@ -27,7 +27,7 @@ test('an A_API capTokens', () => {
   expect(a_api.name).toBe("accessTokenApi")
   expect(a_api.token_value).toBe("111")
   expect(a_api.apis_called).toStrictEqual([])
-  expect(a_api.endpoints.length).toBe(1)
+  expect(a_api.endpoints.length).toBe(2)
 })
 
 test('A_API->B_API capTokens', () => {
@@ -54,7 +54,7 @@ test('A_API->B_API capTokens', () => {
   expect(a_api.name).toBe("accessTokenApi")
   expect(a_api.token_value).toBe("111")
   expect(a_api.apis_called).toStrictEqual([])
-  expect(a_api.endpoints.length).toBe(2)
+  expect(a_api.endpoints.length).toBe(3)
   const b_api = a_api.endpoints.filter(ep => ep.kind === "api")[0]
   expect(b_api.token_value).toBe("222")
   expect(b_api.apis_called.length).toBe(1)
@@ -96,7 +96,7 @@ test('A_API->(B_API,B_API) capTokens', () => {
   expect(a_api.name).toBe("accessTokenApi")
   expect(a_api.token_value).toBe("111")
   expect(a_api.apis_called).toStrictEqual([])
-  expect(a_api.endpoints.length).toBe(3)
+  expect(a_api.endpoints.length).toBe(4)
   {
     const b_api = a_api.endpoints.filter(ep => ep.kind === "api")[0]
     expect(b_api.token_value).toBe("222")
@@ -152,13 +152,13 @@ test('A_API,A_API->(B_API,B_API) capTokens', () => {
     const a_api = endpoints.filter(ep => ep.kind === "api")[0]
     expect(a_api.token_value).toBe("000")
     expect(a_api.apis_called).toStrictEqual([])
-    expect(a_api.endpoints.length).toBe(1)
+    expect(a_api.endpoints.length).toBe(2)
   }
   {
     const a_api = endpoints.filter(ep => ep.kind === "api")[1]
     expect(a_api.token_value).toBe("111")
     expect(a_api.apis_called).toStrictEqual([])
-    expect(a_api.endpoints.length).toBe(3)
+    expect(a_api.endpoints.length).toBe(4)
     {
       const b_api = a_api.endpoints.filter(ep => ep.kind === "api")[0]
       expect(b_api.token_value).toBe("222")
@@ -239,7 +239,7 @@ test('A_API->B_API,A_API->(B_API->C_API,B_API) capTokens', () => {
     const a_api = endpoints.filter(ep => ep.kind === "api")[0]
     expect(a_api.token_value).toBe("000")
     expect(a_api.apis_called).toStrictEqual([])
-    expect(a_api.endpoints.length).toBe(2)
+    expect(a_api.endpoints.length).toBe(3)
     const b_api = a_api.endpoints.filter(ep => ep.kind === "api")[0]
     expect(b_api.token_value).toBe("444")
     expect(b_api.apis_called.length).toBe(1)
@@ -249,7 +249,7 @@ test('A_API->B_API,A_API->(B_API->C_API,B_API) capTokens', () => {
     const a_api = endpoints.filter(ep => ep.kind === "api")[1]
     expect(a_api.token_value).toBe("111")
     expect(a_api.apis_called).toStrictEqual([])
-    expect(a_api.endpoints.length).toBe(3)
+    expect(a_api.endpoints.length).toBe(4)
     {
       const b_api = a_api.endpoints.filter(ep => ep.kind === "api")[0]
       expect(b_api.token_value).toBe("222")

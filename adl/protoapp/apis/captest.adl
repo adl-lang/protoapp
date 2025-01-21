@@ -14,9 +14,11 @@ type C_ApiToken = String;
 type C_ApiTokenMarker = CapabilityToken<C_ApiToken>;
 
 struct ApiRequests {
+  /// Post a unit and get a token to access a_api
   HttpPost<Unit, A_ApiResp> a = {
     "path": "/a"
   };
+  /// A_api
   CapabilityApi<A_ApiToken,Unit,A_Api> accessTokenApi = {
     "service": {},
     "token_delivery": {"header": "a_cookie"}
@@ -24,13 +26,15 @@ struct ApiRequests {
 };
 
 struct A_Api {
+  /// Post a AB and get a token to access b_api
   HttpPost<AB, B_ApiResp> b = {
     "path": "/b"
   };
+  /// Get a get a token to access b_api
   HttpGet<B_ApiResp> a2 = {
     "path": "/a2"
   };
-
+  /// B api
   CapabilityApi<B_ApiToken,Unit,B_Api> accessTokenApi = {
     "service": {},
     "token_delivery": {"header": "b_cookie"}
@@ -43,10 +47,12 @@ struct AB {
 };
 
 struct B_Api {
+  /// Post a B_ApiToken and get a token to access c_api
   HttpPost<B_ApiToken, C_ApiResp> c = {
     "path": "/c"
   };
 
+  /// C api
   CapabilityApi<C_ApiToken,Unit,C_Api> accessTokenApi = {
     "service": {},
     "token_delivery": {"header": "c_cookie"}
