@@ -99,7 +99,7 @@ async function executeRequest<I>(
 
   let resp: CompletedResponse;
   try {
-    const value = await service.requestAdl(endpoint.kind, endpoint.path, reqbody, endpoint.jsonBindingO, jwt);
+    const value = await service.requestAdl(endpoint.method, endpoint.path, reqbody, endpoint.jsonBindingO, jwt);
     resp = { success: true, value };
   } catch (e: unknown) {
     if (e instanceof AdlRequestError) {

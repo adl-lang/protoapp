@@ -138,6 +138,7 @@ function getHttpPostEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field)
   const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
   return {
     kind: 'post',
+    method: 'post',
     name: field.name,
     path: httpPost.path,
     docString,
@@ -164,6 +165,7 @@ function getHttpGetEndpoint<O>(resolver: ADL.DeclResolver, field: AST.Field): Ht
   const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
   return {
     kind: 'get',
+    method: 'get',
     name: field.name,
     path: httpGet.path,
     docString,

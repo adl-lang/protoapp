@@ -22,6 +22,7 @@ function getEndpoints0<API>(
   texpr: ADL.ATypeExpr<API>,
   capTokens: CapToken<unknown>[],
   apis_called: CalledApi<unknown>[],
+  token_delivery_method?: capability.DeliveryMethod,
 ): Endpoint[] {
   if (texpr.value.typeRef.kind !== 'reference') {
     throw new Error("API must be a monomorphic declaration");
@@ -42,10 +43,10 @@ function getEndpoints0<API>(
         endpoints.push(...getApiEndpoint(resolver, f, capTokens, apis_called))
       }
       if (scopedNamesEqual(f.typeExpr.typeRef.value, capability.snHttpPost)) {
-        endpoints.push(getHttpPostEndpoint(resolver, f, apis_called))
+        endpoints.push(getHttpPostEndpoint(resolver, f, apis_called, token_delivery_method))
       }
       if (scopedNamesEqual(f.typeExpr.typeRef.value, capability.snHttpGet)) {
-        endpoints.push(getHttpGetEndpoint(resolver, f, apis_called))
+        endpoints.push(getHttpGetEndpoint(resolver, f, apis_called, token_delivery_method))
       }
     }
   }
@@ -97,7 +98,7 @@ function getApiEndpoint<C, S, V>(
       name: capApi.name === "" ? field.name : capApi.name,
       typetoken: texprC,
       docString,
-      endpoints: getEndpoints0(resolver, texprV, capTokens, apis_called0),
+      endpoints: getEndpoints0(resolver, texprV, capTokens, apis_called0, capApi.token_delivery),
       token_value: ct.token_value as C,
       apis_called: ct.apis_called,
     })
@@ -109,6 +110,7 @@ function getHttpPostEndpoint<I, O>(
   resolver: ADL.DeclResolver,
   field: AST.Field,
   apis_called: CalledApi<unknown>[],
+  token_delivery_method?: capability.DeliveryMethod,
 ): HttpPostEndpoint<I, O> {
   if (field.default.kind !== 'just') {
     throw new Error("API endpoint must have a default value");
@@ -128,6 +130,7 @@ function getHttpPostEndpoint<I, O>(
   const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
   return {
     kind: 'post',
+    method: 'post',
     name: field.name,
     path: httpPost.path,
     docString,
@@ -137,6 +140,7 @@ function getHttpPostEndpoint<I, O>(
     jsonBindingI,
     jsonBindingO,
     apis_called,
+    token_delivery_method,
   }
 }
 
@@ -144,6 +148,7 @@ function getHttpGetEndpoint<O>(
   resolver: ADL.DeclResolver,
   field: AST.Field,
   apis_called: CalledApi<unknown>[],
+  token_delivery_method?: capability.DeliveryMethod,
 ): HttpGetEndpoint<O> {
   if (field.default.kind !== 'just') {
     throw new Error("API endpoint must have a default value");
@@ -159,6 +164,7 @@ function getHttpGetEndpoint<O>(
   const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
   return {
     kind: 'get',
+    method: 'get',
     name: field.name,
     path: httpGet.path,
     docString,
@@ -166,6 +172,7 @@ function getHttpGetEndpoint<O>(
     veditorO,
     jsonBindingO,
     apis_called,
+    token_delivery_method,
   }
 }
 

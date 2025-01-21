@@ -4,6 +4,7 @@ import { JsonBinding } from "@adllang/adl-runtime";
 
 import * as AST from "@/adl-gen/sys/adlast";
 import * as ADL from "@adllang/adl-runtime";
+import { DeliveryMethod } from "@/adl-gen/common/capability";
 
 export type Endpoint =
     HttpEndpoint
@@ -23,17 +24,20 @@ export interface CapToken<C> {
 };
 
 export interface Api<C> {
+  kind: 'api';
   name: string;
   docString: string,
-  kind: 'api';
   apis_called: CalledApi<unknown>[],
   typetoken: ADL.ATypeExpr<C>;
   token_value: C;
   endpoints: Endpoint[];
 }
 
+type Method = 'get' | 'post'
+
 export interface HttpGetEndpoint<O> {
   kind: 'get';
+  method: 'get';
   name: string;
   path: string;
   security?: HttpSecurity,
@@ -41,10 +45,12 @@ export interface HttpGetEndpoint<O> {
   veditorO: VEditor<O>;
   jsonBindingO: JsonBinding<O>;
   apis_called?: CalledApi<unknown>[],
+  token_delivery_method?: DeliveryMethod,
 }
 
 export interface HttpPostEndpoint<I, O> {
   kind: 'post';
+  method: 'post';
   name: string;
   path: string;
   security?: HttpSecurity,
@@ -54,6 +60,7 @@ export interface HttpPostEndpoint<I, O> {
   jsonBindingI: JsonBinding<I>;
   jsonBindingO: JsonBinding<O>;
   apis_called?: CalledApi<unknown>[],
+  token_delivery_method?: DeliveryMethod,
 }
 
 export type ExecutingRequest = {
