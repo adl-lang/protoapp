@@ -353,7 +353,11 @@ function structVEditor<R>(
       fieldStates: {},
     };
     for (const fd of fieldDetails) {
-      state.fieldStates[fd.name] = fd.veditor.stateFromValue(value[fd.name]);
+      if (value[fd.name]) {
+        state.fieldStates[fd.name] = fd.veditor.stateFromValue(value[fd.name]);
+      } else {
+        state.fieldStates[fd.name] = fd.veditor.stateFromValue(fd.veditor.initialState);
+      }
     }
     return state;
   }

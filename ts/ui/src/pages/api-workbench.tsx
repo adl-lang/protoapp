@@ -71,7 +71,11 @@ export function ApiWorkbenchPresent(props: ApiWorkbenchPresentProps) {
         case 'choose-endpoint': return (
           <ModalChooseEndpoint
             cancel={() => setModal(undefined)}
-            choose={endpoint => setModal({ state: 'create-request', endpoint, initial: undefined })}
+            choose={endpoint => setModal({
+              state: 'create-request',
+              endpoint,
+              initial: endpoint.kind === "callable" && endpoint.token ? endpoint.token.value : undefined,
+            })}
             endpoints={props.endpoints}
           />
         );

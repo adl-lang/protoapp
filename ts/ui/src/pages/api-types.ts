@@ -36,22 +36,10 @@ export interface Api<C> {
 
 type Method = 'get' | 'post'
 
-// export interface HttpGetEndpoint<O> {
-//   kind: 'get';
-//   method: 'get';
-//   name: string;
-//   path: string;
-//   security?: HttpSecurity,
-//   docString: string,
-//   veditorO: VEditor<O>;
-//   jsonBindingO: JsonBinding<O>;
-//   apis_called?: CalledApi<unknown>[],
-//   token_delivery_method?: DeliveryMethod,
-// }
-
-export interface CapTokenInstance {
+export interface CapTokenInstance<C> {
   delivery_method: DeliveryMethod,
-  value: unknown,
+  value: C,
+  token_type: ADL.ATypeExpr<C>
 }
 
 export interface HttpXEndpoint<I, O> {
@@ -66,7 +54,7 @@ export interface HttpXEndpoint<I, O> {
   jsonBindingI: JsonBinding<I>;
   jsonBindingO: JsonBinding<O>;
   apis_called?: CalledApi<unknown>[],
-  token?: CapTokenInstance
+  token?: CapTokenInstance<unknown>
 }
 
 export type ExecutingRequest = {
