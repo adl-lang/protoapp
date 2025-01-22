@@ -292,16 +292,19 @@ type ApiRequests struct {
 type _ApiRequests struct {
 	A              capability.HttpPost[http.Unit, A_ApiResp]              `json:"a"`
 	AccessTokenApi capability.CapabilityApi[A_ApiToken, http.Unit, A_Api] `json:"accessTokenApi"`
+	My_api         MyApi                                                  `json:"my_api"`
 }
 
 func MakeAll_ApiRequests(
 	a capability.HttpPost[http.Unit, A_ApiResp],
 	accesstokenapi capability.CapabilityApi[A_ApiToken, http.Unit, A_Api],
+	my_api MyApi,
 ) ApiRequests {
 	return ApiRequests{
 		_ApiRequests{
 			A:              a,
 			AccessTokenApi: accesstokenapi,
+			My_api:         my_api,
 		},
 	}
 }
@@ -311,6 +314,7 @@ func Make_ApiRequests() ApiRequests {
 		_ApiRequests{
 			A:              ((*ApiRequests)(nil)).Default_a(),
 			AccessTokenApi: ((*ApiRequests)(nil)).Default_accessTokenApi(),
+			My_api:         ((*ApiRequests)(nil)).Default_my_api(),
 		},
 	}
 	return ret
@@ -496,6 +500,32 @@ func (*ApiRequests) Default_accessTokenApi() capability.CapabilityApi[A_ApiToken
 		"",
 		capability.Make_DeliveryMethod_header(
 			"a_cookie",
+		),
+	)
+}
+func (*ApiRequests) Default_my_api() MyApi {
+	return MakeAll_MyApi(
+		capability.MakeAll_HttpPost[http.Unit, A_ApiResp](
+			"/aa",
+			nil,
+			adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
+				adlast.Make_TypeRef_reference(
+					adlast.MakeAll_ScopedName(
+						"common.http",
+						"Unit",
+					),
+				),
+				[]adlast.TypeExpr{},
+			)),
+			adlast.Make_ATypeExpr[A_ApiResp](adlast.MakeAll_TypeExpr(
+				adlast.Make_TypeRef_reference(
+					adlast.MakeAll_ScopedName(
+						"protoapp.apis.captest",
+						"A_ApiResp",
+					),
+				),
+				[]adlast.TypeExpr{},
+			)),
 		),
 	)
 }
@@ -794,3 +824,55 @@ func HandleWithErr_C_ApiResp[T any](
 type C_ApiToken = string
 
 type C_ApiTokenMarker = capability.CapabilityToken[C_ApiToken]
+
+type MyApi struct {
+	_MyApi
+}
+
+type _MyApi struct {
+	A capability.HttpPost[http.Unit, A_ApiResp] `json:"a"`
+}
+
+func MakeAll_MyApi(
+	a capability.HttpPost[http.Unit, A_ApiResp],
+) MyApi {
+	return MyApi{
+		_MyApi{
+			A: a,
+		},
+	}
+}
+
+func Make_MyApi() MyApi {
+	ret := MyApi{
+		_MyApi{
+			A: ((*MyApi)(nil)).Default_a(),
+		},
+	}
+	return ret
+}
+
+func (*MyApi) Default_a() capability.HttpPost[http.Unit, A_ApiResp] {
+	return capability.MakeAll_HttpPost[http.Unit, A_ApiResp](
+		"/aa",
+		nil,
+		adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"common.http",
+					"Unit",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+		adlast.Make_ATypeExpr[A_ApiResp](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.captest",
+					"A_ApiResp",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+	)
+}

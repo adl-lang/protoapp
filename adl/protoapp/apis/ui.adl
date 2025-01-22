@@ -63,8 +63,6 @@ struct ApiRequests {
     "security" : "token"
   };
 
-  MessageApi message_api = {};
-
   /// Gets info about the logged in user
   // NOTE: Fails with 401 if the token is invalid or user does not exist
   HttpGet<UserWithId> who_am_i = {
@@ -89,6 +87,8 @@ struct ApiRequests {
     "path": "/users/query",
     "security" : { "tokenWithRole": "admin" }
   };
+
+  MessageApi message_api = {};
 };
 
 struct MessageApi {

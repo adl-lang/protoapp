@@ -28,7 +28,8 @@ export function ApiWorkbench() {
     const allEndpoints = getEndpoints(RESOLVER, API.texprApiRequests());
     // only show endpoints accessible for the current authstate
     return allEndpoints.filter(ep => {
-      return ep.security!.kind === 'public' ||
+      return ep.kind === 'api' || 
+      ep.security!.kind === 'public' ||
         ep.security!.kind === 'token' && authState.kind == 'auth' ||
         ep.security!.kind === 'tokenWithRole' && jwt_decoded && ep.security!.value === jwt_decoded.role
     });
@@ -92,7 +93,7 @@ async function executeRequest<I>(
   }
 }
 
-function getEndpoints<API>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<API>): HttpEndpoint[] {
+function getEndpoints<API>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<API>): Endpoint[] {
   if (texpr.value.typeRef.kind !== 'reference') {
     throw new Error("API must be a monomorphic declaration");
   }
@@ -105,19 +106,37 @@ function getEndpoints<API>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<API>
   }
   const struct = decl.decl.type_.value;
 
-  const endpoints: HttpEndpoint[] = [];
+  const endpoints: Endpoint[] = [];
   for (const f of struct.fields) {
     if (f.typeExpr.typeRef.kind === 'reference') {
       if (scopedNamesEqual(f.typeExpr.typeRef.value, snHttpPost)) {
         endpoints.push(getHttpPostEndpoint(resolver, f))
+        continue
       }
       if (scopedNamesEqual(f.typeExpr.typeRef.value, snHttpGet)) {
         endpoints.push(getHttpGetEndpoint(resolver, f))
+        continue
+      }
+      const sd = resolver( f.typeExpr.typeRef.value )
+      if ( sd.decl.type_.kind === "struct_" ){
+        endpoints.push(getApiStruct(resolver, f))
       }
     }
   }
   console.log(endpoints);
   return endpoints;
+}
+
+function getApiStruct <C> (resolver: ADL.DeclResolver,
+  field: AST.Field): Api<C>{
+    const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
+    return {
+      kind: "api",
+      docString,
+      apis_called: [],
+      endpoints: getEndpoints(resolver, {value: field.typeExpr}),
+      name: field.name,
+    }
 }
 
 function getHttpPostEndpoint<I, O>(

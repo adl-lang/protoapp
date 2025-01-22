@@ -48,6 +48,10 @@ function getEndpoints0<API>(
       if (scopedNamesEqual(f.typeExpr.typeRef.value, capability.snHttpGet)) {
         endpoints.push(getHttpGetEndpoint(resolver, f, apis_called, token_delivery_method))
       }
+      const rd = resolver(f.typeExpr.typeRef.value)
+      if ( rd.decl.type_.kind === 'struct_' ){
+        endpoints.push(getApiStruct(resolver, f))
+      }
     }
   }
   return endpoints;
@@ -193,3 +197,17 @@ function getHttpGetEndpoint<O>(
 
 const JB_DOC = createJsonBinding(RESOLVER, texprDoc());
 const UI_FACTORY = createUiFactory();
+
+
+
+function getApiStruct <C> (resolver: ADL.DeclResolver,
+  field: AST.Field): Api<C>{
+    const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
+    return {
+      kind: "api",
+      docString,
+      apis_called: [],
+      endpoints: getEndpoints0(resolver, {value: field.typeExpr}, [], []),
+      name: field.name,
+    }
+}

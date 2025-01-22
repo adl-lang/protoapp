@@ -280,23 +280,6 @@ func AST_ApiRequests() adlast.ScopedDecl {
 						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Get recent noticeboard messages\n"},
 					),
 					adlast.MakeAll_Field(
-						"message_api",
-						"message_api",
-						adlast.MakeAll_TypeExpr(
-							adlast.Make_TypeRef_reference(
-								adlast.MakeAll_ScopedName(
-									"protoapp.apis.ui",
-									"MessageApi",
-								),
-							),
-							[]adlast.TypeExpr{},
-						),
-						types.Make_Maybe_just[any](
-							map[string]interface{}{},
-						),
-						customtypes.MapMap[adlast.ScopedName, any]{},
-					),
-					adlast.MakeAll_Field(
 						"who_am_i",
 						"who_am_i",
 						adlast.MakeAll_TypeExpr(
@@ -459,6 +442,23 @@ func AST_ApiRequests() adlast.ScopedDecl {
 							map[string]interface{}{"path": "/users/query", "security": map[string]interface{}{"tokenWithRole": "admin"}},
 						),
 						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Query users\n"},
+					),
+					adlast.MakeAll_Field(
+						"message_api",
+						"message_api",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"protoapp.apis.ui",
+									"MessageApi",
+								),
+							),
+							[]adlast.TypeExpr{},
+						),
+						types.Make_Maybe_just[any](
+							map[string]interface{}{},
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{},
 					),
 				},
 			),

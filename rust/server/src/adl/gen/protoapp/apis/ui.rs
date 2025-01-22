@@ -68,9 +68,6 @@ pub struct ApiRequests {
   #[serde(default="ApiRequests::def_recent_messages")]
   pub recent_messages: HttpPost<RecentMessagesReq, Paginated<Message>>,
 
-  #[serde(default="ApiRequests::def_message_api")]
-  pub message_api: MessageApi,
-
   /**
    * Gets info about the logged in user
    */
@@ -94,6 +91,9 @@ pub struct ApiRequests {
    */
   #[serde(default="ApiRequests::def_query_users")]
   pub query_users: HttpPost<QueryUsersReq, Paginated<UserWithId>>,
+
+  #[serde(default="ApiRequests::def_message_api")]
+  pub message_api: MessageApi,
 }
 
 impl ApiRequests {
@@ -106,11 +106,11 @@ impl ApiRequests {
       logout: ApiRequests::def_logout(),
       new_message: ApiRequests::def_new_message(),
       recent_messages: ApiRequests::def_recent_messages(),
-      message_api: ApiRequests::def_message_api(),
       who_am_i: ApiRequests::def_who_am_i(),
       create_user: ApiRequests::def_create_user(),
       update_user: ApiRequests::def_update_user(),
       query_users: ApiRequests::def_query_users(),
+      message_api: ApiRequests::def_message_api(),
     }
   }
 
@@ -142,10 +142,6 @@ impl ApiRequests {
     HttpPost::<RecentMessagesReq, Paginated<Message>>{path : "/messages/recent".to_string(), security : HttpSecurity::Token, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
-  pub fn def_message_api() -> MessageApi {
-    MessageApi{new_message : HttpPost::<NewMessageReq, MessageId>{path : "/messages/new".to_string(), security : HttpSecurity::Token, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}, recent_messages : HttpPost::<RecentMessagesReq, Paginated<Message>>{path : "/messages/recent".to_string(), security : HttpSecurity::Token, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}}
-  }
-
   pub fn def_who_am_i() -> HttpGet<UserWithId> {
     HttpGet::<UserWithId>{path : "/whoami".to_string(), security : HttpSecurity::Token, rate_limit : None, resp_type : std::marker::PhantomData}
   }
@@ -160,6 +156,10 @@ impl ApiRequests {
 
   pub fn def_query_users() -> HttpPost<QueryUsersReq, Paginated<UserWithId>> {
     HttpPost::<QueryUsersReq, Paginated<UserWithId>>{path : "/users/query".to_string(), security : HttpSecurity::TokenWithRole("admin".to_string()), rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+  }
+
+  pub fn def_message_api() -> MessageApi {
+    MessageApi{new_message : HttpPost::<NewMessageReq, MessageId>{path : "/messages/new".to_string(), security : HttpSecurity::Token, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}, recent_messages : HttpPost::<RecentMessagesReq, Paginated<Message>>{path : "/messages/recent".to_string(), security : HttpSecurity::Token, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}}
   }
 }
 

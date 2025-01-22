@@ -29,8 +29,8 @@ export interface Api<C> {
   name: string;
   docString: string,
   apis_called: CalledApi<unknown>[],
-  typetoken: ADL.ATypeExpr<C>;
-  token_value: C;
+  typetoken?: ADL.ATypeExpr<C>;
+  token_value?: C;
   endpoints: Endpoint[];
 }
 

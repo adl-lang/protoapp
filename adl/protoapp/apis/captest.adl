@@ -23,6 +23,15 @@ struct ApiRequests {
     "service": {},
     "token_delivery": {"header": "a_cookie"}
   };
+
+  MyApi my_api = {};
+
+};
+
+struct MyApi {
+  HttpPost<Unit, A_ApiResp> a = {
+    "path": "/aa"
+  };
 };
 
 struct A_Api {
