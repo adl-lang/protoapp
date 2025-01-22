@@ -5,6 +5,8 @@ import sys.types.Pair;
 
 // UI Annotations
 
+type Disabled = Void;
+
 // field annotation specifying the label to be shown on forms and
 // table headings
 type FormLabel = String;

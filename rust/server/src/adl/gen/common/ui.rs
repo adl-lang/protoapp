@@ -4,6 +4,8 @@ use crate::adl::rt::custom::sys::types::pair::Pair;
 use serde::Deserialize;
 use serde::Serialize;
 
+pub type Disabled = ();
+
 pub type FormLabel = String;
 
 pub type FormGroupKey = String;

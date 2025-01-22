@@ -39,7 +39,7 @@ func AST_CapCall() adlast.ScopedDecl {
 							[]adlast.TypeExpr{},
 						),
 						types.Make_Maybe_nothing[any](),
-						customtypes.MapMap[adlast.ScopedName, any]{},
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("common.ui", "Disabled"): nil},
 					),
 					adlast.MakeAll_Field(
 						"payload",

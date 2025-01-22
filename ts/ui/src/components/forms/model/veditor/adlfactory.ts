@@ -65,6 +65,7 @@ export interface StructEditorProps<R> {
 export interface StructFieldProps<R> {
   name: string;
   label: string;
+  annotations: adlast.Annotations;
   veditor: VEditorProps<unknown,unknown, unknown,R>
 }
 
@@ -316,9 +317,9 @@ function structVEditor<R>(
   const fieldDetails = struct.fields.map(field => {
     const veditor = createVEditor0(declResolver, nullContext,  field.adlTree, factory);
     const jsonBinding = createJsonBinding<unknown>(declResolver, { value: field.adlTree.typeExpr });
-
     return {
       name: field.astField.name,
+      annotations: field.astField.annotations,
       default: field.astField.default,
       jsonBinding,
       label: fieldLabel(field.astField.name),

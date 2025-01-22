@@ -17,12 +17,13 @@ import { Modal } from './modal';
 import { GridRow, Rendered, RenderFn, RenderProps, VEditor } from './veditor';
 import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField } from '@mui/material';
 import { styled } from "@mui/material";
+import { hasDisabledAnnotation } from '../model/adl-annotations';
 
 export function fieldElement(element:JSX.Element): Rendered {
   return {
     element: () => {return element},
     gridElement: () => {return {beside:element}},
-  };    
+  };
 }
 
 export function wideFieldElement(element:JSX.Element): Rendered {
@@ -63,8 +64,10 @@ export class UiFactory implements Factory<RenderFn> {
   renderStructEditor(props: StructEditorProps<RenderFn>): RenderFn {
     return (rprops: RenderProps) => {
       const rows: GridRow[] = props.fields.map(fd => {
-        const label = rprops.disabled? fd.label : <b>{fd.label}</b>;
-        const rendered = fd.veditor.veditor.render(fd.veditor.state, fd.veditor.onUpdate)(rprops);
+        // disabled is field is annotated with ui.Disabled
+        const disabled = rprops.disabled ? rprops.disabled : hasDisabledAnnotation(fd.annotations)
+        const label = disabled ? fd.label : <b>{fd.label}</b>;
+        const rendered = fd.veditor.veditor.render(fd.veditor.state, fd.veditor.onUpdate)({disabled});
         const element = rendered.gridElement();
         return {kind:'labelled', label, element} as GridRow
       });

@@ -1,6 +1,7 @@
 module common.capability {
 
 import common.http.HttpRateLimit;
+import common.ui.Disabled;
 
 // eg
 // struct PublicApi {
@@ -78,6 +79,7 @@ struct HttpPost<I,O> {
 };
 
 struct CapCall<C,P> {
+  @Disabled
   C token;
   P payload;
 };

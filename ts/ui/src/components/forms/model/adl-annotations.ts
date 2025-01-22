@@ -1,8 +1,6 @@
 // Helper functions to extract various ADL annotations
-import { DeclResolver } from "@adllang/adl-runtime";
+import { DeclResolver, scopedNamesEqual, typeExprsEqual, createJsonBinding, JsonBinding } from "@adllang/adl-runtime";
 import * as ui from "@/adl-gen/common/ui";
-import { createJsonBinding, JsonBinding } from "@adllang/adl-runtime";
-import { typeExprsEqual } from "@adllang/adl-runtime";
 import * as adlast from "@/adl-gen/sys/adlast";
 import * as systypes from "@/adl-gen/sys/types";
 
@@ -22,6 +20,27 @@ export function getAnnotation<T>(
     }
   }
   return null;
+}
+
+export function getAnnotations(
+  dresolver: DeclResolver,
+  texpr: adlast.TypeExpr,
+): adlast.Annotations {
+  if (texpr.typeRef.kind !== "reference") {
+    return []
+  }
+  return dresolver(texpr.typeRef.value).decl.annotations;
+}
+
+export function hasDisabledAnnotation(
+  annotations: adlast.Annotations
+): boolean {
+  for(const ann of annotations) {
+    if (scopedNamesEqual(ann.key, ui.snDisabled)) {
+      return true
+    }
+  }
+  return false
 }
 
 export function getGroupKeyFromAnnotation(

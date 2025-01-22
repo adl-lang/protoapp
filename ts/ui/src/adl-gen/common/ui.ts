@@ -3,6 +3,17 @@
 import * as ADL from '@adllang/adl-runtime';
 import * as sys_types from './../sys/types';
 
+export type Disabled = null;
+
+const Disabled_AST : ADL.ScopedDecl =
+  {"decl":{"annotations":[],"name":"Disabled","type_":{"kind":"type_","value":{"typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}},"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"common.ui"};
+
+export const snDisabled: ADL.ScopedName = {moduleName:"common.ui", name:"Disabled"};
+
+export function texprDisabled(): ADL.ATypeExpr<Disabled> {
+  return {value : {typeRef : {kind: "reference", value : snDisabled}, parameters : []}};
+}
+
 export type FormLabel = string;
 
 const FormLabel_AST : ADL.ScopedDecl =
@@ -133,6 +144,7 @@ export function texprValidRegex(): ADL.ATypeExpr<ValidRegex> {
 }
 
 export const _AST_MAP: { [key: string]: ADL.ScopedDecl } = {
+  "common.ui.Disabled" : Disabled_AST,
   "common.ui.FormLabel" : FormLabel_AST,
   "common.ui.FormGroupKey" : FormGroupKey_AST,
   "common.ui.FormGroups" : FormGroups_AST,

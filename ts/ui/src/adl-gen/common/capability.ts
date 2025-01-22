@@ -132,7 +132,7 @@ export function makeCapCall<C, P>(
 }
 
 const CapCall_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"CapCall","type_":{"kind":"struct_","value":{"fields":[{"annotations":[],"default":{"kind":"nothing"},"name":"token","serializedName":"token","typeExpr":{"parameters":[],"typeRef":{"kind":"typeParam","value":"C"}}},{"annotations":[],"default":{"kind":"nothing"},"name":"payload","serializedName":"payload","typeExpr":{"parameters":[],"typeRef":{"kind":"typeParam","value":"P"}}}],"typeParams":["C","P"]}},"version":{"kind":"nothing"}},"moduleName":"common.capability"};
+  {"decl":{"annotations":[],"name":"CapCall","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"common.ui","name":"Disabled"},"value":null}],"default":{"kind":"nothing"},"name":"token","serializedName":"token","typeExpr":{"parameters":[],"typeRef":{"kind":"typeParam","value":"C"}}},{"annotations":[],"default":{"kind":"nothing"},"name":"payload","serializedName":"payload","typeExpr":{"parameters":[],"typeRef":{"kind":"typeParam","value":"P"}}}],"typeParams":["C","P"]}},"version":{"kind":"nothing"}},"moduleName":"common.capability"};
 
 export const snCapCall: ADL.ScopedName = {moduleName:"common.capability", name:"CapCall"};
 

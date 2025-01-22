@@ -8,6 +8,43 @@ import (
 	"github.com/adl-lang/goadl_rt/v3/sys/types"
 )
 
+func Texpr_Disabled() adlast.ATypeExpr[Disabled] {
+	te := adlast.Make_TypeExpr(
+		adlast.Make_TypeRef_reference(
+			adlast.Make_ScopedName("common.ui", "Disabled"),
+		),
+		[]adlast.TypeExpr{},
+	)
+	return adlast.Make_ATypeExpr[Disabled](te)
+}
+
+func AST_Disabled() adlast.ScopedDecl {
+	decl := adlast.MakeAll_Decl(
+		"Disabled",
+		types.Make_Maybe_nothing[uint32](),
+		adlast.Make_DeclType_type_(
+			adlast.MakeAll_TypeDef(
+				[]adlast.Ident{},
+				adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_primitive(
+						"Void",
+					),
+					[]adlast.TypeExpr{},
+				),
+			),
+		),
+		customtypes.MapMap[adlast.ScopedName, any]{},
+	)
+	return adlast.Make_ScopedDecl("common.ui", decl)
+}
+
+func init() {
+	goadl.RESOLVER.Register(
+		adlast.Make_ScopedName("common.ui", "Disabled"),
+		AST_Disabled(),
+	)
+}
+
 func Texpr_FormGroupKey() adlast.ATypeExpr[FormGroupKey] {
 	te := adlast.Make_TypeExpr(
 		adlast.Make_TypeRef_reference(

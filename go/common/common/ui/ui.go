@@ -5,6 +5,8 @@ import (
 	"github.com/adl-lang/goadl_rt/v3/sys/types"
 )
 
+type Disabled = struct{}
+
 type FormGroupKey = string
 
 type FormGroups struct {
