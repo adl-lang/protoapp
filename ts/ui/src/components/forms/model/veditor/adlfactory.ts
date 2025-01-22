@@ -10,6 +10,7 @@ import {scopedNamesEqual} from "@adllang/adl-runtime";
 import { adlPrimitiveFieldFns, maybeField, nullableField } from "../fields/adl";
 import { SelectState } from "../select";
 import { getAdlTableInfo, Column, cellContent } from "../adl-table";
+import { getFormLabelFromAnnotation } from "../adl-annotations";
 
 /**
  * Construct a VEditor from a a specified ADL type
@@ -317,12 +318,14 @@ function structVEditor<R>(
   const fieldDetails = struct.fields.map(field => {
     const veditor = createVEditor0(declResolver, nullContext,  field.adlTree, factory);
     const jsonBinding = createJsonBinding<unknown>(declResolver, { value: field.adlTree.typeExpr });
+    let label = getFormLabelFromAnnotation(declResolver, field.astField)
+    label = label !== null ? label : field.astField.name
     return {
       name: field.astField.name,
       annotations: field.astField.annotations,
       default: field.astField.default,
       jsonBinding,
-      label: fieldLabel(field.astField.name),
+      label: fieldLabel(label),
       veditor,
     };
   });

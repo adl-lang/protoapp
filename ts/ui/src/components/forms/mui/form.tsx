@@ -1,9 +1,8 @@
-import  { useState } from "react";
-import { getAnnotation, isJsonParseException, JsonBinding } from '@adllang/adl-runtime';
+import { isJsonParseException, JsonBinding } from '@adllang/adl-runtime';
+import { Button, styled, TextField } from "@mui/material";
+import { useState } from "react";
 import { Toggle } from "./toggle";
 import { VEditor } from "./veditor";
-import { Button, styled, TextField } from "@mui/material";
-import { getAnnotations, getFormLabelFromAnnotation, hasDisabledAnnotation } from "../model/adl-annotations";
 
 // A form for entry of an arbirary ADL value . It is provided with an initial value and its
 // ADL type. The onApply() callback is made when the user presses the apply button on validated
