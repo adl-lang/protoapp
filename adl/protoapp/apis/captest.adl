@@ -14,7 +14,19 @@ type B_ApiTokenMarker = CapabilityToken<B_ApiToken>;
 type C_ApiToken = String;
 type C_ApiTokenMarker = CapabilityToken<C_ApiToken>;
 
+struct UserInput<I,O> {
+  TypeToken<I> reqType = null;
+  TypeToken<O> respType = null;
+};
+
 struct ApiRequests {
+
+  HttpPost<Unit,Vector<A_ApiToken>> get_list = {
+    "path": "/getlist"
+  };
+
+ UserInput<Vector<A_ApiToken>,A_ApiToken> pick_token = {};
+
   /// Post a unit and get a token to access a_api
   HttpPost<Unit, A_ApiResp> a = {
     "path": "/a"

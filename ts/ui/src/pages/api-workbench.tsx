@@ -10,6 +10,7 @@ import { JSX, useMemo, useRef, useState } from "react";
 import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
 import * as apiTypes from "./api-types";
+import { assertNever } from "@/utils/assertNever";
 
 type ModalState = ChooseEndpoint | CreateRequest<unknown>;
 
@@ -103,6 +104,9 @@ export function ApiWorkbenchPresent(props: ApiWorkbenchPresentProps) {
                   initial={modal.initial}
                 />
               );
+              case 'user':
+              default:
+                assertNever(modal.endpoint.method)
             }
           }
         }
