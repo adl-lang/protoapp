@@ -9,6 +9,8 @@ import common.strings.Password;
 import common.strings.StringNE;
 import common.strings.StringML;
 
+// import common.capability.CapApi;
+
 import protoapp.db.AppUserId;
 import protoapp.db.MessageId;
 
@@ -88,8 +90,15 @@ struct ApiRequests {
     "security" : { "tokenWithRole": "admin" }
   };
 
+  // @MessageApiMarker {
+  //   "token_delivery": "auth_bearer"
+  // }
   MessageApi message_api = {};
 };
+
+// newtype MessageApiMarker = CapApi<AccessToken,User> = {
+//   "token_delivery": "auth_bearer"
+// };
 
 struct MessageApi {
   /// Post a message to the noticeboard

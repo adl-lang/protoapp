@@ -172,16 +172,19 @@ function ApiView(props: {
         id="panel2-header"
       >
         <material.Box>
-          <material.Typography component="span">{props.endpoint.name}</material.Typography>
-          <material.Tooltip title={`${props.endpoint.token_value}`}>
-            <material.IconButton>
-              <HelpIcon />
-            </material.IconButton>
-          </material.Tooltip>
+          <material.Typography component="span" fontWeight={"bold"}>{props.endpoint.name}</material.Typography>
+          {
+            props.endpoint.token_value != undefined &&
+            <material.Tooltip title={`${props.endpoint.token_value}`}>
+              <material.IconButton>
+                <HelpIcon />
+              </material.IconButton>
+            </material.Tooltip>
+          }
         </material.Box>
       </material.AccordionSummary>
       <material.AccordionDetails sx={{ marginLeft: "5px", marginTop: "0px", marginBottom: "0px" }}>
-        <material.Typography>{props.endpoint.docString}</material.Typography>
+        <material.Typography color="red" fontWeight={"bold"} align="center">{props.endpoint.docString}</material.Typography>
       </material.AccordionDetails>
       {/* todo change this to an accordion */}
       {/* <Typography>{props.endpoint.docString}</Typography> */}
@@ -205,7 +208,7 @@ function HttpEndpointView(props: {
     <material.Button onClick={() => props.choose(props.endpoint)}>
       {props.endpoint.name}
     </material.Button>
-    <material.Typography>{props.endpoint.docString}</material.Typography>
+    <material.Typography variant="caption">{props.endpoint.docString}</material.Typography>
   </material.Box>;
 }
 

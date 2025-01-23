@@ -41,15 +41,19 @@ function getEndpoints0<API>(
     if (f.typeExpr.typeRef.kind === 'reference') {
       if (scopedNamesEqual(f.typeExpr.typeRef.value, capability.snCapabilityApi)) {
         endpoints.push(...getApiEndpoint(resolver, f, capTokens, apis_called))
+        continue
       }
       if (scopedNamesEqual(f.typeExpr.typeRef.value, capability.snHttpPost)) {
         endpoints.push(getHttpPostEndpoint(resolver, f, apis_called, token_delivery_method))
+        continue
       }
       if (scopedNamesEqual(f.typeExpr.typeRef.value, capability.snHttpGet)) {
         endpoints.push(getHttpGetEndpoint(resolver, f, apis_called, token_delivery_method))
+        continue
       }
       const rd = resolver(f.typeExpr.typeRef.value)
       if ( rd.decl.type_.kind === 'struct_' ){
+        console.log(f.name, f.annotations)
         endpoints.push(getApiStruct(resolver, f))
       }
     }
@@ -207,7 +211,7 @@ function getApiStruct <C> (resolver: ADL.DeclResolver,
       kind: "api",
       docString,
       apis_called: [],
-      endpoints: getEndpoints0(resolver, {value: field.typeExpr}, [], []),
+      endpoints: getEndpoints(resolver, {value: field.typeExpr}, []),
       name: field.name,
     }
 }

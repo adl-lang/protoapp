@@ -435,7 +435,7 @@ func AST_ApiRequests() adlast.ScopedDecl {
 						types.Make_Maybe_just[any](
 							map[string]interface{}{"service": map[string]interface{}{}, "token_delivery": map[string]interface{}{"header": "a_cookie"}},
 						),
-						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "A_api\n"},
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "A api\n"},
 					),
 					adlast.MakeAll_Field(
 						"my_api",

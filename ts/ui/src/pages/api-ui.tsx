@@ -1,4 +1,4 @@
-import { snHttpGet, snHttpPost, texprHttpGet, texprHttpPost } from "@/adl-gen/common/http";
+import { snHttpGet, snHttpPost, texprApi, texprHttpGet, texprHttpPost } from "@/adl-gen/common/http";
 // import { snCapabilityApi, snHttpGet, snHttpPost, texprCapabilityApi, texprHttpGet, texprHttpPost } from "@/adl-gen/common/capability";
 
 import * as API from "@/adl-gen/protoapp/apis/ui";
@@ -127,8 +127,11 @@ function getEndpoints<API>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<API>
   return endpoints;
 }
 
-function getApiStruct <C> (resolver: ADL.DeclResolver,
-  field: AST.Field): Api<C>{
+function getApiStruct <C> (
+  resolver: ADL.DeclResolver,
+  field: AST.Field,
+): Api<C>{
+    const apiAnn = ADL.getAnnotation(JB_API, field.annotations);
     const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
     return {
       kind: "api",
@@ -205,5 +208,6 @@ function getHttpGetEndpoint<O>(
   }
 }
 
+const JB_API = createJsonBinding(RESOLVER, texprApi());
 const JB_DOC = createJsonBinding(RESOLVER, texprDoc());
 const UI_FACTORY = createUiFactory();

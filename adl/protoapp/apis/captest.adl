@@ -1,6 +1,7 @@
 module protoapp.apis.captest {
 
 import common.http.Unit;
+import common.http.Api;
 import common.capability.HttpPost;
 import common.capability.HttpGet;
 import common.capability.CapabilityApi;
@@ -18,14 +19,13 @@ struct ApiRequests {
   HttpPost<Unit, A_ApiResp> a = {
     "path": "/a"
   };
-  /// A_api
+  /// A api
   CapabilityApi<A_ApiToken,Unit,A_Api> accessTokenApi = {
     "service": {},
     "token_delivery": {"header": "a_cookie"}
   };
 
   MyApi my_api = {};
-
 };
 
 struct MyApi {
