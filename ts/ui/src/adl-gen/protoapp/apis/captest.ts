@@ -84,20 +84,24 @@ export interface ApiRequests {
 
 export function makeApiRequests(
   input: {
+    get_list?: common_capability.HttpPost<common_http.Unit, A_ApiToken[]>,
+    pick_token?: UserInput<A_ApiToken[], A_ApiToken>,
     a?: common_capability.HttpPost<common_http.Unit, A_ApiResp>,
     accessTokenApi?: common_capability.CapabilityApi<A_ApiToken, common_http.Unit, A_Api>,
     my_api?: MyApi,
   }
 ): ApiRequests {
   return {
+    get_list: input.get_list === undefined ? {path : "/getlist", rateLimit : null, reqType : common_http.texprUnit(), respType : ADL.texprVector(texprA_ApiToken())} : input.get_list,
+    pick_token: input.pick_token === undefined ? {reqType : ADL.texprVector(texprA_ApiToken()), respType : texprA_ApiToken()} : input.pick_token,
     a: input.a === undefined ? {path : "/a", rateLimit : null, reqType : common_http.texprUnit(), respType : texprA_ApiResp()} : input.a,
-    accessTokenApi: input.accessTokenApi === undefined ? {token : texprA_ApiToken(), cap : common_http.texprUnit(), service_prefix : "", service : {b : {path : "/b", rateLimit : null, reqType : texprAB(), respType : texprB_ApiResp()}, a2 : {path : "/a2", rateLimit : null, respType : texprB_ApiResp()}, accessTokenApi : {token : texprB_ApiToken(), cap : common_http.texprUnit(), service_prefix : "", service : {c : {path : "/c", rateLimit : null, reqType : texprB_ApiToken(), respType : texprC_ApiResp()}, accessTokenApi : {token : texprC_ApiToken(), cap : common_http.texprUnit(), service_prefix : "", service : {hello : {path : "/hello", rateLimit : null, reqType : texprC_ApiToken(), respType : ADL.texprString()}}, name : "", token_delivery : {kind : "header", value : "c_cookie"}}}, name : "", token_delivery : {kind : "header", value : "b_cookie"}}}, name : "", token_delivery : {kind : "header", value : "a_cookie"}} : input.accessTokenApi,
+    accessTokenApi: input.accessTokenApi === undefined ? {token : texprA_ApiToken(), cap : common_http.texprUnit(), service_prefix : "", service : {b : {path : "/b", rateLimit : null, reqType : texprAB(), respType : texprB_ApiResp()}, a2 : {path : "/a2", rateLimit : null, respType : texprB_ApiResp()}, accessTokenApi : {token : texprB_ApiToken(), cap : common_http.texprUnit(), service_prefix : "", service : {c : {path : "/c", rateLimit : null, reqType : texprB_ApiToken(), respType : texprC_ApiResp()}, accessTokenApi : {token : texprC_ApiToken(), cap : common_http.texprUnit(), service_prefix : "", service : {hello : {path : "/hello", rateLimit : null, reqType : texprC_ApiToken(), respType : ADL.texprString()}}, name : "", token_delivery : {kind : "header", value : "c_cookie"}}}, name : "", token_delivery : {kind : "header", value : "b_cookie"}}}, name : "Authenticated API", token_delivery : {kind : "header", value : "a_cookie"}} : input.accessTokenApi,
     my_api: input.my_api === undefined ? {a : {path : "/aa", rateLimit : null, reqType : common_http.texprUnit(), respType : texprA_ApiResp()}} : input.my_api,
   };
 }
 
 const ApiRequests_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"ApiRequests","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Post a unit and get a token to access a_api\n"}],"default":{"kind":"just","value":{"path":"/a"}},"name":"a","serializedName":"a","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"A_ApiResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"A api\n"}],"default":{"kind":"just","value":{"service":{},"token_delivery":{"header":"a_cookie"}}},"name":"accessTokenApi","serializedName":"accessTokenApi","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"A_ApiToken"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"A_Api"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"CapabilityApi"}}}},{"annotations":[],"default":{"kind":"just","value":{}},"name":"my_api","serializedName":"my_api","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"MyApi"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.captest"};
+  {"decl":{"annotations":[],"name":"ApiRequests","type_":{"kind":"struct_","value":{"fields":[{"annotations":[],"default":{"kind":"just","value":{"path":"/getlist"}},"name":"get_list","serializedName":"get_list","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"A_ApiToken"}}}],"typeRef":{"kind":"primitive","value":"Vector"}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpPost"}}}},{"annotations":[],"default":{"kind":"just","value":{}},"name":"pick_token","serializedName":"pick_token","typeExpr":{"parameters":[{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"A_ApiToken"}}}],"typeRef":{"kind":"primitive","value":"Vector"}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"A_ApiToken"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"UserInput"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Post a unit and get a token to access a_api\n"}],"default":{"kind":"just","value":{"path":"/a"}},"name":"a","serializedName":"a","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"A_ApiResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Apis for call an A thing\n"}],"default":{"kind":"just","value":{"name":"Authenticated API","service":{},"token_delivery":{"header":"a_cookie"}}},"name":"accessTokenApi","serializedName":"accessTokenApi","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"A_ApiToken"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"A_Api"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.capability","name":"CapabilityApi"}}}},{"annotations":[],"default":{"kind":"just","value":{}},"name":"my_api","serializedName":"my_api","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"MyApi"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.captest"};
 
 export const snApiRequests: ADL.ScopedName = {moduleName:"protoapp.apis.captest", name:"ApiRequests"};
 
@@ -126,6 +130,28 @@ export const snMyApi: ADL.ScopedName = {moduleName:"protoapp.apis.captest", name
 
 export function texprMyApi(): ADL.ATypeExpr<MyApi> {
   return {value : {typeRef : {kind: "reference", value : snMyApi}, parameters : []}};
+}
+
+export interface List_List {
+  kind: 'list';
+  value: A_ApiToken[];
+}
+
+export type List = List_List;
+
+export interface ListOpts {
+  list: A_ApiToken[];
+}
+
+export function makeList<K extends keyof ListOpts>(kind: K, value: ListOpts[K]) { return {kind, value}; }
+
+const List_AST : ADL.ScopedDecl =
+  {"decl":{"annotations":[],"name":"List","type_":{"kind":"union_","value":{"fields":[{"annotations":[],"default":{"kind":"nothing"},"name":"list","serializedName":"list","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.captest","name":"A_ApiToken"}}}],"typeRef":{"kind":"primitive","value":"Vector"}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.captest"};
+
+export const snList: ADL.ScopedName = {moduleName:"protoapp.apis.captest", name:"List"};
+
+export function texprList(): ADL.ATypeExpr<List> {
+  return {value : {typeRef : {kind: "reference", value : snList}, parameters : []}};
 }
 
 export interface A_Api {
@@ -320,8 +346,10 @@ export const _AST_MAP: { [key: string]: ADL.ScopedDecl } = {
   "protoapp.apis.captest.B_ApiTokenMarker" : B_ApiTokenMarker_AST,
   "protoapp.apis.captest.C_ApiToken" : C_ApiToken_AST,
   "protoapp.apis.captest.C_ApiTokenMarker" : C_ApiTokenMarker_AST,
+  "protoapp.apis.captest.UserInput" : UserInput_AST,
   "protoapp.apis.captest.ApiRequests" : ApiRequests_AST,
   "protoapp.apis.captest.MyApi" : MyApi_AST,
+  "protoapp.apis.captest.List" : List_AST,
   "protoapp.apis.captest.A_Api" : A_Api_AST,
   "protoapp.apis.captest.AB" : AB_AST,
   "protoapp.apis.captest.B_Api" : B_Api_AST,

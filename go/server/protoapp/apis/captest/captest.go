@@ -290,18 +290,24 @@ type ApiRequests struct {
 }
 
 type _ApiRequests struct {
+	Get_list       capability.HttpPost[http.Unit, []A_ApiToken]           `json:"get_list"`
+	Pick_token     UserInput[[]A_ApiToken, A_ApiToken]                    `json:"pick_token"`
 	A              capability.HttpPost[http.Unit, A_ApiResp]              `json:"a"`
 	AccessTokenApi capability.CapabilityApi[A_ApiToken, http.Unit, A_Api] `json:"accessTokenApi"`
 	My_api         MyApi                                                  `json:"my_api"`
 }
 
 func MakeAll_ApiRequests(
+	get_list capability.HttpPost[http.Unit, []A_ApiToken],
+	pick_token UserInput[[]A_ApiToken, A_ApiToken],
 	a capability.HttpPost[http.Unit, A_ApiResp],
 	accesstokenapi capability.CapabilityApi[A_ApiToken, http.Unit, A_Api],
 	my_api MyApi,
 ) ApiRequests {
 	return ApiRequests{
 		_ApiRequests{
+			Get_list:       get_list,
+			Pick_token:     pick_token,
 			A:              a,
 			AccessTokenApi: accesstokenapi,
 			My_api:         my_api,
@@ -312,6 +318,8 @@ func MakeAll_ApiRequests(
 func Make_ApiRequests() ApiRequests {
 	ret := ApiRequests{
 		_ApiRequests{
+			Get_list:       ((*ApiRequests)(nil)).Default_get_list(),
+			Pick_token:     ((*ApiRequests)(nil)).Default_pick_token(),
 			A:              ((*ApiRequests)(nil)).Default_a(),
 			AccessTokenApi: ((*ApiRequests)(nil)).Default_accessTokenApi(),
 			My_api:         ((*ApiRequests)(nil)).Default_my_api(),
@@ -320,6 +328,66 @@ func Make_ApiRequests() ApiRequests {
 	return ret
 }
 
+func (*ApiRequests) Default_get_list() capability.HttpPost[http.Unit, []A_ApiToken] {
+	return capability.MakeAll_HttpPost[http.Unit, []A_ApiToken](
+		"/getlist",
+		nil,
+		adlast.Make_ATypeExpr[http.Unit](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"common.http",
+					"Unit",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+		adlast.Make_ATypeExpr[[]A_ApiToken](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_primitive(
+				"Vector",
+			),
+			[]adlast.TypeExpr{
+				adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"protoapp.apis.captest",
+							"A_ApiToken",
+						),
+					),
+					[]adlast.TypeExpr{},
+				),
+			},
+		)),
+	)
+}
+func (*ApiRequests) Default_pick_token() UserInput[[]A_ApiToken, A_ApiToken] {
+	return MakeAll_UserInput[[]A_ApiToken, A_ApiToken](
+		adlast.Make_ATypeExpr[[]A_ApiToken](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_primitive(
+				"Vector",
+			),
+			[]adlast.TypeExpr{
+				adlast.MakeAll_TypeExpr(
+					adlast.Make_TypeRef_reference(
+						adlast.MakeAll_ScopedName(
+							"protoapp.apis.captest",
+							"A_ApiToken",
+						),
+					),
+					[]adlast.TypeExpr{},
+				),
+			},
+		)),
+		adlast.Make_ATypeExpr[A_ApiToken](adlast.MakeAll_TypeExpr(
+			adlast.Make_TypeRef_reference(
+				adlast.MakeAll_ScopedName(
+					"protoapp.apis.captest",
+					"A_ApiToken",
+				),
+			),
+			[]adlast.TypeExpr{},
+		)),
+	)
+}
 func (*ApiRequests) Default_a() capability.HttpPost[http.Unit, A_ApiResp] {
 	return capability.MakeAll_HttpPost[http.Unit, A_ApiResp](
 		"/a",
@@ -825,6 +893,73 @@ type C_ApiToken = string
 
 type C_ApiTokenMarker = capability.CapabilityToken[C_ApiToken]
 
+type List struct {
+	Branch ListBranch
+}
+
+type ListBranch interface {
+	isListBranch()
+}
+
+func (*List) MakeNewBranch(key string) (any, error) {
+	switch key {
+	case "list":
+		return &_List_List{}, nil
+	}
+	return nil, fmt.Errorf("unknown branch is : %s", key)
+}
+
+type _List_List struct {
+	V []A_ApiToken `branch:"list"`
+}
+
+func (_List_List) isListBranch() {}
+
+func Make_List_list(v []A_ApiToken) List {
+	return List{
+		_List_List{v},
+	}
+}
+
+func (un List) Cast_list() ([]A_ApiToken, bool) {
+	br, ok := un.Branch.(_List_List)
+	return br.V, ok
+}
+
+func Handle_List[T any](
+	_in List,
+	list func(list []A_ApiToken) T,
+	_default func() T,
+) T {
+	switch _b := _in.Branch.(type) {
+	case _List_List:
+		if list != nil {
+			return list(_b.V)
+		}
+	}
+	if _default != nil {
+		return _default()
+	}
+	panic("unhandled branch in : List")
+}
+
+func HandleWithErr_List[T any](
+	_in List,
+	list func(list []A_ApiToken) (T, error),
+	_default func() (T, error),
+) (T, error) {
+	switch _b := _in.Branch.(type) {
+	case _List_List:
+		if list != nil {
+			return list(_b.V)
+		}
+	}
+	if _default != nil {
+		return _default()
+	}
+	panic("unhandled branch in : List")
+}
+
 type MyApi struct {
 	_MyApi
 }
@@ -876,3 +1011,26 @@ func (*MyApi) Default_a() capability.HttpPost[http.Unit, A_ApiResp] {
 		)),
 	)
 }
+
+type UserInput[I any, O any] struct {
+	_UserInput[I, O]
+}
+
+type _UserInput[I any, O any] struct {
+	ReqType  adlast.ATypeExpr[I] `json:"reqType"`
+	RespType adlast.ATypeExpr[O] `json:"respType"`
+}
+
+func MakeAll_UserInput[I any, O any](
+	reqtype adlast.ATypeExpr[I],
+	resptype adlast.ATypeExpr[O],
+) UserInput[I, O] {
+	return UserInput[I, O]{
+		_UserInput[I, O]{
+			ReqType:  reqtype,
+			RespType: resptype,
+		},
+	}
+}
+
+// struct UserInput contains at least one TypeToken, not generating Make_ funcs

@@ -22,6 +22,15 @@ type b_svr struct {
 type c_svr struct {
 }
 
+// Get_list implements captest.ApiRequests_Service.
+func (a *api_svr) Get_list(ctx context.Context, req http2.Unit) ([]captest.A_ApiToken, error) {
+	return []captest.A_ApiToken{
+		"A-" + time.Now().Format(time.RFC3339Nano),
+		"A-" + time.Now().Format(time.RFC3339Nano),
+		"A-" + time.Now().Format(time.RFC3339Nano),
+	}, nil
+}
+
 // A implements captest.ApiRequests_Service.
 func (a *api_svr) A(ctx context.Context, req http2.Unit) (captest.A_ApiResp, error) {
 	return captest.Make_A_ApiResp_token("A-" + time.Now().Format(time.RFC3339Nano)), nil

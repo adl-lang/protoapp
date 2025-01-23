@@ -357,6 +357,92 @@ func AST_ApiRequests() adlast.ScopedDecl {
 				[]adlast.Ident{},
 				[]adlast.Field{
 					adlast.MakeAll_Field(
+						"get_list",
+						"get_list",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"common.capability",
+									"HttpPost",
+								),
+							),
+							[]adlast.TypeExpr{
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"common.http",
+											"Unit",
+										),
+									),
+									[]adlast.TypeExpr{},
+								),
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_primitive(
+										"Vector",
+									),
+									[]adlast.TypeExpr{
+										adlast.MakeAll_TypeExpr(
+											adlast.Make_TypeRef_reference(
+												adlast.MakeAll_ScopedName(
+													"protoapp.apis.captest",
+													"A_ApiToken",
+												),
+											),
+											[]adlast.TypeExpr{},
+										),
+									},
+								),
+							},
+						),
+						types.Make_Maybe_just[any](
+							map[string]interface{}{"path": "/getlist"},
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+					adlast.MakeAll_Field(
+						"pick_token",
+						"pick_token",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_reference(
+								adlast.MakeAll_ScopedName(
+									"protoapp.apis.captest",
+									"UserInput",
+								),
+							),
+							[]adlast.TypeExpr{
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_primitive(
+										"Vector",
+									),
+									[]adlast.TypeExpr{
+										adlast.MakeAll_TypeExpr(
+											adlast.Make_TypeRef_reference(
+												adlast.MakeAll_ScopedName(
+													"protoapp.apis.captest",
+													"A_ApiToken",
+												),
+											),
+											[]adlast.TypeExpr{},
+										),
+									},
+								),
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"protoapp.apis.captest",
+											"A_ApiToken",
+										),
+									),
+									[]adlast.TypeExpr{},
+								),
+							},
+						),
+						types.Make_Maybe_just[any](
+							map[string]interface{}{},
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+					adlast.MakeAll_Field(
 						"a",
 						"a",
 						adlast.MakeAll_TypeExpr(
@@ -913,6 +999,61 @@ func init() {
 	)
 }
 
+func Texpr_List() adlast.ATypeExpr[List] {
+	te := adlast.Make_TypeExpr(
+		adlast.Make_TypeRef_reference(
+			adlast.Make_ScopedName("protoapp.apis.captest", "List"),
+		),
+		[]adlast.TypeExpr{},
+	)
+	return adlast.Make_ATypeExpr[List](te)
+}
+
+func AST_List() adlast.ScopedDecl {
+	decl := adlast.MakeAll_Decl(
+		"List",
+		types.Make_Maybe_nothing[uint32](),
+		adlast.Make_DeclType_union_(
+			adlast.MakeAll_Union(
+				[]adlast.Ident{},
+				[]adlast.Field{
+					adlast.MakeAll_Field(
+						"list",
+						"list",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_primitive(
+								"Vector",
+							),
+							[]adlast.TypeExpr{
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_reference(
+										adlast.MakeAll_ScopedName(
+											"protoapp.apis.captest",
+											"A_ApiToken",
+										),
+									),
+									[]adlast.TypeExpr{},
+								),
+							},
+						),
+						types.Make_Maybe_nothing[any](),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+				},
+			),
+		),
+		customtypes.MapMap[adlast.ScopedName, any]{},
+	)
+	return adlast.Make_ScopedDecl("protoapp.apis.captest", decl)
+}
+
+func init() {
+	goadl.RESOLVER.Register(
+		adlast.Make_ScopedName("protoapp.apis.captest", "List"),
+		AST_List(),
+	)
+}
+
 func Texpr_MyApi() adlast.ATypeExpr[MyApi] {
 	te := adlast.Make_TypeExpr(
 		adlast.Make_TypeRef_reference(
@@ -979,5 +1120,83 @@ func init() {
 	goadl.RESOLVER.Register(
 		adlast.Make_ScopedName("protoapp.apis.captest", "MyApi"),
 		AST_MyApi(),
+	)
+}
+
+func Texpr_UserInput[I any, O any](i adlast.ATypeExpr[I], o adlast.ATypeExpr[O]) adlast.ATypeExpr[UserInput[I, O]] {
+	te := adlast.Make_TypeExpr(
+		adlast.Make_TypeRef_reference(
+			adlast.Make_ScopedName("protoapp.apis.captest", "UserInput"),
+		),
+		[]adlast.TypeExpr{i.Value, o.Value},
+	)
+	return adlast.Make_ATypeExpr[UserInput[I, O]](te)
+}
+
+func AST_UserInput() adlast.ScopedDecl {
+	decl := adlast.MakeAll_Decl(
+		"UserInput",
+		types.Make_Maybe_nothing[uint32](),
+		adlast.Make_DeclType_struct_(
+			adlast.MakeAll_Struct(
+				[]adlast.Ident{
+					"I",
+					"O",
+				},
+				[]adlast.Field{
+					adlast.MakeAll_Field(
+						"reqType",
+						"reqType",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_primitive(
+								"TypeToken",
+							),
+							[]adlast.TypeExpr{
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_typeParam(
+										"I",
+									),
+									[]adlast.TypeExpr{},
+								),
+							},
+						),
+						types.Make_Maybe_just[any](
+							nil,
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+					adlast.MakeAll_Field(
+						"respType",
+						"respType",
+						adlast.MakeAll_TypeExpr(
+							adlast.Make_TypeRef_primitive(
+								"TypeToken",
+							),
+							[]adlast.TypeExpr{
+								adlast.MakeAll_TypeExpr(
+									adlast.Make_TypeRef_typeParam(
+										"O",
+									),
+									[]adlast.TypeExpr{},
+								),
+							},
+						),
+						types.Make_Maybe_just[any](
+							nil,
+						),
+						customtypes.MapMap[adlast.ScopedName, any]{},
+					),
+				},
+			),
+		),
+		customtypes.MapMap[adlast.ScopedName, any]{},
+	)
+	return adlast.Make_ScopedDecl("protoapp.apis.captest", decl)
+}
+
+func init() {
+	goadl.RESOLVER.Register(
+		adlast.Make_ScopedName("protoapp.apis.captest", "UserInput"),
+		AST_UserInput(),
 	)
 }

@@ -56,7 +56,7 @@ export interface CapTokenInstance {
 
 export interface HttpXEndpoint<I, O> {
   kind: 'callable';
-  method: 'post' | 'get';
+  method: 'post' | 'get' | 'user';
   name: string;
   path: string;
   security?: HttpSecurity,

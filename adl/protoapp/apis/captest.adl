@@ -34,6 +34,10 @@ struct MyApi {
   };
 };
 
+union List {
+  Vector<A_ApiToken> list;
+};
+
 struct A_Api {
   /// Post a AB and get a token to access b_api
   HttpPost<AB, B_ApiResp> b = {

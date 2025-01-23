@@ -9,6 +9,7 @@ import (
 )
 
 type ApiRequests_Service interface {
+	Get_list(ctx context.Context, req http2.Unit) ([]A_ApiToken, error)
 	A(ctx context.Context, req http2.Unit) (A_ApiResp, error)
 	GetAccessTokenApi() A_Api_Service[A_ApiToken, http2.Unit]
 }
@@ -21,6 +22,7 @@ func Register_ApiRequests(
 	accesstokenapi_accesstokenapi_accesstokenapi_capr capability.CapabilityRetriever[C_ApiToken, http2.Unit],
 ) {
 	reqs := Make_ApiRequests()
+	capability.AdlPost(mux, reqs.Get_list, srv.Get_list)
 	capability.AdlPost(mux, reqs.A, srv.A)
 	Register_A_Api(
 		mux,

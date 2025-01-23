@@ -5,7 +5,7 @@ import { LoginResp, RefreshResp } from "@/adl-gen/protoapp/apis/types";
 import { RESOLVER } from "@/adl-gen/resolver";
 import { useAppState } from "@/hooks/use-app-state";
 import { AdlRequestError, ServiceBase } from "@/service/service-base";
-import { Json, scopedNamesEqual } from "@adllang/adl-runtime";
+import { Json, ScopedDecl, scopedNamesEqual } from "@adllang/adl-runtime";
 import { Box, Container } from "@mui/material";
 import { useMemo, useState } from "react";
 import { getEndpoints } from "./api-cap-get-eps";
@@ -28,54 +28,15 @@ export function CapWorkbench() {
   function updateAppState<I, O>(endpoint: HttpEndpoint, resp: O) {
     // console.log("updateAppState", endpoint, resp);
     if (endpoint.jsonBindingO.typeExpr.typeRef.kind === 'reference') {
-      const sd_resp = RESOLVER(endpoint.jsonBindingO.typeExpr.typeRef.value);
-      switch (sd_resp.decl.type_.kind) {
-        case "struct_":
-          /// TODO complete
-          console.error("not implmented")
-          break
-        case "type_":
-          /// TODO complete
-          console.error("not implmented")
-          break
-        case "newtype_":
-          /// TODO complete
-          console.error("not implmented")
-          break
-        case "union_": {
-          const union = sd_resp.decl.type_.value;
-          const field = union.fields.find(f => f.name === (resp as any)["kind"]);
-          if (field) {
-            const cap_token_type: CapToken<unknown>[] = field.annotations.flatMap(a => {
-              const sd = RESOLVER(a.key)
-              if (sd.decl.type_.kind !== 'type_' && sd.decl.type_.kind !== 'newtype_') {
-                return []
-              }
-              if (sd.decl.type_.value.typeExpr.typeRef.kind !== "reference") {
-                return []
-              }
-              if (!scopedNamesEqual(sd.decl.type_.value.typeExpr.typeRef.value, capability.snCapabilityToken)) {
-                return []
-              }
-              // TODO check that the token is of the correct type (ie no coding error),
-              // i.e. sd.decl.type_.value.typeExpr.parameters[0] and endpoint.jsonBindingO.typeExpr (ie value used by resp.value) are of the same underlining type.
-              return [{
-                type: sd.decl.type_.value.typeExpr.parameters[0],
-                token_value: (resp as any)["value"],
-                apis_called: endpoint.apis_called ? endpoint.apis_called : [],
-                // parents: endpoint.parents,
-              }]
-            })
-            setCapTokens(curr => [...curr, ...cap_token_type]);
-            console.log("cap_token_type", cap_token_type);
-          } else {
-            console.error("field not found", union.fields, resp);
-          }
-          break
-        }
-        default:
-          assertNever(sd_resp.decl.type_)
+      try {
+        const sd_resp = RESOLVER(endpoint.jsonBindingO.typeExpr.typeRef.value);
+        const cap_token_type = getNewCapTokens(sd_resp);
+        setCapTokens(curr => [...curr, ...cap_token_type]);
+        console.log("cap_token_type", cap_token_type);  
+      } catch (e ) {
+        console.error("!!", e)
       }
+
     }
     // All the endpoint handling is generic except for here, where we update the auth state when the
     // login or logout endpoints are called.
@@ -85,6 +46,55 @@ export function CapWorkbench() {
       case 'login': appState.setAuthStateFromLogin(resp as LoginResp); break;
       case 'logout': appState.logout(); break;
     }
+
+    function getNewCapTokens(sd_resp: ScopedDecl): CapToken<unknown>[] {
+      switch (sd_resp.decl.type_.kind) {
+        case "struct_":
+          /// TODO complete
+          console.error("not implmented");
+          return [];
+        case "type_":
+          /// TODO complete
+          console.error("not implmented");
+          return [];
+        case "newtype_":
+          /// TODO complete
+          console.error("not implmented");
+          return [];
+        case "union_": {
+          const union = sd_resp.decl.type_.value;
+          const field = union.fields.find(f => f.name === (resp as any)["kind"]);
+          if (field) {
+            const cap_token_type: CapToken<unknown>[] = field.annotations.flatMap(a => {
+              const sd = RESOLVER(a.key);
+              if (sd.decl.type_.kind !== 'type_' && sd.decl.type_.kind !== 'newtype_') {
+                return [];
+              }
+              if (sd.decl.type_.value.typeExpr.typeRef.kind !== "reference") {
+                return [];
+              }
+              if (!scopedNamesEqual(sd.decl.type_.value.typeExpr.typeRef.value, capability.snCapabilityToken)) {
+                return [];
+              }
+              // TODO check that the token is of the correct type (ie no coding error),
+              // i.e. sd.decl.type_.value.typeExpr.parameters[0] and endpoint.jsonBindingO.typeExpr (ie value used by resp.value) are of the same underlining type.
+              return [{
+                type: sd.decl.type_.value.typeExpr.parameters[0],
+                token_value: (resp as any)["value"],
+                apis_called: endpoint.apis_called ? endpoint.apis_called : [],
+                // parents: endpoint.parents,
+              }];
+            });
+            return cap_token_type
+          } else {
+            console.error("field not found", union.fields, resp);
+            return [];
+          }
+        }
+        default:
+          assertNever(sd_resp.decl.type_);
+      }
+    }
   }
 
   return (
@@ -93,6 +103,16 @@ export function CapWorkbench() {
         <ApiWorkbenchPresent
           endpoints={endpoints}
           executeRequest={(endpoint, startedAt, req, reqbody) => {
+            // if (endpoint.method === "user") {
+            //   console.log("modal popup for user")
+            //   const resp: CompletedRequest = {
+            //     durationMs: 0,
+            //     endpoint,
+            //     resp: { success: false, httpStatus: 999, responseBody: 'not implemented' },
+            //     startedAt,
+            //   }
+            //   return resp
+            // }
             let body: unknown = reqbody
             let cap_token: unknown = undefined;
             let jwt = authState.kind == 'auth' ? authState.auth.jwt : undefined;
@@ -135,7 +155,16 @@ async function executeRequest<I>(
   req?: I,
   reqbody?: unknown,
 ): Promise<CompletedRequest> {
-
+  if (endpoint.method === "user") {
+    console.log("modal popup for user")
+    const resp: CompletedRequest = {
+      durationMs: 0,
+      endpoint,
+      resp: { success: false, httpStatus: 999, responseBody: 'not implemented' },
+      startedAt,
+    }
+    return resp
+  }
   let resp: CompletedResponse;
   try {
     const value = await service.requestAdl(

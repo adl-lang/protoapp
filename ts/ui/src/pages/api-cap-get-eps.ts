@@ -8,6 +8,7 @@ import { createUiFactory } from "@/components/forms/factory";
 import { createVEditor } from "@/components/forms/model/veditor/adlfactory";
 import { createJsonBinding, scopedNamesEqual } from "@adllang/adl-runtime";
 import { Api, CalledApi, CapToken, CapTokenInstance, Endpoint, HttpXEndpoint } from "./api-types";
+import { snUserInput, texprUserInput } from "@/adl-gen/protoapp/apis/captest";
 
 export function getEndpoints<API>(
   resolver: ADL.DeclResolver,
@@ -49,6 +50,10 @@ function getEndpoints0<API>(
       }
       if (scopedNamesEqual(f.typeExpr.typeRef.value, capability.snHttpGet)) {
         endpoints.push(getHttpGetEndpoint(resolver, f, apis_called, token_delivery_method))
+        continue
+      }
+      if (scopedNamesEqual(f.typeExpr.typeRef.value, snUserInput)) {
+        endpoints.push(getUserInputEndpoint(resolver, f, apis_called, token_delivery_method))
         continue
       }
       const rd = resolver(f.typeExpr.typeRef.value)
@@ -190,6 +195,46 @@ function getHttpGetEndpoint<O>(
     path: httpGet.path,
     docString,
     // security: httpGet.security,
+    veditorI,
+    veditorO,
+    jsonBindingI,
+    jsonBindingO,
+    apis_called,
+    token,
+  }
+}
+
+function getUserInputEndpoint<I, O>(
+  resolver: ADL.DeclResolver,
+  field: AST.Field,
+  apis_called: CalledApi<unknown>[],
+  token?: CapTokenInstance,
+): HttpXEndpoint<I, O> {
+  if (field.default.kind !== 'just') {
+    throw new Error("API endpoint must have a default value");
+  }
+  let texprI = ADL.makeATypeExpr<I>(field.typeExpr.parameters[0]);
+  if (token !== undefined) {
+    texprI = capability.texprCapCall(apis_called[apis_called.length-1].token_type, texprI)
+  }
+  const texprO = ADL.makeATypeExpr<O>(field.typeExpr.parameters[1]);
+
+  const jb = createJsonBinding(resolver, texprUserInput(texprI, texprO));
+  const httpPost = jb.fromJson(field.default.value);
+
+  const veditorI = createVEditor(texprI, resolver, UI_FACTORY);
+  const veditorO = createVEditor(texprO, resolver, UI_FACTORY);
+  const jsonBindingI = createJsonBinding(resolver, texprI);
+  const jsonBindingO = createJsonBinding(resolver, texprO);
+
+  const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
+  return {
+    kind: 'callable',
+    method: 'user',
+    name: field.name,
+    path: "xxx",
+    docString,
+    // security: httpPost.security,
     veditorI,
     veditorO,
     jsonBindingI,
