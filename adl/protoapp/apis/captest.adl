@@ -19,7 +19,7 @@ struct ApiRequests {
   HttpPost<Unit, A_ApiResp> a = {
     "path": "/a"
   };
-  /// A api
+  /// Access to A API things
   CapabilityApi<A_ApiToken,Unit,A_Api> accessTokenApi = {
     "service": {},
     "token_delivery": {"header": "a_cookie"}
@@ -43,7 +43,7 @@ struct A_Api {
   HttpGet<B_ApiResp> a2 = {
     "path": "/a2"
   };
-  /// B api
+  /// Access to B API things
   CapabilityApi<B_ApiToken,Unit,B_Api> accessTokenApi = {
     "service": {},
     "token_delivery": {"header": "b_cookie"}
@@ -61,7 +61,7 @@ struct B_Api {
     "path": "/c"
   };
 
-  /// C api
+  /// Access to C API things
   CapabilityApi<C_ApiToken,Unit,C_Api> accessTokenApi = {
     "service": {},
     "token_delivery": {"header": "c_cookie"}

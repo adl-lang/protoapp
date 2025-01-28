@@ -72,7 +72,15 @@ struct ApiRequests {
     "token_delivery": "auth_bearer"
   };
   
+  // MySubApi my_sub_api = {};
 };
+
+// struct MySubApi {
+//   /// Test the server is live
+//   HttpPost<Unit, Unit> ping = {
+//     "path": "/ping2"
+//   };
+// };
 
 struct AccessApiRequests {
   /// Post a message to the noticeboard

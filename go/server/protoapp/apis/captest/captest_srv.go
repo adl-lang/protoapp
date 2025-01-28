@@ -11,6 +11,7 @@ import (
 type ApiRequests_Service interface {
 	A(ctx context.Context, req http2.Unit) (A_ApiResp, error)
 	GetAccessTokenApi() A_Api_Service[A_ApiToken, http2.Unit]
+	GetMy_api() MyApi_Service
 }
 
 func Register_ApiRequests(
@@ -29,6 +30,10 @@ func Register_ApiRequests(
 		accesstokenapi_capr,
 		accesstokenapi_accesstokenapi_capr,
 		accesstokenapi_accesstokenapi_accesstokenapi_capr,
+	)
+	Register_MyApi(
+		mux,
+		srv.GetMy_api(),
 	)
 }
 
@@ -92,4 +97,16 @@ func Register_C_Api[C any, S any](
 ) {
 	reqs := api.Service
 	capability.AdlCapPost(mux, reqs.Hello, srv.Hello, api, capr)
+}
+
+type MyApi_Service interface {
+	A(ctx context.Context, req http2.Unit) (A_ApiResp, error)
+}
+
+func Register_MyApi(
+	mux *http.ServeMux,
+	srv MyApi_Service,
+) {
+	reqs := Make_MyApi()
+	capability.AdlPost(mux, reqs.A, srv.A)
 }

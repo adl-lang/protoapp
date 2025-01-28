@@ -21,6 +21,7 @@ type ApiRequests_Service interface {
 	Create_user(ctx context.Context, req types.UserDetails) (db.AppUserId, error)
 	Update_user(ctx context.Context, req types.WithId[db.AppUserId, types.UserDetails]) (http2.Unit, error)
 	Query_users(ctx context.Context, req types.QueryUsersReq) (types.Paginated[types.UserWithId], error)
+	GetMessage_api() MessageApi_Service
 }
 
 func Register_ApiRequests(
@@ -39,4 +40,22 @@ func Register_ApiRequests(
 	http2.AdlPost(mux, reqs.Create_user, srv.Create_user)
 	http2.AdlPost(mux, reqs.Update_user, srv.Update_user)
 	http2.AdlPost(mux, reqs.Query_users, srv.Query_users)
+	Register_MessageApi(
+		mux,
+		srv.GetMessage_api(),
+	)
+}
+
+type MessageApi_Service interface {
+	New_message(ctx context.Context, req types.NewMessageReq) (db.MessageId, error)
+	Recent_messages(ctx context.Context, req types.RecentMessagesReq) (types.Paginated[types.Message], error)
+}
+
+func Register_MessageApi(
+	mux *http.ServeMux,
+	srv MessageApi_Service,
+) {
+	reqs := Make_MessageApi()
+	http2.AdlPost(mux, reqs.New_message, srv.New_message)
+	http2.AdlPost(mux, reqs.Recent_messages, srv.Recent_messages)
 }

@@ -172,7 +172,7 @@ function ApiView(props: {
         id="panel2-header"
       >
         <material.Box>
-          <material.Typography component="span" fontWeight={"bold"}>{props.endpoint.name}</material.Typography>
+          
           {
             props.endpoint.token_value != undefined &&
             <material.Tooltip title={`${props.endpoint.token_value}`}>
@@ -181,10 +181,13 @@ function ApiView(props: {
               </material.IconButton>
             </material.Tooltip>
           }
+          <material.Typography component="span" fontWeight={"bold"}>{props.endpoint.name}
+          <material.Typography variant="caption"> - {props.endpoint.docString}</material.Typography>
+          </material.Typography>
         </material.Box>
       </material.AccordionSummary>
       <material.AccordionDetails sx={{ marginLeft: "5px", marginTop: "0px", marginBottom: "0px" }}>
-        <material.Typography color="red" fontWeight={"bold"} align="center">{props.endpoint.docString}</material.Typography>
+        {/* <material.Typography variant="caption">{props.endpoint.docString}</material.Typography> */}
       </material.AccordionDetails>
       {/* todo change this to an accordion */}
       {/* <Typography>{props.endpoint.docString}</Typography> */}

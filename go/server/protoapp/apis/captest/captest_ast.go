@@ -189,7 +189,7 @@ func AST_A_Api() adlast.ScopedDecl {
 						types.Make_Maybe_just[any](
 							map[string]interface{}{"service": map[string]interface{}{}, "token_delivery": map[string]interface{}{"header": "b_cookie"}},
 						),
-						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "B api\n"},
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Access to B API things\n"},
 					),
 				},
 			),
@@ -435,7 +435,7 @@ func AST_ApiRequests() adlast.ScopedDecl {
 						types.Make_Maybe_just[any](
 							map[string]interface{}{"service": map[string]interface{}{}, "token_delivery": map[string]interface{}{"header": "a_cookie"}},
 						),
-						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "A api\n"},
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Access to A API things\n"},
 					),
 					adlast.MakeAll_Field(
 						"my_api",
@@ -566,7 +566,7 @@ func AST_B_Api() adlast.ScopedDecl {
 						types.Make_Maybe_just[any](
 							map[string]interface{}{"service": map[string]interface{}{}, "token_delivery": map[string]interface{}{"header": "c_cookie"}},
 						),
-						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "C api\n"},
+						customtypes.MapMap[adlast.ScopedName, any]{adlast.Make_ScopedName("sys.annotations", "Doc"): "Access to C API things\n"},
 					),
 				},
 			),
