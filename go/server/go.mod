@@ -1,6 +1,6 @@
 module github.com/adl-lang/goadl_protoapp
 
-go 1.22.1
+go 1.23.3
 
 // use if hacking on git@github.com-gmhta:adl-lang/goadl.git and it clone in the right place
 // replace github.com/adl-lang/goadl_rt/v3 => ../../../goadl/goadl_rt/v3
