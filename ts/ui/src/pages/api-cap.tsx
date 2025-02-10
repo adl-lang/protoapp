@@ -12,6 +12,7 @@ import { getEndpoints } from "./api-cap-get-eps";
 import { CapToken, CompletedRequest, CompletedResponse, HttpEndpoint } from "./api-types";
 import { ApiWorkbenchPresent } from "./api-workbench";
 import { assertNever } from "@/utils/assertNever";
+import * as apiTypes from "./api-types";
 
 export function CapWorkbench() {
   const appState = useAppState();
@@ -19,9 +20,14 @@ export function CapWorkbench() {
   const jwt_decoded = authState.kind === 'auth' ? authState.auth.jwt_decoded : undefined;
 
   const [capTokens, setCapTokens] = useState<CapToken<unknown>[]>([]);
+  // const [prevRequests, setPrevRequests] = useState<apiTypes.CompletedRequest[]>([]);
 
   const endpoints = useMemo(() => {
     const endpoints = getEndpoints(RESOLVER, CAP.texprApiRequests(), capTokens);
+
+    // setPrevRequests(pr => [...pr, completed]);
+
+
     return endpoints
   }, [capTokens]);
 
@@ -91,35 +97,38 @@ export function CapWorkbench() {
     <Container fixed>
       <Box>
         <ApiWorkbenchPresent
+          // choose={(endpoint) => {
+          // }} 
           endpoints={endpoints}
           executeRequest={(endpoint, startedAt, req, reqbody) => {
-            let body: unknown = reqbody
+            let body: unknown = reqbody;
             let cap_token: unknown = undefined;
             let jwt = authState.kind == 'auth' ? authState.auth.jwt : undefined;
-            const headers: Record<string, string> = {}
+            const headers: Record<string, string> = {};
             if (endpoint.token !== undefined && reqbody !== undefined) {
               if (endpoint.method === "get") {
-                body = undefined
+                body = undefined;
               } else {
-                body = (reqbody as unknown as capability.CapCall<unknown, unknown>).payload
+                body = (reqbody as unknown as capability.CapCall<unknown, unknown>).payload;
               }
-              cap_token = (reqbody as unknown as capability.CapCall<unknown, unknown>).token
+              cap_token = (reqbody as unknown as capability.CapCall<unknown, unknown>).token;
               switch (endpoint.token.delivery_method.kind) {
                 case "none":
-                  break
+                  break;
                 case "header":
                   /// TODO use type info about cap_token to 'correctly;' turn cap_token into a string
-                  headers[endpoint.token.delivery_method.value] = cap_token as string
-                  break
+                  headers[endpoint.token.delivery_method.value] = cap_token as string;
+                  break;
                 case "auth_bearer":
-                  jwt = cap_token as string
+                  jwt = cap_token as string;
               }
-              console.log("cap_token", cap_token)
+              console.log("cap_token", cap_token);
             }
-            return executeRequest(api, jwt, endpoint, startedAt, headers, req, body)
-          }}
-          updateAppState={updateAppState}
-        />
+            return executeRequest(api, jwt, endpoint, startedAt, headers, req, body);
+          } }
+          updateAppState={updateAppState} prevRequests={[]} removeCompleted={function (ci: number): Promise<void> {
+            throw new Error("Function not implemented.");
+          } }        />
         {jwt_decoded && <Box sx={{ fontSize: "0.9rem" }}>sub: {jwt_decoded.sub} / role: {jwt_decoded.role}</Box>}
       </Box>
     </Container>
@@ -156,6 +165,19 @@ async function executeRequest<I>(
       resp = { success: false, httpStatus: 999, responseBody: 'unknown error' };
     }
   }
+
+  // const followup: HttpEndpoint[] = []
+  // if ( endpoint.apis_called !== undefined ) {
+  //   const capTokens: CapToken<unknown>[] = [{
+  //     apis_called: endpoint.apis_called,
+  //     token_value: endpoint.token,
+  //     type: endpoint.jsonBindingI.typeExpr,
+  //   }]
+  //   console.log("***", capTokens)
+  //   const x = getEndpoints(RESOLVER, CAP.texprApiRequests(), capTokens);
+  //   const z = x.filter(y => y.kind === "callable")
+  //   followup.push(...z)
+  // }
 
   return {
     startedAt,

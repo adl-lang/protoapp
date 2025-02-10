@@ -1,17 +1,20 @@
-import { getEndpoints } from "./api-cap-get-eps";
 import { RESOLVER } from "@/adl-gen/resolver";
+import { getEndpoints } from "./api-cap-get-eps";
 
 import * as CAP from "@/adl-gen/protoapp/apis/captest";
 
-import { expect, test } from 'vitest'
-import { CapToken } from "./api-types";
+import { expect, test } from 'vitest';
+import { CapToken, Endpoint, FollowupAbleApi } from "./api-types";
 
 test('empty capTokens', () => {
   const capTokens: CapToken<unknown>[] = [];
   const endpoints = getEndpoints(RESOLVER, CAP.texprApiRequests(), capTokens);
-  expect(endpoints.length).toBe(1)
-  expect(endpoints.filter(ep => ep.kind === "api").length).toBe(0)
+  expect(endpoints.length).toBe(2)
+  expect(endpoints.filter(ep => ep.kind === "api").length).toBe(1)
 })
+
+
+
 
 test('an A_API capTokens', () => {
   const capTokens: CapToken<unknown>[] = [
@@ -22,7 +25,7 @@ test('an A_API capTokens', () => {
     }
   ];
   const endpoints = getEndpoints(RESOLVER, CAP.texprApiRequests(), capTokens);
-  expect(endpoints.filter(ep => ep.kind === "api").length).toBe(1)
+  expect(endpoints.filter(ep => ep.kind === "api").length).toBe(2)
   const a_api = endpoints.filter(ep => ep.kind === "api")[0]
   expect(a_api.name).toBe("accessTokenApi")
   expect(a_api.token_value).toBe("111")
@@ -49,7 +52,7 @@ test('A_API->B_API capTokens', () => {
     },
   ];
   const endpoints = getEndpoints(RESOLVER, CAP.texprApiRequests(), capTokens);
-  expect(endpoints.filter(ep => ep.kind === "api").length).toBe(1)
+  expect(endpoints.filter(ep => ep.kind === "api").length).toBe(2)
   const a_api = endpoints.filter(ep => ep.kind === "api")[0]
   expect(a_api.name).toBe("accessTokenApi")
   expect(a_api.token_value).toBe("111")
@@ -91,7 +94,7 @@ test('A_API->(B_API,B_API) capTokens', () => {
     },
   ];
   const endpoints = getEndpoints(RESOLVER, CAP.texprApiRequests(), capTokens);
-  expect(endpoints.filter(ep => ep.kind === "api").length).toBe(1)
+  expect(endpoints.filter(ep => ep.kind === "api").length).toBe(2)
   const a_api = endpoints.filter(ep => ep.kind === "api")[0]
   expect(a_api.name).toBe("accessTokenApi")
   expect(a_api.token_value).toBe("111")
@@ -112,6 +115,7 @@ test('A_API->(B_API,B_API) capTokens', () => {
     expect(b_api.endpoints.length).toBe(1)
   }
 })
+
 
 test('A_API,A_API->(B_API,B_API) capTokens', () => {
   const capTokens: CapToken<unknown>[] = [
@@ -147,7 +151,7 @@ test('A_API,A_API->(B_API,B_API) capTokens', () => {
     },
   ];
   const endpoints = getEndpoints(RESOLVER, CAP.texprApiRequests(), capTokens);
-  expect(endpoints.filter(ep => ep.kind === "api").length).toBe(2)
+  expect(endpoints.filter(ep => ep.kind === "api").length).toBe(3)
   {
     const a_api = endpoints.filter(ep => ep.kind === "api")[0]
     expect(a_api.token_value).toBe("000")
@@ -234,7 +238,7 @@ test('A_API->B_API,A_API->(B_API->C_API,B_API) capTokens', () => {
     },
   ];
   const endpoints = getEndpoints(RESOLVER, CAP.texprApiRequests(), capTokens);
-  expect(endpoints.filter(ep => ep.kind === "api").length).toBe(2)
+  expect(endpoints.filter(ep => ep.kind === "api").length).toBe(3)
   {
     const a_api = endpoints.filter(ep => ep.kind === "api")[0]
     expect(a_api.token_value).toBe("000")

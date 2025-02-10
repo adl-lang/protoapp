@@ -51,10 +51,11 @@ export function ApiWorkbench() {
           endpoints={endpoints}
           executeRequest={(endpoint, startedAt, req, reqbody) => {
             const jwt = authState.kind == 'auth' ? authState.auth.jwt : undefined;
-            return executeRequest(api, jwt, endpoint, startedAt, req, reqbody)
-          }}
-          updateAppState={updateAppState}
-        />
+            return executeRequest(api, jwt, endpoint, startedAt, req, reqbody);
+          } }
+          updateAppState={updateAppState} prevRequests={[]} removeCompleted={function (ci: number): Promise<void> {
+            throw new Error("Function not implemented.");
+          } }        />
         {jwt_decoded && <Box sx={{ fontSize: "0.9rem" }}>sub: {jwt_decoded.sub} / role: {jwt_decoded.role}</Box>}
       </Box>
     </Container>
@@ -172,6 +173,7 @@ function getHttpPostEndpoint<I, O>(
     veditorO,
     jsonBindingI,
     jsonBindingO,
+    // followup: [],
   }
 }
 
@@ -205,6 +207,7 @@ function getHttpGetEndpoint<O>(
     veditorO,
     jsonBindingI,
     jsonBindingO,
+    // followup: [],
   }
 }
 

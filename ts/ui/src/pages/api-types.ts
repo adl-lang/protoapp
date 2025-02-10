@@ -34,6 +34,16 @@ export interface Api<C> {
   endpoints: Endpoint[];
 }
 
+export interface FollowupAbleApi<C> {
+  kind: 'api';
+  // apis_called: CalledApi<unknown>[],
+  typetoken?: ADL.ATypeExpr<C>;
+  token_value?: C;
+  endpoints: FollowupEndpoint[];
+}
+
+export type FollowupEndpoint = Pick<HttpXEndpoint<unknown,unknown>, "kind" | "apis_called" | "token">
+
 type Method = 'get' | 'post'
 
 // export interface HttpGetEndpoint<O> {
@@ -66,7 +76,8 @@ export interface HttpXEndpoint<I, O> {
   jsonBindingI: JsonBinding<I>;
   jsonBindingO: JsonBinding<O>;
   apis_called?: CalledApi<unknown>[],
-  token?: CapTokenInstance
+  token?: CapTokenInstance,
+  // followup: HttpEndpoint[],
 }
 
 export type ExecutingRequest = {
