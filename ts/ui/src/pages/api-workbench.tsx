@@ -119,7 +119,6 @@ export function ApiWorkbenchPresent(props: ApiWorkbenchPresentProps) {
       }
     }
   }
-
   return (
     <material.Container fixed>
       <material.Box>
@@ -361,12 +360,18 @@ function CompletedRequestView(props: {
     },
     [endpoint, resp]
   );
+  for(const api of props.curr_eps.filter((ep) => ep.kind === 'api')){
+    api.followups = getFollowups(api, props.value.endpoint.jsonBindingO.typeExpr)
 
-  const follow_ups: apiTypes.HttpEndpoint[] = getFollowups(
-    props.curr_eps.filter(e => e.kind === "api") as apiTypes.FollowupAbleApi<unknown>[],
-    props.value.endpoint.jsonBindingO.typeExpr
-  );
-
+    console.log("indiv", api.followups)
+  }
+  console.log("CURRENT APIS", props.curr_eps.filter((e)=> e.kind === 'api'))
+  // const follow_ups: apiTypes.HttpEndpoint[] = getFollowups(
+  //   // props.curr_eps.filter(e => e.kind === "api") as apiTypes.FollowupAbleApi<unknown>[],
+  //   props.curr_eps.filter(e => e.kind === "api") as apiTypes.Api<unknown>[],
+  //   props.value.endpoint.jsonBindingO.typeExpr
+  // );
+  // console.log("FINALE", props.curr_eps.filter((e)=>e.kind === 'api')[1].followups)
   return (
     <material.Card sx={{ marginTop: "10px", marginBottom: "10px" }}>
       <material.Box sx={{ margin: "10px", display: "flex", flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
@@ -406,76 +411,203 @@ function CompletedRequestView(props: {
         <material.AccordionDetails sx={{ marginLeft: "5px", marginTop: "0px", marginBottom: "0px" }} />
 
         <material.Divider>
-
-
-          {follow_ups.map((e, i) => {
-            switch (e.kind) {
-              default: return <HttpEndpointView2 key={i} endpoint={e} choose={props.choose} />;
-            }
-          })}
+        {props.curr_eps.filter((ep) => ep.kind === 'api').map((ep) =>
+        ep.followups.map((e, i) => 
+          <HttpEndpointView2 key={i} endpoint={e} choose={props.choose} />)
+        )}
+          {/* {props.follow_ups.map((e, i) =>
+          <HttpEndpointView2 key={i} endpoint={e} choose={props.choose} />
+          )} */}
         </material.Divider>
       </material.Accordion>
     </material.Card>
-  );
+  )
 }
 
+
+// export function assignFollowups(
+//   api: apiTypes.Api<unknown>,
+//   tyxpr: TypeExpr
+// ) {
+//   const tes = getCapTokenTypes(RESOLVER, tyxpr)
+//   const followups: apiTypes.HttpEndpoint[] = []
+//   for (const te of tes) {
+//     for (const ep of api.endpoints) {
+//       if(ep.kind != 'callable'){
+//         assignFollowups(ep, tyxpr)
+//         console.log("CURSE", ep.followups)
+//         continue
+//       }
+//       if (ep.apis_called === undefined || ep.apis_called.length === 0) {
+//         continue;
+//       }
+//       if (!adl.typeExprsEqual(ep.apis_called[ep.apis_called.length - 1].token_type.value, te)) {
+//         continue;
+//       }
+//       if (api.token_value !== ep.token?.value) {
+//         continue;
+//       }
+//       followups.push(ep as apiTypes.HttpEndpoint);
+//     }
+//   }
+//   api.followups = followups
+// }
+
+
+
+// export function compareTokens(
+//   ep: apiTypes.Api<unknown>,
+//   follow_up: apiTypes.HttpEndpoint
+// ): boolean{
+//   console.log("current endpoint: ", ep)
+//   console.log("current followup: ", follow_up)
+//   if(follow_up.apis_called === undefined || ep.token_value === undefined){
+//     return false
+//   }
+//   if(ep.token_value !== follow_up.apis_called[0].value){
+//     return false
+//   }
+//   return true
+// }
 
 export function getFollowups(
   // endpoint: apiTypes.HttpEndpoint,
   // curr_eps: apiTypes.Endpoint[],
-  curr_apis: apiTypes.FollowupAbleApi<unknown>[],
+  // curr_apis: apiTypes.FollowupAbleApi<unknown>[],
+  curr_api: apiTypes.Api<unknown>,
   complete_ep_out_te: TypeExpr,
 ): apiTypes.HttpEndpoint[] {
   const follow_ups: apiTypes.HttpEndpoint[] = [];
-  // console.log("current", endpoint);
-  //From here 
-  
-  // console.log("typeexp", complete_ep_out_te)
+  console.log("chicken", curr_api)
+  // const apis_to_check = sortCurrentApis(curr_apis)
+  // console.log("apis_to_check", apis_to_check)
   const tes = getCapTokenTypes(RESOLVER, complete_ep_out_te);
-  var new_eps: apiTypes.HttpEndpoint[] = [];
   for (const te of tes) {
-    for (const api of curr_apis) {
-      // console.log("API", api)
-      // console.log("CURRENT", api.endpoints);
-      // if (api.kind !== 'api') {
-      //   continue;
-      // }
+      // for (const api of apis_to_check) {
       const new_curr_api: apiTypes.Api<unknown>[] = []
-      for(const ep of api.endpoints){
-        if(ep.kind === 'api'){
-          new_curr_api.push(ep as unknown as apiTypes.Api<unknown>)
-        }
-      }
-      if(new_curr_api.length !== 0){
-        new_eps = getFollowups(new_curr_api as apiTypes.FollowupAbleApi<unknown>[], complete_ep_out_te)
-        for(const ep of new_eps){
-          if (ep.kind === 'callable'){
-            follow_ups.push(ep)
+      for (const ep of curr_api.endpoints) {
+        var new_eps: apiTypes.HttpEndpoint[] = [];
+        if (ep.kind !== 'callable') {
+          new_eps = getFollowups(ep, complete_ep_out_te)
+          for(const new_ep of new_eps){
+            follow_ups.push(new_ep)
           }
+          continue
+          // console.log("Adding", ep, "to new curr_api where curr_api is", curr_apis)
+          // new_eps =  getEndpointsOfSingularApi(ep as unknown as apiTypes.Api<unknown>, te)
         }
-      }
-    for (const ep of api.endpoints.filter(e => e.kind === "callable" /*&& e.apis_called && e.apis_called.length !== 0*/)) {
-      if (ep.apis_called === undefined || ep.apis_called.length === 0) {
-          console.log("OOPS", ep)
+        if (ep.apis_called === undefined || ep.apis_called.length === 0) {
           continue;
         }
         if (!adl.typeExprsEqual(ep.apis_called[ep.apis_called.length - 1].token_type.value, te)) {
           continue;
         }
-        if (api.token_value !== ep.token?.value) {
+        if (curr_api.token_value !== ep.token?.value) {
           continue;
         }
-        // if (!isArrayEqual(props.value.endpoint.apis_called, ep.apis_called)) {
-        //   continue
+        // if (!follow_ups.includes(ep as apiTypes.HttpEndpoint)) {
+        //   follow_ups.push(ep as apiTypes.HttpEndpoint);
         // }
-        follow_ups.push(ep as apiTypes.HttpEndpoint);
+        follow_ups.push(ep as apiTypes.HttpEndpoint)
       }
-    }
+
   }
+  // for(const new_ep of new_eps){
+  //   follow_ups.push(new_ep)
+  // }
   //to here is new funtion for when the ep is another api
-  // console.log("!!!follow_ups", follow_ups);
+  console.log("!!!follow_ups", follow_ups);
   return follow_ups;
 }
+
+// export function getFollowups(
+//   // endpoint: apiTypes.HttpEndpoint,
+//   // curr_eps: apiTypes.Endpoint[],
+//   // curr_apis: apiTypes.FollowupAbleApi<unknown>[],
+//   curr_apis: apiTypes.Api<unknown>[],
+//   complete_ep_out_te: TypeExpr,
+// ): apiTypes.HttpEndpoint[] {
+//   const follow_ups: apiTypes.HttpEndpoint[] = [];
+//   console.log("chicken", curr_apis)
+//   // const apis_to_check = sortCurrentApis(curr_apis)
+//   // console.log("apis_to_check", apis_to_check)
+//   const tes = getCapTokenTypes(RESOLVER, complete_ep_out_te);
+//   var new_eps: apiTypes.HttpEndpoint[] = [];
+//   for (const te of tes) {
+//     for (const api of curr_apis) {
+//       // for (const api of apis_to_check) {
+//       const new_curr_api: apiTypes.Api<unknown>[] = []
+//       for (const ep of api.endpoints) {
+//         if (ep.kind !== 'callable') {
+//           new_curr_api.push(ep as unknown as apiTypes.Api<unknown>)
+//           continue
+//           // console.log("Adding", ep, "to new curr_api where curr_api is", curr_apis)
+//           // new_eps =  getEndpointsOfSingularApi(ep as unknown as apiTypes.Api<unknown>, te)
+//         }
+//         if (ep.apis_called === undefined || ep.apis_called.length === 0) {
+//           continue;
+//         }
+//         if (!adl.typeExprsEqual(ep.apis_called[ep.apis_called.length - 1].token_type.value, te)) {
+//           continue;
+//         }
+//         if (api.token_value !== ep.token?.value) {
+//           continue;
+//         }
+//         // if (!follow_ups.includes(ep as apiTypes.HttpEndpoint)) {
+//         //   follow_ups.push(ep as apiTypes.HttpEndpoint);
+//         // }
+//         follow_ups.push(ep as apiTypes.HttpEndpoint)
+//       }
+
+//       if (new_curr_api.length !== 0) {
+//         new_eps = getFollowups(new_curr_api as apiTypes.Api<unknown>[], complete_ep_out_te)
+//         for (const ep of new_eps) {
+//           if (ep.kind === 'callable' && !follow_ups.includes(ep)) {
+//             follow_ups.push(ep)
+//           }
+//         }
+//       }
+//     }
+//   }
+//   // for(const new_ep of new_eps){
+//   //   follow_ups.push(new_ep)
+//   // }
+//   //to here is new funtion for when the ep is another api
+//   console.log("!!!follow_ups", follow_ups);
+//   return follow_ups;
+// }
+
+
+
+
+
+
+// export function sortCurrentApis(
+//   curr_apis: apiTypes.Api<unknown>[]
+// ): apiTypes.Api<unknown>[] {
+//   const curr_apis_cp = curr_apis.slice(0) //Might be a nicer way to do this -- not sure if I am passing a pointer
+//   const sorted_apis: apiTypes.Api<unknown>[] = []
+//   const length = curr_apis.length
+//   for (let i = 0; i < length; i++) {
+//     let add_to_sorted = true
+//     let removedElement = curr_apis_cp.pop()
+//     if (removedElement !== undefined) {
+//       //check that the element does not already exists in current apis?
+//       for (const api of sorted_apis) {
+//         if (api.name === removedElement.name) {
+//           add_to_sorted = false
+//           break
+//         }
+//       }
+//       if (add_to_sorted) {
+//         sorted_apis.push(removedElement)
+//       }
+//     }
+//   }
+//   return sorted_apis
+// }
+
+
 
 function MyJsonView(props: {
   data: Json
@@ -489,15 +621,16 @@ function MyJsonView(props: {
     </material.Box>
   );
 }
-
-// function followup (props: {
-//   endpoints: apiTypes.Endpoint[],
-// }):apiTypes.HttpEndpoint[]{
-//   const followup_eps = apiTypes.HttpEndpoint[]
-//   for(const ep of props.endpoints){
-//     if (ep.kind === 'callable'){
-//       followup_eps.push(ep)
-//     }
+// function getDescendingApis(apis: apiTypes.Api<unknown>[]): apiTypes.Api<unknown>[]{
+//   const child_apis: apiTypes.Api<unknown>[] = []
+//   // const to_push: apiTypes.Api<unknown>[] = []
+//  for(const api of apis){
+//   child_apis.push(api)
+//   for(const ep of api.endpoints){
+//     if(ep.kind === 'api')
+//     child_apis.push(ep)
 //   }
-//   return followup_eps
+//  }
+// return child_apis
+
 // }

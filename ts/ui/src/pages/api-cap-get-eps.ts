@@ -245,6 +245,7 @@ function getApiEndpoint<C, S, V>(
       endpoints: getEndpoints0(resolver, texprV, capTokens, apis_called0, token),
       token_value: ct.token_value as C,
       apis_called: ct.apis_called,
+      followups: [],
     })
   }
   return apis
@@ -289,7 +290,7 @@ function getHttpPostEndpoint<I, O>(
     jsonBindingO,
     apis_called,
     token,
-    // followup: []
+    // followups: []
   }
 }
 
@@ -334,7 +335,7 @@ function getHttpGetEndpoint<O>(
     jsonBindingO,
     apis_called,
     token,
-    // followup: []
+    // followups: []
   }
 }
 
@@ -352,5 +353,6 @@ function getApiStruct<C>(resolver: ADL.DeclResolver,
     apis_called: [],
     endpoints: getEndpoints(resolver, { value: field.typeExpr }, []),
     name: field.name,
+    followups: []
   }
 }

@@ -32,6 +32,7 @@ export interface Api<C> {
   typetoken?: ADL.ATypeExpr<C>;
   token_value?: C;
   endpoints: Endpoint[];
+  followups: HttpEndpoint[]
 }
 
 export interface FollowupAbleApi<C> {
@@ -77,7 +78,7 @@ export interface HttpXEndpoint<I, O> {
   jsonBindingO: JsonBinding<O>;
   apis_called?: CalledApi<unknown>[],
   token?: CapTokenInstance,
-  // followup: HttpEndpoint[],
+  // followups: HttpEndpoint[]
 }
 
 export type ExecutingRequest = {
