@@ -264,6 +264,7 @@ function ModalCreatePostRequest<I, O>(props: {
   execute: (endpoint: apiTypes.HttpXEndpoint<I, O>, req: I) => void,
   initial: I | undefined,
 }) {
+  // console.log("endpoint", props.endpoint)
   const state = useAdlFormState({
     veditor: props.endpoint.veditorI,
     jsonBinding: props.endpoint.jsonBindingI,
@@ -361,11 +362,17 @@ function CompletedRequestView(props: {
     [endpoint, resp]
   );
   for(const api of props.curr_eps.filter((ep) => ep.kind === 'api')){
-    api.followups = getFollowups(api, props.value.endpoint.jsonBindingO.typeExpr)
+    if (props.value.resp.success) {
+      const v = props.value.resp.value
+      api.followups = getFollowups(api, props.value.endpoint.jsonBindingO.typeExpr, v)  
+    }
 
-    console.log("indiv", api.followups)
+
+    // console.log("indiv", api.followups)
   }
+  console.log("value", props.value)
   console.log("CURRENT APIS", props.curr_eps.filter((e)=> e.kind === 'api'))
+  console.log("CURRENT ENDPOINTS", props.curr_eps.filter((e)=> e.kind === 'callable'))
   // const follow_ups: apiTypes.HttpEndpoint[] = getFollowups(
   //   // props.curr_eps.filter(e => e.kind === "api") as apiTypes.FollowupAbleApi<unknown>[],
   //   props.curr_eps.filter(e => e.kind === "api") as apiTypes.Api<unknown>[],
@@ -424,61 +431,16 @@ function CompletedRequestView(props: {
   )
 }
 
-
-// export function assignFollowups(
-//   api: apiTypes.Api<unknown>,
-//   tyxpr: TypeExpr
-// ) {
-//   const tes = getCapTokenTypes(RESOLVER, tyxpr)
-//   const followups: apiTypes.HttpEndpoint[] = []
-//   for (const te of tes) {
-//     for (const ep of api.endpoints) {
-//       if(ep.kind != 'callable'){
-//         assignFollowups(ep, tyxpr)
-//         console.log("CURSE", ep.followups)
-//         continue
-//       }
-//       if (ep.apis_called === undefined || ep.apis_called.length === 0) {
-//         continue;
-//       }
-//       if (!adl.typeExprsEqual(ep.apis_called[ep.apis_called.length - 1].token_type.value, te)) {
-//         continue;
-//       }
-//       if (api.token_value !== ep.token?.value) {
-//         continue;
-//       }
-//       followups.push(ep as apiTypes.HttpEndpoint);
-//     }
-//   }
-//   api.followups = followups
-// }
-
-
-
-// export function compareTokens(
-//   ep: apiTypes.Api<unknown>,
-//   follow_up: apiTypes.HttpEndpoint
-// ): boolean{
-//   console.log("current endpoint: ", ep)
-//   console.log("current followup: ", follow_up)
-//   if(follow_up.apis_called === undefined || ep.token_value === undefined){
-//     return false
-//   }
-//   if(ep.token_value !== follow_up.apis_called[0].value){
-//     return false
-//   }
-//   return true
-// }
-
 export function getFollowups(
   // endpoint: apiTypes.HttpEndpoint,
   // curr_eps: apiTypes.Endpoint[],
   // curr_apis: apiTypes.FollowupAbleApi<unknown>[],
   curr_api: apiTypes.Api<unknown>,
   complete_ep_out_te: TypeExpr,
+  completed_resp_token: any,
 ): apiTypes.HttpEndpoint[] {
   const follow_ups: apiTypes.HttpEndpoint[] = [];
-  console.log("chicken", curr_api)
+  // console.log("chicken", curr_api)
   // const apis_to_check = sortCurrentApis(curr_apis)
   // console.log("apis_to_check", apis_to_check)
   const tes = getCapTokenTypes(RESOLVER, complete_ep_out_te);
@@ -488,9 +450,19 @@ export function getFollowups(
       for (const ep of curr_api.endpoints) {
         var new_eps: apiTypes.HttpEndpoint[] = [];
         if (ep.kind !== 'callable') {
-          new_eps = getFollowups(ep, complete_ep_out_te)
+          console.log("found api")
+          new_eps = getFollowups(ep, complete_ep_out_te, completed_resp_token)
           for(const new_ep of new_eps){
-            follow_ups.push(new_ep)
+            if( new_ep.token ) {
+              // debugger
+              if ( new_ep.token.value === completed_resp_token.value ) {
+                console.log("success1")
+                follow_ups.push(new_ep)
+              }
+              else{
+                console.log("failure")
+              }
+            }
           }
           continue
           // console.log("Adding", ep, "to new curr_api where curr_api is", curr_apis)
@@ -508,7 +480,16 @@ export function getFollowups(
         // if (!follow_ups.includes(ep as apiTypes.HttpEndpoint)) {
         //   follow_ups.push(ep as apiTypes.HttpEndpoint);
         // }
-        follow_ups.push(ep as apiTypes.HttpEndpoint)
+        // debugger
+        if( ep.token !== undefined ) {
+          if ( ep.token.value === completed_resp_token.value) {
+            console.log("success2")
+            follow_ups.push(ep)
+          }
+          
+        }
+
+        // follow_ups.push(ep as apiTypes.HttpEndpoint)
       }
 
   }
@@ -516,7 +497,7 @@ export function getFollowups(
   //   follow_ups.push(new_ep)
   // }
   //to here is new funtion for when the ep is another api
-  console.log("!!!follow_ups", follow_ups);
+  // console.log("!!!follow_ups", follow_ups);
   return follow_ups;
 }
 
@@ -621,16 +602,3 @@ function MyJsonView(props: {
     </material.Box>
   );
 }
-// function getDescendingApis(apis: apiTypes.Api<unknown>[]): apiTypes.Api<unknown>[]{
-//   const child_apis: apiTypes.Api<unknown>[] = []
-//   // const to_push: apiTypes.Api<unknown>[] = []
-//  for(const api of apis){
-//   child_apis.push(api)
-//   for(const ep of api.endpoints){
-//     if(ep.kind === 'api')
-//     child_apis.push(ep)
-//   }
-//  }
-// return child_apis
-
-// }
