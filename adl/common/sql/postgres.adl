@@ -1,0 +1,49 @@
+module common.sql.postgres {
+
+struct SelectExpr {
+    String field;
+    Vector<String> fieldPrefix;
+};
+
+struct SelectExprsFrom {
+    Vector<SelectExpr> selExprs;
+    String tableName;
+    String tableAlias;
+    Vector<WhereCondition> wheres = [];
+};
+
+struct InsertExprs<T> {
+    // Vector<SelectExpr> selExprs;
+    Vector<String> cols;
+    String tableName;
+};
+
+union WhereCondition {
+    WhereEq<String> eqStr;
+    // Void limit;
+    // Void offset;
+};
+
+struct WhereEq<T> {
+    String col;
+    // T val;
+};
+
+// struct SelectJoinExprsFrom {
+//     SelectExprsFrom sef;
+//     // String col;
+// };
+
+struct SelectJoinPart {
+    SelectExprsFrom sef;
+    String col;
+    String toTableAlias;
+    String toCol;
+};
+
+struct SelectJoin {
+    SelectExprsFrom a;
+    Vector<SelectJoinPart> b;
+};
+
+};

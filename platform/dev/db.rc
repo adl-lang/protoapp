@@ -1,0 +1,4 @@
+export PGHOST=localhost
+export PGDATABASE=appdb
+export PGUSER=postgres
+export PGPASSWORD=xyzzy

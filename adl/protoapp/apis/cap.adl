@@ -1,0 +1,134 @@
+module protoapp.apis.cap {
+
+import common.http.Unit;
+import common.capability.HttpPost;
+import common.capability.HttpGet;
+import common.capability.CapabilityApi;
+import common.time.Instant;
+import common.strings.EmailAddress;
+import common.strings.StringNE;
+import common.strings.StringML;
+import common.strings.Password;
+
+import protoapp.db.AppUserId;
+import protoapp.db.MessageId;
+
+import protoapp.apis.types.*;
+import common.capability.CapabilityToken;
+
+struct Capability {
+  String user_id;
+  Vector<String> roles;
+};
+
+struct ApiRequests {
+  /// AWS default compatible health check
+  HttpGet<Unit> healthy = {
+    "path": "/"
+  };
+  /// Test the server is live
+  HttpPost<Unit, Unit> ping = {
+    "path": "/ping"
+  };
+  /// Login a user
+  ///
+  /// The response will set an httpOnly cookie containing the refresh token
+  HttpPost<LoginReq, LoginResp> login = {
+    "path": "/login"
+  };
+
+  /// Get a refreshed token, the refresh token is used to get an access token
+  HttpPost<LoginReq, NewRefreshResp> new_refresh = {
+    "path": "/new_refresh"
+  };
+
+  /// Clear the `refreshToken` cookie.
+  HttpPost<Unit, Unit> logout = {
+    "path": "/logout"
+  };
+
+  // // bug is go cap server side interface generator
+  // HttpPost<Unit, protoapp.apis.captest.A_ApiResp> a = {
+  //   "path": "/a"
+  // };
+  // CapabilityApi<protoapp.apis.captest.A_ApiToken,Unit,protoapp.apis.captest.A_Api> accessTokenApi = {
+  //   "service": {},
+  //   "token_delivery": {"header": "a_cookie"}
+  // };
+
+  // This is a simple refresh model, hence the Unit as the S type.
+  // If a more complex model (eg. with user blacklisting) was required the S payload would be different
+  /// API Endpoint used to refresh the access token
+  CapabilityApi<RefreshToken,Unit,RefreshApiRequests> refreshTokenApi = {
+    "service": {},
+    "name": "Refresh Token API",
+    "token_delivery": {"header": "refreshToken"}
+  };
+
+  /// API endpoints accessible when logged in as admin
+  CapabilityApi<AdminAccessToken,Capability,UserApiRequests> userApi = {
+    "service": {},
+    "name": "User Admin API",
+    "token_delivery": "auth_bearer"
+  };
+  
+  // MySubApi my_sub_api = {};
+};
+
+// struct MySubApi {
+//   /// Test the server is live
+//   HttpPost<Unit, Unit> ping = {
+//     "path": "/ping2"
+//   };
+// };
+
+struct AccessApiRequests {
+  /// Post a message to the noticeboard
+  HttpPost<NewMessageReq, MessageId> newMessage = {
+    "path": "/messages/new"
+  };
+  /// Get recent noticeboard messages
+  HttpPost<RecentMessagesReq, Paginated<Message> > recentMessages = {
+    "path": "/messages/recent"
+  };
+  /// Gets info about the logged in user
+  // NOTE: Fails with 401 if the token is invalid or user does not exist
+  HttpGet<UserWithId> who_am_i = {
+    "path": "/whoami"
+  };
+};
+
+struct RefreshApiRequests {
+  /// Get a refreshed access token
+  ///
+  /// If the refresh token is not provided in the request body, then it will
+  /// be read from the refreshToken cookie in the request.
+  HttpPost<RefreshReq, RefreshResp> refresh = {
+    "path": "/refresh"
+  };
+
+  /// API endpoints accessible when logged in
+  CapabilityApi<AccessToken,Capability,AccessApiRequests> accessTokenApi = {
+    "service": {},
+    "name": "Logged-in API",
+    "token_delivery": "auth_bearer"
+  };
+
+};
+
+struct UserApiRequests {
+  /// Create a new user
+  HttpPost<UserDetails, AppUserId> create_user = {
+    "path": "/users/create"
+  };
+  /// Update a user
+  HttpPost<WithId<AppUserId,UserDetails>, Unit> update_user = {
+    "path": "/users/update"
+  };
+  /// Query users
+  HttpPost<QueryUsersReq, Paginated<UserWithId>> query_users = {
+    "path": "/users/query"
+  };
+};
+
+};

@@ -1,0 +1,70 @@
+module common.time
+{
+
+import adlc.config.go_.*;
+
+annotation Instant GoCustomType {
+  "gotype" : {
+    "name": "Time",
+    "type_constraints": [],
+    "pkg": "time",
+    "import_path": "time"
+  },
+  "helpers" : {
+    "name": "InstantHelpers",
+    "ref": null
+  }
+};
+
+annotation LocalDate GoCustomType {
+  "gotype" : {
+    "name": "Time",
+    "type_constraints": [],
+    "pkg": "time",
+    "import_path": "time"
+  },
+  "helpers" : {
+    "name": "LocalDateHelpers",
+    "ref": null
+  }
+};
+
+annotation LocalTime GoCustomType {
+  "gotype" : {
+    "name": "Time",
+    "type_constraints": [],
+    "pkg": "time",
+    "import_path": "time"
+  },
+  "helpers" : {
+    "name": "LocalTimeHelpers",
+    "ref": null
+  }
+};
+
+annotation LocalDateTime GoCustomType {
+  "gotype" : {
+    "name": "Time",
+    "type_constraints": [],
+    "pkg": "time",
+    "import_path": "time"
+  },
+  "helpers" : {
+    "name": "LocalDateTimeHelpers",
+    "ref": null
+  }
+};
+
+
+// annotation DayOfWeek JavaCustomType {
+//     "javaname" : "java.time.DayOfWeek",
+//     "helpers" : "au.com.helixta.adl.custom.DayOfWeekHelpers"
+// };
+
+// annotation Duration JavaCustomType {
+//     "javaname" : "java.time.LocalDateTime",
+//     "helpers" : "au.com.helixta.adl.custom.LocalDateTimeHelpers"
+// };
+
+
+};

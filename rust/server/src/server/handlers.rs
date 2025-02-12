@@ -4,13 +4,14 @@ use poem::web::Json;
 
 use crate::adl::custom::common::db::DbKey;
 use crate::adl::gen::common::http::Unit;
-use crate::adl::gen::protoapp::apis::ui::{
-    ApiRequests, LoginReq, LoginResp, LoginTokens, Message, Paginated, QueryUsersReq,
+use crate::adl::gen::protoapp::apis::types::{
+    LoginReq, LoginResp, LoginTokens, Message, Paginated, QueryUsersReq,
     RecentMessagesReq, RefreshReq, RefreshResp, User, UserDetails, UserWithId, WithId,
 };
+use crate::adl::gen::protoapp::apis::ui::ApiRequests;
 use crate::adl::gen::protoapp::config::server::ServerConfig;
 use crate::adl::gen::protoapp::db::{AppUser, AppUserId};
-use crate::adl::gen::protoapp::{apis::ui::NewMessageReq, db::MessageId};
+use crate::adl::gen::protoapp::{apis::types::NewMessageReq, db::MessageId};
 use crate::server::poem_adl_interop::get_adl_request_context;
 
 use super::jwt::AccessClaims;

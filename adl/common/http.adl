@@ -59,5 +59,11 @@ union RateLimitTimeUnit {
 /// Empty Struct (Used mostly for Void RPC responses)
 struct Unit {};
 
-};
+// Used as an annotate on nested Apis, providing specifics.
+// struct Api {
+//   Nullable<String> prefix_path;
+// };
 
+// type ApiGroup = String;
+
+};

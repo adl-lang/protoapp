@@ -21,6 +21,8 @@ async function main() {
       ...commonFlags,
       adlModules: [
         "protoapp.apis.ui",
+        "protoapp.apis.cap",
+        "protoapp.apis.captest",
         "sys.adlast",
         "common.ui",
       ],
@@ -89,6 +91,26 @@ async function main() {
      repo + "/rust/server/migrations/00000000000030_adl-views.latest.sql",
     );
   }
+
+  {
+    // define command used to create the subprocess
+    const command = new Deno.Command("go", {
+      args: [
+        "generate",
+      ],
+    });
+
+    // create subprocess and collect output
+    const { code, stdout, stderr } = await command.output();
+
+    console.assert(code === 0);
+    console.log(new TextDecoder().decode(stdout));
+    console.log(new TextDecoder().decode(stderr));
+    if (code !== 0) {
+      throw new Error("Failed to run adl typescript");
+    }
+  }
+
 }
 
 export function getRepoRoot(): string {

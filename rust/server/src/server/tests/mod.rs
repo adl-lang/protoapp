@@ -1,6 +1,6 @@
 use crate::adl::gen::common::http::Unit;
 use crate::adl::gen::protoapp::apis;
-use crate::adl::gen::protoapp::apis::ui::{
+use crate::adl::gen::protoapp::apis::types::{
     LoginReq, LoginTokens, Message, PageReq, Paginated, RefreshReq,
 };
 use crate::server::tests::helpers::{
@@ -22,7 +22,7 @@ async fn server_ping() {
     let mut db = DbTestEnv::new().await;
     let oserver = OServer::spawn(AppState::new(test_server_config(), db.pool.clone()));
 
-    let ping = apis::ui::ApiRequests::def_ping();
+    let ping = apis::types::ApiRequests::def_ping();
     server_public_request(ping, &Unit {}).await;
 
     oserver.shutdown().await.unwrap();
@@ -38,7 +38,7 @@ async fn server_login() {
 
     let tokens = {
         // Check that we can login as joe
-        let resp = server_public_request(apis::ui::ApiRequests::def_login(), &u1).await;
+        let resp = server_public_request(apis::types::ApiRequests::def_login(), &u1).await;
         assert!(is_valid_login(&resp));
         get_login_tokens(resp).unwrap()
     };
@@ -46,7 +46,7 @@ async fn server_login() {
     {
         // Check that we can refresh using the refresh token
         let resp = server_public_request(
-            apis::ui::ApiRequests::def_refresh(),
+            apis::types::ApiRequests::def_refresh(),
             &RefreshReq {
                 refresh_token: Some(tokens.refresh_jwt),
             },
@@ -58,7 +58,7 @@ async fn server_login() {
     {
         // Check that we can't refresh using the access token
         let resp = server_public_request(
-            apis::ui::ApiRequests::def_refresh(),
+            apis::types::ApiRequests::def_refresh(),
             &RefreshReq {
                 refresh_token: Some(tokens.access_jwt),
             },
@@ -69,14 +69,14 @@ async fn server_login() {
 
     {
         // Check that we can logout
-        server_public_request(apis::ui::ApiRequests::def_logout(), &Unit {}).await;
+        server_public_request(apis::types::ApiRequests::def_logout(), &Unit {}).await;
     }
 
     {
         // Check that we can't login with the wrong password
         let resp = server_public_request(
-            apis::ui::ApiRequests::def_login(),
-            &apis::ui::LoginReq {
+            apis::types::ApiRequests::def_login(),
+            &apis::types::LoginReq {
                 email: "joe@test.com".to_owned(),
                 password: "xxxxxx".to_owned(),
             },
@@ -88,8 +88,8 @@ async fn server_login() {
     {
         // Check that we can't login with an invalid email
         let resp = server_public_request(
-            apis::ui::ApiRequests::def_login(),
-            &apis::ui::LoginReq {
+            apis::types::ApiRequests::def_login(),
+            &apis::types::LoginReq {
                 email: "mike@test.com".to_owned(),
                 password: "abcde".to_owned(),
             },
@@ -110,7 +110,7 @@ async fn server_user_profile() {
     let u1 = create_test_user_joe(&mut db).await;
     let u1_jwt = login_user(&u1).await;
 
-    let resp = server_auth_get(apis::ui::ApiRequests::def_who_am_i(), &u1_jwt).await;
+    let resp = server_auth_get(apis::types::ApiRequests::def_who_am_i(), &u1_jwt).await;
     assert_eq!(resp.value.fullname, "Joe");
     assert_eq!(resp.value.email, "joe@test.com");
     assert_eq!(resp.value.is_admin, false);
@@ -163,20 +163,20 @@ async fn server_user_crud() {
     let u2 = create_test_user_sarah(&mut db).await;
 
     let u1_jwt =
-        get_login_tokens(server_public_request(apis::ui::ApiRequests::def_login(), &u1).await)
+        get_login_tokens(server_public_request(apis::types::ApiRequests::def_login(), &u1).await)
             .unwrap()
             .access_jwt;
     let u2_jwt =
-        get_login_tokens(server_public_request(apis::ui::ApiRequests::def_login(), &u2).await)
+        get_login_tokens(server_public_request(apis::types::ApiRequests::def_login(), &u2).await)
             .unwrap()
             .access_jwt;
 
     // u1 is not an admin, so shouldn't be allowed to create new users
     {
         let http_resp = server_auth_request1(
-            apis::ui::ApiRequests::def_create_user(),
+            apis::types::ApiRequests::def_create_user(),
             &u1_jwt,
-            &apis::ui::UserDetails {
+            &apis::types::UserDetails {
                 fullname: "Austin".to_owned(),
                 email: "austin@mycompany.org".to_owned(),
                 is_admin: false,
@@ -190,9 +190,9 @@ async fn server_user_crud() {
     // u2 is an admin, so can create new users
     {
         let http_resp = server_auth_request1(
-            apis::ui::ApiRequests::def_create_user(),
+            apis::types::ApiRequests::def_create_user(),
             &u2_jwt,
-            &apis::ui::UserDetails {
+            &apis::types::UserDetails {
                 fullname: "Austin".to_owned(),
                 email: "austin@mycompany.org".to_owned(),
                 is_admin: false,
@@ -206,9 +206,9 @@ async fn server_user_crud() {
     // and can query existing users
     {
         let resp = server_auth_request(
-            apis::ui::ApiRequests::def_query_users(),
+            apis::types::ApiRequests::def_query_users(),
             &u2_jwt,
-            &apis::ui::QueryUsersReq {
+            &apis::types::QueryUsersReq {
                 page: PageReq {
                     offset: 0,
                     limit: 100,
@@ -225,9 +225,9 @@ async fn server_user_crud() {
 
 async fn send_message(jwt: &str, message: &str) {
     let _ = server_auth_request(
-        apis::ui::ApiRequests::def_new_message(),
+        apis::types::ApiRequests::def_new_message(),
         jwt,
-        &apis::ui::NewMessageReq {
+        &apis::types::NewMessageReq {
             message: message.to_owned(),
         },
     )
@@ -236,33 +236,33 @@ async fn send_message(jwt: &str, message: &str) {
 
 async fn recent_messages(jwt: &str, offset: u64, limit: u64) -> Paginated<Message> {
     server_auth_request(
-        apis::ui::ApiRequests::def_recent_messages(),
+        apis::types::ApiRequests::def_recent_messages(),
         jwt,
-        &apis::ui::RecentMessagesReq {
+        &apis::types::RecentMessagesReq {
             page: PageReq { offset, limit },
         },
     )
     .await
 }
 
-fn is_valid_login(resp: &apis::ui::LoginResp) -> bool {
+fn is_valid_login(resp: &apis::types::LoginResp) -> bool {
     match resp {
-        apis::ui::LoginResp::Tokens(_) => true,
-        apis::ui::LoginResp::InvalidCredentials => false,
+        apis::types::LoginResp::Tokens(_) => true,
+        apis::types::LoginResp::InvalidCredentials => false,
     }
 }
 
-fn is_valid_refresh(resp: &apis::ui::RefreshResp) -> bool {
+fn is_valid_refresh(resp: &apis::types::RefreshResp) -> bool {
     match resp {
-        apis::ui::RefreshResp::AccessToken(_) => true,
+        apis::types::RefreshResp::AccessToken(_) => true,
         _ => false,
     }
 }
 
-fn get_login_tokens(resp: apis::ui::LoginResp) -> Option<LoginTokens> {
+fn get_login_tokens(resp: apis::types::LoginResp) -> Option<LoginTokens> {
     match resp {
-        apis::ui::LoginResp::Tokens(tokens) => Some(tokens),
-        apis::ui::LoginResp::InvalidCredentials => None,
+        apis::types::LoginResp::Tokens(tokens) => Some(tokens),
+        apis::types::LoginResp::InvalidCredentials => None,
     }
 }
 

@@ -1,0 +1,90 @@
+module protoapp.apis.captest {
+
+import common.http.Unit;
+import common.http.Api;
+import common.capability.HttpPost;
+import common.capability.HttpGet;
+import common.capability.CapabilityApi;
+import common.capability.CapabilityToken;
+
+type A_ApiToken = String;
+type A_ApiTokenMarker = CapabilityToken<A_ApiToken>;
+type B_ApiToken = String;
+type B_ApiTokenMarker = CapabilityToken<B_ApiToken>;
+type C_ApiToken = String;
+type C_ApiTokenMarker = CapabilityToken<C_ApiToken>;
+
+struct ApiRequests {
+  /// Post a unit and get a token to access a_api
+  HttpPost<Unit, A_ApiResp> a = {
+    "path": "/a"
+  };
+  /// Access to A API things
+  CapabilityApi<A_ApiToken,Unit,A_Api> accessTokenApi = {
+    "service": {},
+    "token_delivery": {"header": "a_cookie"}
+  };
+
+  MyApi my_api = {};
+};
+
+struct MyApi {
+  HttpPost<Unit, A_ApiResp> a = {
+    "path": "/aa"
+  };
+};
+
+struct A_Api {
+  /// Post a AB and get a token to access b_api
+  HttpPost<AB, B_ApiResp> b = {
+    "path": "/b"
+  };
+  /// Get a get a token to access b_api
+  HttpGet<B_ApiResp> a2 = {
+    "path": "/a2"
+  };
+  /// Access to B API things
+  CapabilityApi<B_ApiToken,Unit,B_Api> accessTokenApi = {
+    "service": {},
+    "token_delivery": {"header": "b_cookie"}
+  };
+};
+
+struct AB {
+  String a;
+  String b;
+};
+
+struct B_Api {
+  /// Post a B_ApiToken and get a token to access c_api
+  HttpPost<B_ApiToken, C_ApiResp> c = {
+    "path": "/c"
+  };
+
+  /// Access to C API things
+  CapabilityApi<C_ApiToken,Unit,C_Api> accessTokenApi = {
+    "service": {},
+    "token_delivery": {"header": "c_cookie"}
+  };
+};
+
+struct C_Api {
+  HttpPost<C_ApiToken, String> hello = {
+    "path": "/hello"
+  };
+};
+
+union A_ApiResp {
+  @A_ApiTokenMarker {}
+  String token;
+};
+union B_ApiResp {
+  @B_ApiTokenMarker {}
+  String token;
+};
+union C_ApiResp {
+  @C_ApiTokenMarker {}
+  String token;
+};
+
+};
