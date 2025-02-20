@@ -62,6 +62,8 @@ struct ApiRequests {
     "security" : "token"
   };
 
+  MessageApi messages = {};
+
   /// Gets info about the logged in user
   // NOTE: Fails with 401 if the token is invalid or user does not exist
   HttpGet<UserWithId> who_am_i = {
@@ -88,6 +90,22 @@ struct ApiRequests {
   };
 };
 
+struct MessageApi {
+  /// Get recent noticeboard messages
+  HttpPost<RecentMessagesReq, Paginated<Message> > recent_messages = {
+    "path": "/messages/recent1",
+    // "security" : "token"
+    "security" : "public"
+  };
+
+  /// Post a message to the noticeboard
+  HttpPost<NewMessageReq, MessageId> new_message = {
+    "path": "/messages/new1",
+    // "security" : "token"
+    "security" : "public"
+  };
+};
+
 struct LoginReq {
   StringNE email;
   Password password;
@@ -111,7 +129,6 @@ struct LoginTokens {
   StringNE access_jwt;
   StringNE refresh_jwt;
 };
-
 struct NewMessageReq {
   StringML message;
 };
