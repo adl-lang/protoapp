@@ -1,4 +1,4 @@
-import { HttpSecurity, snHttpPost, texprHttpPost } from "@/adl-gen/common/http";
+import { HttpSecurity, snHttpGet, snHttpPost, texprHttpPost } from "@/adl-gen/common/http";
 import * as API from "@/adl-gen/protoapp/apis/ui";
 import { RESOLVER } from "@/adl-gen/resolver";
 import * as AST from "@/adl-gen/sys/adlast";
@@ -18,6 +18,7 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import { JSX, useMemo, useRef, useState } from "react";
 import JsonView from 'react18-json-view';
 import 'react18-json-view/src/style.css';
+
 
 type ModalState = ChooseEndpoint | CreateRequest<unknown>;
 
@@ -46,6 +47,14 @@ interface CompletedRequest<I, O> {
   resp: CompletedResponse<O>,
 }
 
+interface Api<C> {
+  kind: 'api';
+  name: string;
+  docString: string,
+  typetoken?: ADL.ATypeExpr<C>;
+  endpoints: Endpoint[];
+}
+
 type CompletedResponse<O>
   = { success: true, value: O }
   | { success: false, httpStatus: number, responseBody: string }
@@ -61,9 +70,10 @@ export function ApiWorkbench() {
 
     // only show endpoints accessible for the current authstate
     return allEndpoints.filter(ep =>
-      ep.security.kind === 'public' ||
+      ep.kind === 'callable' &&
+      (ep.security.kind === 'public' ||
       ep.security.kind === 'token' && authState.kind == 'auth' ||
-      ep.security.kind === 'tokenWithRole' && jwt_decoded && ep.security.value === jwt_decoded.role
+      ep.security.kind === 'tokenWithRole' && jwt_decoded && ep.security.value === jwt_decoded.role)
     );
   }, [authState]);
 
@@ -109,17 +119,22 @@ export function ApiWorkbench() {
             endpoints={endpoints}
           />
         );
-        case 'create-request': return (
-          <ModalCreateRequest
-            cancel={() => setModal(undefined)}
-            endpoint={modal.endpoint}
-            execute={execute}
-            initial={modal.initial}
-          />
-        );
-      }
+        case 'create-request': {
+          if (modal.endpoint.kind === "callable") {
+            return (
+              <ModalCreateRequest
+                cancel={() => setModal(undefined)}
+                endpoint={modal.endpoint}
+                execute={execute}
+                initial={modal.initial}
+              />
+            );
+          }
+
+        }
     }
   }
+}
 
   return (
     <Container fixed>
@@ -314,7 +329,7 @@ async function executeRequest<I, O>(service: ServiceBase, jwt: string | undefine
   }
 }
 
-function updateAppState<I, O>(appState: AppState, endpoint: HttpPostEndpoint<I, O>, req: I, resp: O) {
+function updateAppState<I, O>(appState: AppState, endpoint: Endpoint, req: I, resp: O) {
   // All the endpoint handling is generic except for here, where we update the auth state when the
   // login or logout endpoints are called.
   switch (endpoint.name) {
@@ -323,9 +338,11 @@ function updateAppState<I, O>(appState: AppState, endpoint: HttpPostEndpoint<I, 
   }
 }
 
-type Endpoint = HttpPostEndpoint<unknown, unknown>;
+type Endpoint = HttpPostEndpoint<unknown, unknown> | Api<unknown>;
 
 interface HttpPostEndpoint<I, O> {
+  kind: 'callable';
+  method: 'post' | 'get'
   name: string;
   path: string;
   security: HttpSecurity,
@@ -348,9 +365,22 @@ function getEndpoints<API>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<API>
 
   const endpoints: Endpoint[] = [];
   for (const f of struct.fields) {
-    if (f.typeExpr.typeRef.kind === 'reference' && scopedNamesEqual(f.typeExpr.typeRef.value, snHttpPost)) {
-      endpoints.push(getHttpPostEndpoint(resolver, f))
+    if (f.typeExpr.typeRef.kind !== 'reference'){
+      throw new Error("API must be a reference");
     }
+    if ( scopedNamesEqual(f.typeExpr.typeRef.value, snHttpPost)) {
+      endpoints.push(getHttpPostEndpoint(resolver, f))
+      continue
+    }
+    if ( scopedNamesEqual(f.typeExpr.typeRef.value, snHttpGet)) {
+      endpoints.push(getHttpPostEndpoint(resolver, f))
+      continue
+    }
+    const sd = resolver(f.typeExpr.typeRef.value)
+      if (sd.decl.type_.kind === "struct_") {
+        endpoints.push(getApiStruct(resolver, f))
+        
+      }
   }
   return endpoints;
 }
@@ -372,6 +402,8 @@ function getHttpPostEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field)
 
   const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
   return {
+    kind: 'callable',
+    method: 'post',
     name: field.name,
     path: httpPost.path,
     docString,
@@ -383,5 +415,52 @@ function getHttpPostEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field)
   }
 }
 
+function getHttpGetEndpoint<O>(
+  resolver: ADL.DeclResolver,
+  field: AST.Field,
+): HttpPostEndpoint<null, O> {
+  if (field.default.kind !== 'just') {
+    throw new Error("API endpoint must have a default value");
+  }
+  const texprI = ADL.texprVoid();
+  const texprO = ADL.makeATypeExpr<O>(field.typeExpr.parameters[0]);
+  const jb = createJsonBinding(resolver, texprHttpGet(texprO));
+  const httpGet = jb.fromJson(field.default.value);
+
+  const veditorI = createVEditor(texprI, resolver, UI_FACTORY);
+  const veditorO = createVEditor(texprO, resolver, UI_FACTORY);
+  const jsonBindingI = createJsonBinding(resolver, texprI);
+  const jsonBindingO = createJsonBinding(resolver, texprO);
+
+  const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
+  return {
+    kind: 'callable',
+    method: 'get',
+    name: field.name,
+    path: httpGet.path,
+    docString,
+    security: httpGet.security,
+    veditorI,
+    veditorO,
+    jsonBindingI,
+    jsonBindingO,
+  }
+}
+
+function getApiStruct<C>(
+  resolver: ADL.DeclResolver,
+  field: AST.Field,
+): Api<C> {
+  const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
+  return {
+    kind: "api",
+    docString,
+    // apis_called: [],
+    endpoints: getEndpoints(resolver, { value: field.typeExpr }),
+    name: field.name,
+  }
+}
+
 const JB_DOC = createJsonBinding(RESOLVER, texprDoc());
 const UI_FACTORY = createUiFactory();
+

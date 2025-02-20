@@ -50,24 +50,14 @@ struct ApiRequests {
     "security" : "public"
   };
 
-  /// Post a message to the noticeboard
-  HttpPost<NewMessageReq, MessageId> new_message = {
-    "path": "/messages/new",
-    "security" : "token"
-  };
-
-  /// Get recent noticeboard messages
-  HttpPost<RecentMessagesReq, Paginated<Message> > recent_messages = {
-    "path": "/messages/recent",
-    "security" : "token"
-  };
-
   /// Gets info about the logged in user
   // NOTE: Fails with 401 if the token is invalid or user does not exist
   HttpGet<UserWithId> who_am_i = {
     "path": "/whoami",
     "security" : "token"
   };
+
+  MessageApi messages = {};
 
   /// Create a new user
   HttpPost<UserDetails, AppUserId> create_user = {
@@ -85,6 +75,20 @@ struct ApiRequests {
   HttpPost<QueryUsersReq, Paginated<UserWithId>> query_users = {
     "path": "/users/query",
     "security" : { "tokenWithRole": "admin" }
+  };
+};
+
+struct MessageApi {
+  /// Post a message to the noticeboard
+  HttpPost<NewMessageReq, MessageId> new_message = {
+    "path": "/messages/new",
+    "security" : "token"
+  };
+
+  /// Get recent noticeboard messages
+  HttpPost<RecentMessagesReq, Paginated<Message> > recent_messages = {
+    "path": "/messages/recent",
+    "security" : "token"
   };
 };
 

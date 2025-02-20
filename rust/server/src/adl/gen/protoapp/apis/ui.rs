@@ -50,22 +50,13 @@ pub struct ApiRequests {
   pub logout: HttpPost<Unit, Unit>,
 
   /**
-   * Post a message to the noticeboard
-   */
-  #[serde(default="ApiRequests::def_new_message")]
-  pub new_message: HttpPost<NewMessageReq, MessageId>,
-
-  /**
-   * Get recent noticeboard messages
-   */
-  #[serde(default="ApiRequests::def_recent_messages")]
-  pub recent_messages: HttpPost<RecentMessagesReq, Paginated<Message>>,
-
-  /**
    * Gets info about the logged in user
    */
   #[serde(default="ApiRequests::def_who_am_i")]
   pub who_am_i: HttpGet<UserWithId>,
+
+  #[serde(default="ApiRequests::def_messages")]
+  pub messages: MessageApi,
 
   /**
    * Create a new user
@@ -94,9 +85,8 @@ impl ApiRequests {
       login: ApiRequests::def_login(),
       refresh: ApiRequests::def_refresh(),
       logout: ApiRequests::def_logout(),
-      new_message: ApiRequests::def_new_message(),
-      recent_messages: ApiRequests::def_recent_messages(),
       who_am_i: ApiRequests::def_who_am_i(),
+      messages: ApiRequests::def_messages(),
       create_user: ApiRequests::def_create_user(),
       update_user: ApiRequests::def_update_user(),
       query_users: ApiRequests::def_query_users(),
@@ -123,16 +113,12 @@ impl ApiRequests {
     HttpPost::<Unit, Unit>{path : "/logout".to_string(), security : HttpSecurity::Public, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
-  pub fn def_new_message() -> HttpPost<NewMessageReq, MessageId> {
-    HttpPost::<NewMessageReq, MessageId>{path : "/messages/new".to_string(), security : HttpSecurity::Token, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
-  }
-
-  pub fn def_recent_messages() -> HttpPost<RecentMessagesReq, Paginated<Message>> {
-    HttpPost::<RecentMessagesReq, Paginated<Message>>{path : "/messages/recent".to_string(), security : HttpSecurity::Token, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
-  }
-
   pub fn def_who_am_i() -> HttpGet<UserWithId> {
     HttpGet::<UserWithId>{path : "/whoami".to_string(), security : HttpSecurity::Token, rate_limit : None, resp_type : std::marker::PhantomData}
+  }
+
+  pub fn def_messages() -> MessageApi {
+    MessageApi{new_message : HttpPost::<NewMessageReq, MessageId>{path : "/messages/new".to_string(), security : HttpSecurity::Token, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}, recent_messages : HttpPost::<RecentMessagesReq, Paginated<Message>>{path : "/messages/recent".to_string(), security : HttpSecurity::Token, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}}
   }
 
   pub fn def_create_user() -> HttpPost<UserDetails, AppUserId> {
@@ -145,6 +131,38 @@ impl ApiRequests {
 
   pub fn def_query_users() -> HttpPost<QueryUsersReq, Paginated<UserWithId>> {
     HttpPost::<QueryUsersReq, Paginated<UserWithId>>{path : "/users/query".to_string(), security : HttpSecurity::TokenWithRole("admin".to_string()), rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+  }
+}
+
+#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
+pub struct MessageApi {
+  /**
+   * Post a message to the noticeboard
+   */
+  #[serde(default="MessageApi::def_new_message")]
+  pub new_message: HttpPost<NewMessageReq, MessageId>,
+
+  /**
+   * Get recent noticeboard messages
+   */
+  #[serde(default="MessageApi::def_recent_messages")]
+  pub recent_messages: HttpPost<RecentMessagesReq, Paginated<Message>>,
+}
+
+impl MessageApi {
+  pub fn new() -> MessageApi {
+    MessageApi {
+      new_message: MessageApi::def_new_message(),
+      recent_messages: MessageApi::def_recent_messages(),
+    }
+  }
+
+  pub fn def_new_message() -> HttpPost<NewMessageReq, MessageId> {
+    HttpPost::<NewMessageReq, MessageId>{path : "/messages/new".to_string(), security : HttpSecurity::Token, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+  }
+
+  pub fn def_recent_messages() -> HttpPost<RecentMessagesReq, Paginated<Message>> {
+    HttpPost::<RecentMessagesReq, Paginated<Message>>{path : "/messages/recent".to_string(), security : HttpSecurity::Token, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 }
 
