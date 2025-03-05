@@ -1,4 +1,4 @@
-This respository implements a small three tier web application, using [ADL] as the "typing glue". It's intended to
+This respository implements a small full stack web application, using [ADL] as the "typing glue". It's intended to
 demonstrate the benefits of the strong cross language type system provided by ADL, and also to serve as a template
 that can be forked as a starting point for new projects.
 
