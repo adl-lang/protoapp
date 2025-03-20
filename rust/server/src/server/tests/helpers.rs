@@ -73,7 +73,7 @@ impl DbTestEnv {
             .expect("execute sql to succeed");
     }
 
-    pub async fn cleanup(&mut self) -> () {
+    pub async fn cleanup(&mut self) {
         sqlx::query(&format!("DROP SCHEMA {} CASCADE", self.schema))
             .execute(&self.pool)
             .await
@@ -111,14 +111,14 @@ pub async fn server_auth_request1<I: Serialize, O: DeserializeOwned>(
     req: &I,
 ) -> reqwest::Response {
     let client = reqwest::Client::new();
-    let resp = client
+    
+    client
         .post(format!("http://localhost:8181{}", endpoint.path))
         .header("Authorization", format!("Bearer {}", jwt))
         .json(req)
         .send()
         .await
-        .unwrap();
-    resp
+        .unwrap()
 }
 
 pub async fn server_auth_get<O: DeserializeOwned>(endpoint: HttpGet<O>, jwt: &str) -> O {

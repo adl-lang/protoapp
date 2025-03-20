@@ -39,7 +39,7 @@ pub fn create_refresh(cfg: &ServerConfig, sub: String) -> String {
         exp,
     };
 
-    let key = EncodingKey::from_secret(&cfg.jwt_refresh_secret.as_bytes());
+    let key = EncodingKey::from_secret(cfg.jwt_refresh_secret.as_bytes());
     jsonwebtoken::encode(&Header::default(), &claims, &key).expect("jwt encode should succeed")
 }
 
@@ -53,7 +53,7 @@ fn create_access_token(cfg: &ServerConfig, role: &str, sub: String) -> String {
         role: role.to_owned(),
     };
 
-    let key = EncodingKey::from_secret(&cfg.jwt_access_secret.as_bytes());
+    let key = EncodingKey::from_secret(cfg.jwt_access_secret.as_bytes());
     jsonwebtoken::encode(&Header::default(), &claims, &key).expect("jwt encode should succeed")
 }
 
@@ -67,20 +67,20 @@ fn calc_access_exp(expiry_secs: u64) -> usize {
 }
 
 pub fn decode_access(jwt_secret: &str, jwt: &str) -> anyhow::Result<AccessClaims> {
-    let key = DecodingKey::from_secret(&jwt_secret.as_bytes());
+    let key = DecodingKey::from_secret(jwt_secret.as_bytes());
     let token = jsonwebtoken::decode::<AccessClaims>(jwt, &key, &Validation::default())?;
     Ok(token.claims)
 }
 
 pub fn decode_refresh(jwt_secret: &str, jwt: &str) -> anyhow::Result<RefreshClaims> {
-    let key = DecodingKey::from_secret(&jwt_secret.as_bytes());
+    let key = DecodingKey::from_secret(jwt_secret.as_bytes());
     let token = jsonwebtoken::decode::<RefreshClaims>(jwt, &key, &Validation::default())?;
     Ok(token.claims)
 }
 
 pub fn bearer_token_from_auth_header(auth_header: &str) -> Option<String> {
     let fields: Vec<&str> = auth_header.split_ascii_whitespace().collect();
-    if fields.len() == 2 && *fields.get(0)?.to_lowercase() == "bearer".to_owned() {
+    if fields.len() == 2 && &fields.first()?.to_lowercase() == "bearer" {
         let token = *fields.get(1)?;
         return Some(token.to_owned());
     }

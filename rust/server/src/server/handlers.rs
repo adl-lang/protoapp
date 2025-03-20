@@ -163,7 +163,7 @@ pub async fn login_with_cookies(
         cookie.set_http_only(true);
         cookies.add(cookie);
     }
-    eresp.map(|v| Json(v)).map_err(|e| poem::Error::from(e))
+    eresp.map(Json).map_err(poem::Error::from)
 }
 
 #[handler]
@@ -179,7 +179,7 @@ pub async fn refresh_with_cookies(
     let refresh_token = i.0.refresh_token.or(token_from_cookie);
 
     let eresp = refresh(ctx, RefreshReq { refresh_token }).await;
-    eresp.map(|v| Json(v)).map_err(|e| poem::Error::from(e))
+    eresp.map(Json).map_err(poem::Error::from)
 }
 
 #[handler]
@@ -191,16 +191,16 @@ pub async fn logout_with_cookies(
     let ctx = get_adl_request_context(req, &ApiRequests::def_refresh().security)?;
     cookies.remove(REFRESH_TOKEN);
     let eresp = logout(ctx, i.0).await;
-    eresp.map(|v| Json(v)).map_err(|e| poem::Error::from(e))
+    eresp.map(Json).map_err(poem::Error::from)
 }
 
 const REFRESH_TOKEN: &str = "refreshToken";
 
 fn access_jwt_from_user(cfg: &ServerConfig, user_id: &AppUserId, user: &AppUser) -> String {
     if user.is_admin {
-        jwt::create_admin_access(&cfg, user_id.0.clone())
+        jwt::create_admin_access(cfg, user_id.0.clone())
     } else {
-        jwt::create_user_access(&cfg, user_id.0.clone())
+        jwt::create_user_access(cfg, user_id.0.clone())
     }
 }
 

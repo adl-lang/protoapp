@@ -113,7 +113,7 @@ async fn server_user_profile() {
     let resp = server_auth_get(apis::ui::ApiRequests::def_who_am_i(), &u1_jwt).await;
     assert_eq!(resp.value.fullname, "Joe");
     assert_eq!(resp.value.email, "joe@test.com");
-    assert_eq!(resp.value.is_admin, false);
+    assert!(!resp.value.is_admin);
 
     oserver.shutdown().await.unwrap();
     db.cleanup().await;
@@ -139,8 +139,8 @@ async fn server_messages() {
     assert_eq!(m.current_offset, 0);
     assert_eq!(m.total_count, 3);
     assert_eq!(m.items.len(), 2);
-    assert_eq!(m.items.get(0).unwrap().message, "Still going");
-    assert_eq!(m.items.get(0).unwrap().user_fullname, "Joe");
+    assert_eq!(m.items.first().unwrap().message, "Still going");
+    assert_eq!(m.items.first().unwrap().user_fullname, "Joe");
     assert_eq!(m.items.get(1).unwrap().message, "Another message");
 
     // Check page 2
@@ -148,7 +148,7 @@ async fn server_messages() {
     assert_eq!(m.current_offset, 2);
     assert_eq!(m.total_count, 3);
     assert_eq!(m.items.len(), 1);
-    assert_eq!(m.items.get(0).unwrap().message, "A first message");
+    assert_eq!(m.items.first().unwrap().message, "A first message");
 
     oserver.shutdown().await.unwrap();
     db.cleanup().await;
