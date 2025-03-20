@@ -41,8 +41,6 @@ export async function genRustSeaQuerySchema(
   writer.write('use crate::adl::custom::common::db::DbKey;\n');
   writer.write('use crate::adl::gen as adlgen;\n');
   writer.write('use crate::adl::rt as adlrt;\n');
-  writer.write('use crate::derive_db_conversions_adl;\n');
-  writer.write('use crate::derive_db_conversions_adl_enum;\n');
   writer.write('\n');
 
   const declsToDerive: { [key: string]: DeclToDerive } = {};

@@ -7,8 +7,6 @@ use sea_query::{Alias, DynIden, IntoIden};
 use crate::adl::custom::common::db::DbKey;
 use crate::adl::gen as adlgen;
 use crate::adl::rt as adlrt;
-use crate::derive_db_conversions_adl;
-use crate::derive_db_conversions_adl_enum;
 
 pub struct AppUser {}
 
