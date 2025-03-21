@@ -20,12 +20,8 @@ use super::{db, jwt, AppState};
 
 type ReqContext = AdlReqContext<AppState>;
 
-pub async fn ping(_ctx: ReqContext, _i: Unit) -> HandlerResult<Unit> {
-    Ok(Unit {})
-}
-
-pub async fn healthy(_ctx: ReqContext) -> HandlerResult<Unit> {
-    Ok(Unit {})
+pub async fn healthy(_ctx: ReqContext, _i: ()) -> HandlerResult<()> {
+    Ok(())
 }
 
 pub async fn login(ctx: ReqContext, i: LoginReq) -> HandlerResult<LoginResp> {
@@ -93,7 +89,7 @@ pub async fn recent_messages(
     })
 }
 
-pub async fn who_am_i(ctx: ReqContext) -> HandlerResult<UserWithId> {
+pub async fn who_am_i(ctx: ReqContext, _i: ()) -> HandlerResult<UserWithId> {
     let user_id = user_from_claims(&ctx.claims)?;
     let user = db::get_user_with_id(&ctx.state.db_pool, &user_id).await?;
     match user {

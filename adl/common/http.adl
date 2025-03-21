@@ -2,17 +2,9 @@ module common.http {
 
 /// Request types
 
-struct HttpGet<O> {
+struct HttpGet<I,O> {
   String path;
   HttpSecurity security;
-  Nullable<HttpRateLimit> rateLimit = null;
-  TypeToken<O> respType = null;
-};
-
-struct HttpPut<I,O> {
-  String path;
-  HttpSecurity security;
-  Nullable<HttpRateLimit> rateLimit = null;
   TypeToken<I> reqType = null;
   TypeToken<O> respType = null;
 };
@@ -20,15 +12,7 @@ struct HttpPut<I,O> {
 struct HttpPost<I,O> {
   String path;
   HttpSecurity security;
-  Nullable<HttpRateLimit> rateLimit = null;
   TypeToken<I> reqType = null;
-  TypeToken<O> respType = null;
-};
-
-struct HttpDelete<P,O> {
-  String path;
-  HttpSecurity security;
-  TypeToken<P> paramsType = null;
   TypeToken<O> respType = null;
 };
 
@@ -42,18 +26,6 @@ union HttpSecurity {
   // A token containing the specified role is required
   // for access
   String tokenWithRole;
-};
-
-
-struct HttpRateLimit {
-  Word32 maxRequests;
-  RateLimitTimeUnit perTimeUnit;
-};
-
-union RateLimitTimeUnit {
-  Void second;
-  Void minute;
-  Void hour;
 };
 
 /// Empty Struct (Used mostly for Void RPC responses)
