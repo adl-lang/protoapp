@@ -2,5 +2,19 @@
   "deno.enable": true,
   "deno.enablePaths": ["deno"],
   "deno.path": "./.local/bin/deno",
-  "deno.importMap": "./deno.json"
+  "deno.importMap": "./deno.json",
+  "typescript.preferences.importModuleSpecifier": "non-relative",
+  "terminal.integrated.profiles.osx": {
+    "zsh (local-setup)": {
+      "path": "zsh",
+      "args": ["-i"],
+      "env": {
+        "ZDOTDIR": "${workspaceFolder}/.vscode",
+        "ZSH_COMPDUMP": "${workspaceFolder}/.vscode/.zshcompdump",
+      },
+      "icon": "terminal-bash"
+    }
+  },
+  "terminal.integrated.defaultProfile.osx": "zsh (local-setup)",
+  "terminal.integrated.shellIntegration.enabled": true
 }
