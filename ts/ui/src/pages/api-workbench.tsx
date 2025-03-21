@@ -9,7 +9,7 @@ import { Modal } from "@/components/forms/mui/modal";
 import { VEditor } from "@/components/forms/mui/veditor";
 import { createUiFactory } from "@/components/forms/factory";
 import { AppState, useAppState } from "@/hooks/use-app-state";
-import { AdlRequestError, ServiceBase } from "@/service/service-base";
+import { AdlRequestError, encodeQueryString, ServiceBase } from "@/service/service-base";
 import * as ADL from "@adllang/adl-runtime";
 import { Json, JsonBinding, createJsonBinding, scopedNamesEqual } from "@adllang/adl-runtime";
 import { Box, Button, Card, CircularProgress, Container, Divider, IconButton, Typography } from "@mui/material";
@@ -183,7 +183,7 @@ function ModalCreateRequest<I, O>(props: {
       <div>
         <div>{props.endpoint.name}</div>
         <Divider sx={{ marginTop: "10px", marginBottom: "10px" }} />
-        {methodHasReqBody(props.endpoint.method) &&
+        {endpointHasReqContent(props.endpoint) &&
           <>
             <AdlForm
               state={state}
@@ -220,7 +220,7 @@ function ExecutingRequestView<I, O>(props: {
         <b>{endpoint.name}</b>
       </Box>
       <Divider />
-      {methodHasReqBody(props.value.endpoint.method) &&
+      {endpointHasReqContent(props.value.endpoint) &&
         <>
           <Box sx={{ margin: "10px" }}>
             <MyJsonView data={jsonI} />
@@ -263,7 +263,7 @@ function CompletedRequestView<I, O>(props: {
         </Box>
       </Box>
       <Divider />
-      {methodHasReqBody(props.value.endpoint.method) &&
+      {endpointHasReqContent(props.value.endpoint) &&
         <>
           <Box sx={{ margin: "10px" }}>
             <MyJsonView data={jsonI} />
@@ -303,8 +303,17 @@ async function executeRequest<I, O>(service: ServiceBase, jwt: string | undefine
 
   let resp: CompletedResponse<O>;
   try {
-    const reqbody = endpoint.jsonBindingI.toJson(req);
-    const value = await service.requestAdl(endpoint.method, endpoint.path, reqbody, endpoint.jsonBindingO, jwt);
+    let reqbody: Json | undefined;
+    let queryString: string | undefined;
+    switch (endpoint.method) {
+      case 'get':
+        queryString = encodeQueryString(endpoint.jsonBindingI.toJson(req));
+        break;
+      case 'post':
+        reqbody = endpoint.jsonBindingI.toJson(req);
+        break;
+    }
+    const value = await service.requestAdl(endpoint.method, endpoint.path, queryString, reqbody, endpoint.jsonBindingO, jwt);
     resp = { success: true, value };
   } catch (e: unknown) {
     if (e instanceof AdlRequestError) {
@@ -371,14 +380,14 @@ function getEndpoints<API>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<API>
   return endpoints;
 }
 
-function getHttpGetEndpoint<O>(resolver: ADL.DeclResolver, field: AST.Field): HttpEndpoint<null, O> {
+function getHttpGetEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field): HttpEndpoint<I, O> {
   if (field.default.kind !== 'just') {
     throw new Error("API endpoint must have a default value");
   }
-  const texprI = ADL.texprVoid();
-  const texprO = ADL.makeATypeExpr<O>(field.typeExpr.parameters[0]);
+  const texprI = ADL.makeATypeExpr<I>(field.typeExpr.parameters[0]);
+  const texprO = ADL.makeATypeExpr<O>(field.typeExpr.parameters[1]);
 
-  const jb = createJsonBinding(resolver, texprHttpGet(texprO));
+  const jb = createJsonBinding(resolver, texprHttpGet(texprI, texprO));
   const httpGet = jb.fromJson(field.default.value);
 
   const veditorI = createVEditor(texprI, resolver, UI_FACTORY);
@@ -429,11 +438,8 @@ function getHttpPostEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field)
   }
 }
 
-function methodHasReqBody(method: Method): boolean {
-  switch (method) {
-    case 'get': return false;
-    case 'post': return true;
-  }
+function endpointHasReqContent(endpoint: Endpoint): boolean {
+  return true;
 }
 
 const JB_DOC = createJsonBinding(RESOLVER, texprDoc());

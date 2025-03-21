@@ -28,3 +28,4 @@ poem = { version = "3.1.5", features = ["session","cookie"] }
 [dev-dependencies]
 reqwest = { version = "0.11.18", features = ["json"]}
 test-log = { version = "0.2.16", features = []}
+urlencoding = { version = "2.1.3" }

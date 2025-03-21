@@ -96,16 +96,16 @@ pub async fn server_public_request<I: Serialize, O: DeserializeOwned>(
     resp.json().await.unwrap()
 }
 
-pub async fn server_auth_request<I: Serialize, O: DeserializeOwned>(
+pub async fn server_auth_post<I: Serialize, O: DeserializeOwned>(
     endpoint: HttpPost<I, O>,
     jwt: &str,
     req: &I,
 ) -> O {
-    let resp = server_auth_request1(endpoint, jwt, req).await;
+    let resp = server_auth_post1(endpoint, jwt, req).await;
     resp.json().await.unwrap()
 }
 
-pub async fn server_auth_request1<I: Serialize, O: DeserializeOwned>(
+pub async fn server_auth_post1<I: Serialize, O: DeserializeOwned>(
     endpoint: HttpPost<I, O>,
     jwt: &str,
     req: &I,
@@ -121,16 +121,30 @@ pub async fn server_auth_request1<I: Serialize, O: DeserializeOwned>(
         .unwrap()
 }
 
-pub async fn server_auth_get<O: DeserializeOwned>(endpoint: HttpGet<O>, jwt: &str) -> O {
+pub async fn server_auth_get<I: Serialize, O: DeserializeOwned>(
+    endpoint: HttpGet<I, O>,
+    jwt: &str,
+    req: &I,
+) -> O {
     let client = reqwest::Client::new();
+    let query = encode_query_string(req);
+    log::info!("client query: {}", query);
     let resp = client
-        .get(format!("http://localhost:8181{}", endpoint.path))
+        .get(format!("http://localhost:8181{}{}", endpoint.path, query))
         .header("Authorization", format!("Bearer {}", jwt))
         .send()
         .await
         .unwrap();
     assert_eq!(resp.status(), 200);
     resp.json().await.unwrap()
+}
+
+pub fn encode_query_string<I: Serialize>(i: &I) -> String {
+    let jv = serde_json::to_value(i).unwrap();
+    match jv {
+        serde_json::Value::Null => "".to_owned(),
+        _ => format!("?input={}", urlencoding::encode(&jv.to_string())),
+    }
 }
 
 pub fn test_server_config() -> ServerConfig {

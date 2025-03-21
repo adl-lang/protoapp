@@ -180,4 +180,4 @@ pnpm run dev
 ```
 
 The (minimal) web application will be accessible at: http://localhost:5173
-The api workbench will be accessible at: http://localhost:5173/api-dashboard
+The api workbench will be accessible at: http://localhost:5173/api-workbench
