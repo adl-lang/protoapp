@@ -20,13 +20,7 @@ pub struct ApiRequests {
    * AWS default compatible health check
    */
   #[serde(default="ApiRequests::def_healthy")]
-  pub healthy: HttpGet<Unit>,
-
-  /**
-   * Test the server is live
-   */
-  #[serde(default="ApiRequests::def_ping")]
-  pub ping: HttpPost<Unit, Unit>,
+  pub healthy: HttpGet<(), ()>,
 
   /**
    * Login a user
@@ -59,13 +53,13 @@ pub struct ApiRequests {
    * Get recent noticeboard messages
    */
   #[serde(default="ApiRequests::def_recent_messages")]
-  pub recent_messages: HttpPost<RecentMessagesReq, Paginated<Message>>,
+  pub recent_messages: HttpGet<RecentMessagesReq, Paginated<Message>>,
 
   /**
    * Gets info about the logged in user
    */
   #[serde(default="ApiRequests::def_who_am_i")]
-  pub who_am_i: HttpGet<UserWithId>,
+  pub who_am_i: HttpGet<(), UserWithId>,
 
   /**
    * Create a new user
@@ -83,14 +77,13 @@ pub struct ApiRequests {
    * Query users
    */
   #[serde(default="ApiRequests::def_query_users")]
-  pub query_users: HttpPost<QueryUsersReq, Paginated<UserWithId>>,
+  pub query_users: HttpGet<QueryUsersReq, Paginated<UserWithId>>,
 }
 
 impl ApiRequests {
   pub fn new() -> ApiRequests {
     ApiRequests {
       healthy: ApiRequests::def_healthy(),
-      ping: ApiRequests::def_ping(),
       login: ApiRequests::def_login(),
       refresh: ApiRequests::def_refresh(),
       logout: ApiRequests::def_logout(),
@@ -103,48 +96,44 @@ impl ApiRequests {
     }
   }
 
-  pub fn def_healthy() -> HttpGet<Unit> {
-    HttpGet::<Unit>{path : "/".to_string(), security : HttpSecurity::Public, rate_limit : None, resp_type : std::marker::PhantomData}
-  }
-
-  pub fn def_ping() -> HttpPost<Unit, Unit> {
-    HttpPost::<Unit, Unit>{path : "/ping".to_string(), security : HttpSecurity::Public, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+  pub fn def_healthy() -> HttpGet<(), ()> {
+    HttpGet::<(), ()>{path : "/".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_login() -> HttpPost<LoginReq, LoginResp> {
-    HttpPost::<LoginReq, LoginResp>{path : "/login".to_string(), security : HttpSecurity::Public, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpPost::<LoginReq, LoginResp>{path : "/login".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_refresh() -> HttpPost<RefreshReq, RefreshResp> {
-    HttpPost::<RefreshReq, RefreshResp>{path : "/refresh".to_string(), security : HttpSecurity::Public, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpPost::<RefreshReq, RefreshResp>{path : "/refresh".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_logout() -> HttpPost<Unit, Unit> {
-    HttpPost::<Unit, Unit>{path : "/logout".to_string(), security : HttpSecurity::Public, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpPost::<Unit, Unit>{path : "/logout".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_new_message() -> HttpPost<NewMessageReq, MessageId> {
-    HttpPost::<NewMessageReq, MessageId>{path : "/messages/new".to_string(), security : HttpSecurity::Token, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpPost::<NewMessageReq, MessageId>{path : "/messages/new".to_string(), security : HttpSecurity::Token, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
-  pub fn def_recent_messages() -> HttpPost<RecentMessagesReq, Paginated<Message>> {
-    HttpPost::<RecentMessagesReq, Paginated<Message>>{path : "/messages/recent".to_string(), security : HttpSecurity::Token, rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+  pub fn def_recent_messages() -> HttpGet<RecentMessagesReq, Paginated<Message>> {
+    HttpGet::<RecentMessagesReq, Paginated<Message>>{path : "/messages/recent".to_string(), security : HttpSecurity::Token, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
-  pub fn def_who_am_i() -> HttpGet<UserWithId> {
-    HttpGet::<UserWithId>{path : "/whoami".to_string(), security : HttpSecurity::Token, rate_limit : None, resp_type : std::marker::PhantomData}
+  pub fn def_who_am_i() -> HttpGet<(), UserWithId> {
+    HttpGet::<(), UserWithId>{path : "/whoami".to_string(), security : HttpSecurity::Token, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_create_user() -> HttpPost<UserDetails, AppUserId> {
-    HttpPost::<UserDetails, AppUserId>{path : "/users/create".to_string(), security : HttpSecurity::TokenWithRole("admin".to_string()), rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpPost::<UserDetails, AppUserId>{path : "/users/create".to_string(), security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_update_user() -> HttpPost<WithId<AppUserId, UserDetails>, Unit> {
-    HttpPost::<WithId<AppUserId, UserDetails>, Unit>{path : "/users/update".to_string(), security : HttpSecurity::TokenWithRole("admin".to_string()), rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpPost::<WithId<AppUserId, UserDetails>, Unit>{path : "/users/update".to_string(), security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
-  pub fn def_query_users() -> HttpPost<QueryUsersReq, Paginated<UserWithId>> {
-    HttpPost::<QueryUsersReq, Paginated<UserWithId>>{path : "/users/query".to_string(), security : HttpSecurity::TokenWithRole("admin".to_string()), rate_limit : None, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+  pub fn def_query_users() -> HttpGet<QueryUsersReq, Paginated<UserWithId>> {
+    HttpGet::<QueryUsersReq, Paginated<UserWithId>>{path : "/users/query".to_string(), security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 }
 

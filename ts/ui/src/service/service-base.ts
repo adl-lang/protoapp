@@ -1,7 +1,8 @@
 import { HttpFetch, HttpRequest } from "./http";
 import * as ADL from "@adllang/adl-runtime";
 import { HttpGet, HttpPost } from "@/adl-gen/common/http";
-import { createJsonBinding, JsonBinding } from "@adllang/adl-runtime";
+import { createJsonBinding, Json, JsonBinding } from "@adllang/adl-runtime";
+import { QueryStats } from "@mui/icons-material";
 
 
 export class ServiceBase {
@@ -17,7 +18,7 @@ export class ServiceBase {
     const bb = createBiBinding<I, O>(this.resolver, rtype);
     return (req: I) => {
       const jsonArgs = bb.reqJB.toJson(req);
-      return this.requestAdl("post", rtype.path, jsonArgs, bb.respJB, undefined);
+      return this.requestAdl("post", rtype.path, undefined, jsonArgs, bb.respJB, undefined);
     };
   }
 
@@ -25,14 +26,25 @@ export class ServiceBase {
     const bb = createBiBinding<I, O>(this.resolver, rtype);
     return (authToken:string, req: I) => {
       const jsonArgs = bb.reqJB.toJson(req);
-      return this.requestAdl("post", rtype.path, jsonArgs, bb.respJB, authToken);
+      return this.requestAdl("post", rtype.path, undefined, jsonArgs, bb.respJB, authToken);
     };
   }
 
-  mkAuthGetFn<I, O>(rtype: HttpGet<O>): AuthGetFn<O> {
-    const jb = createJsonBinding<O>(this.resolver, rtype.respType);
-    return (authToken:string) => {
-      return this.requestAdl("get", rtype.path, null, jb, authToken);
+  mkGetFn<I, O>(rtype: HttpGet<I,O>): ReqFn<I,O> {
+    const bb = createBiBinding<I, O>(this.resolver, rtype);
+    return (req: I) => {
+      const reqJson = bb.reqJB.toJson(req);
+      const queryString = encodeQueryString(reqJson);
+      return this.requestAdl("get", rtype.path, queryString, undefined, bb.respJB, undefined);
+    };
+  }
+
+  mkAuthGetFn<I, O>(rtype: HttpGet<I,O>): AuthReqFn<I,O> {
+    const bb = createBiBinding<I, O>(this.resolver, rtype);
+    return (authToken:string, req: I) => {
+      const reqJson = bb.reqJB.toJson(req);
+      const queryString = encodeQueryString(reqJson);
+      return this.requestAdl("get", rtype.path, queryString, undefined, bb.respJB, authToken);
     };
   }
 
@@ -40,7 +52,8 @@ export class ServiceBase {
   async requestAdl<O>(
     method: "get" | "post",
     path: string,
-    jsonArgs: {} | null,
+    queryString: string | undefined,
+    jsonBody: Json | undefined,
     respJB: JsonBinding<O>,
     authToken: string | undefined,
   ): Promise<O> {
@@ -51,10 +64,10 @@ export class ServiceBase {
     }
     headers["Content-Type"] = "application/json";
     const httpReq: HttpRequest = {
-      url: this.baseUrl + path,
+      url: this.baseUrl + path + (queryString === undefined ? "" : "?" + queryString),
       headers,
       method,
-      body: jsonArgs ? JSON.stringify(jsonArgs) : undefined
+      body: jsonBody === undefined ? undefined: JSON.stringify(jsonBody)
     };
 
     // Make request
@@ -79,10 +92,12 @@ export class AdlRequestError extends Error {
   }
 } 
 
-export type ReqFn<I, O> = (req: I) => Promise<O>;
+export function encodeQueryString(reqJson: Json) {
+  return reqJson === null ? undefined : `input=${encodeURIComponent(JSON.stringify(reqJson))}`;
+}
 
+export type ReqFn<I, O> = (req: I) => Promise<O>;
 export type AuthReqFn<I, O> = (authToken: string, req: I) => Promise<O>;
-export type AuthGetFn<O> = (authToken: string) => Promise<O>;
 
 interface BiTypeExpr<I, O> {
   reqType: ADL.ATypeExpr<I>;

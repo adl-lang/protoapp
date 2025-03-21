@@ -15,15 +15,8 @@ import protoapp.db.MessageId;
 struct ApiRequests {
 
   /// AWS default compatible health check
-  HttpGet<Unit> healthy = {
+  HttpGet<Void,Void> healthy = {
     "path": "/",
-    "security" : "public"
-  };
-
-
-  /// Test the server is live
-  HttpPost<Unit, Unit> ping = {
-    "path": "/ping",
     "security" : "public"
   };
 
@@ -57,14 +50,14 @@ struct ApiRequests {
   };
 
   /// Get recent noticeboard messages
-  HttpPost<RecentMessagesReq, Paginated<Message> > recent_messages = {
+  HttpGet<RecentMessagesReq, Paginated<Message> > recent_messages = {
     "path": "/messages/recent",
     "security" : "token"
   };
 
   /// Gets info about the logged in user
   // NOTE: Fails with 401 if the token is invalid or user does not exist
-  HttpGet<UserWithId> who_am_i = {
+  HttpGet<Void,UserWithId> who_am_i = {
     "path": "/whoami",
     "security" : "token"
   };
@@ -82,7 +75,7 @@ struct ApiRequests {
   };
 
   /// Query users
-  HttpPost<QueryUsersReq, Paginated<UserWithId>> query_users = {
+  HttpGet<QueryUsersReq, Paginated<UserWithId>> query_users = {
     "path": "/users/query",
     "security" : { "tokenWithRole": "admin" }
   };
