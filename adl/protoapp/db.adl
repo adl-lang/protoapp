@@ -36,13 +36,4 @@ annotation MessageTable DbTable {
   "id_prefix": "M-"
 };
 
-struct TestTable {
-  StringNE uuid4;
-  StringNE PascalCaseName;
-  StringNE snake_case_name3;
-  StringNE mixedCaseName_watcha_gonna_do;
-  StringNE AAAAHH_I_M_capitalIZed_weirdlYYY;
-};
-annotation TestTable DbTable {};
-
 };

@@ -76,35 +76,3 @@ impl Message {
     }
 }
 
-pub struct Test {}
-
-impl Test {
-    pub fn table_str() -> &'static str {
-        "test"
-    }
-
-    pub fn table() -> DynIden {
-        Alias::new(Self::table_str()).into_iden()
-    }
-
-    pub fn uuid4() -> ColumnSpec<adlgen::common::strings::StringNE> {
-        ColumnSpec::new(Self::table_str(), "uuid_4")
-    }
-
-    pub fn PascalCaseName() -> ColumnSpec<adlgen::common::strings::StringNE> {
-        ColumnSpec::new(Self::table_str(), "pascal_case_name")
-    }
-
-    pub fn snake_case_name3() -> ColumnSpec<adlgen::common::strings::StringNE> {
-        ColumnSpec::new(Self::table_str(), "snake_case_name_3")
-    }
-
-    pub fn mixedCaseName_watcha_gonna_do() -> ColumnSpec<adlgen::common::strings::StringNE> {
-        ColumnSpec::new(Self::table_str(), "mixed_case_name_watcha_gonna_do")
-    }
-
-    pub fn AAAAHH_I_M_capitalIZed_weirdlYYY() -> ColumnSpec<adlgen::common::strings::StringNE> {
-        ColumnSpec::new(Self::table_str(), "aaaahh_i_m_capital_i_zed_weirdl_yyy")
-    }
-}
-
