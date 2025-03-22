@@ -88,23 +88,23 @@ impl Test {
     }
 
     pub fn uuid4() -> ColumnSpec<adlgen::common::strings::StringNE> {
-        ColumnSpec::new(Self::table_str(), "uuid4")
+        ColumnSpec::new(Self::table_str(), "uuid_4")
     }
 
     pub fn PascalCaseName() -> ColumnSpec<adlgen::common::strings::StringNE> {
-        ColumnSpec::new(Self::table_str(), "PascalCaseName")
+        ColumnSpec::new(Self::table_str(), "pascal_case_name")
     }
 
     pub fn snake_case_name3() -> ColumnSpec<adlgen::common::strings::StringNE> {
-        ColumnSpec::new(Self::table_str(), "snake_case_name3")
+        ColumnSpec::new(Self::table_str(), "snake_case_name_3")
     }
 
     pub fn mixedCaseName_watcha_gonna_do() -> ColumnSpec<adlgen::common::strings::StringNE> {
-        ColumnSpec::new(Self::table_str(), "mixedCaseName_watcha_gonna_do")
+        ColumnSpec::new(Self::table_str(), "mixed_case_name_watcha_gonna_do")
     }
 
     pub fn AAAAHH_I_M_capitalIZed_weirdlYYY() -> ColumnSpec<adlgen::common::strings::StringNE> {
-        ColumnSpec::new(Self::table_str(), "AAAAHH_I_M_capitalIZed_weirdlYYY")
+        ColumnSpec::new(Self::table_str(), "aaaahh_i_m_capital_i_zed_weirdl_yyy")
     }
 }
 

@@ -75,7 +75,7 @@ export async function genRustSeaQuerySchema(
       }
       writer.write('\n');
       writer.write(`    pub fn ${f.name}() -> ColumnSpec<${typeStr}> {\n`);
-      writer.write(`        ColumnSpec::new(Self::table_str(), "${f.name}")\n`);
+      writer.write(`        ColumnSpec::new(Self::table_str(), "${snakeCase(f.name)}")\n`);
       writer.write(`    }\n`);
     }
     writer.write('}\n');
