@@ -107,3 +107,33 @@ impl<'de> Deserialize<'de> for MessageTable
 }
 
 pub type MessageId = DbKey<MessageTable>;
+
+#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
+pub struct TestTable {
+  #[serde(rename="uuid4")]
+  pub uuid_4: StringNE,
+
+  #[serde(rename="PascalCaseName")]
+  pub pascal_case_name: StringNE,
+
+  #[serde(rename="snake_case_name3")]
+  pub snake_case_name_3: StringNE,
+
+  #[serde(rename="mixedCaseName_watcha_gonna_do")]
+  pub mixed_case_name_watcha_gonna_do: StringNE,
+
+  #[serde(rename="AAAAHH_I_M_capitalIZed_weirdlYYY")]
+  pub aaaahh_i_m_capital_i_zed_weirdl_yyy: StringNE,
+}
+
+impl TestTable {
+  pub fn new(uuid_4: StringNE, pascal_case_name: StringNE, snake_case_name_3: StringNE, mixed_case_name_watcha_gonna_do: StringNE, aaaahh_i_m_capital_i_zed_weirdl_yyy: StringNE) -> TestTable {
+    TestTable {
+      uuid_4: uuid_4,
+      pascal_case_name: pascal_case_name,
+      snake_case_name_3: snake_case_name_3,
+      mixed_case_name_watcha_gonna_do: mixed_case_name_watcha_gonna_do,
+      aaaahh_i_m_capital_i_zed_weirdl_yyy: aaaahh_i_m_capital_i_zed_weirdl_yyy,
+    }
+  }
+}

@@ -110,11 +110,47 @@ export function texprMessageId(): ADL.ATypeExpr<MessageId> {
   return {value : {typeRef : {kind: "reference", value : snMessageId}, parameters : []}};
 }
 
+export interface TestTable {
+  uuid4: common_strings.StringNE;
+  PascalCaseName: common_strings.StringNE;
+  snake_case_name3: common_strings.StringNE;
+  mixedCaseName_watcha_gonna_do: common_strings.StringNE;
+  AAAAHH_I_M_capitalIZed_weirdlYYY: common_strings.StringNE;
+}
+
+export function makeTestTable(
+  input: {
+    uuid4: common_strings.StringNE,
+    PascalCaseName: common_strings.StringNE,
+    snake_case_name3: common_strings.StringNE,
+    mixedCaseName_watcha_gonna_do: common_strings.StringNE,
+    AAAAHH_I_M_capitalIZed_weirdlYYY: common_strings.StringNE,
+  }
+): TestTable {
+  return {
+    uuid4: input.uuid4,
+    PascalCaseName: input.PascalCaseName,
+    snake_case_name3: input.snake_case_name3,
+    mixedCaseName_watcha_gonna_do: input.mixedCaseName_watcha_gonna_do,
+    AAAAHH_I_M_capitalIZed_weirdlYYY: input.AAAAHH_I_M_capitalIZed_weirdlYYY,
+  };
+}
+
+const TestTable_AST : ADL.ScopedDecl =
+  {"decl":{"annotations":[{"key":{"moduleName":"common.db","name":"DbTable"},"value":{}}],"name":"TestTable","type_":{"kind":"struct_","value":{"fields":[{"annotations":[],"default":{"kind":"nothing"},"name":"uuid4","serializedName":"uuid4","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}}},{"annotations":[],"default":{"kind":"nothing"},"name":"PascalCaseName","serializedName":"PascalCaseName","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}}},{"annotations":[],"default":{"kind":"nothing"},"name":"snake_case_name3","serializedName":"snake_case_name3","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}}},{"annotations":[],"default":{"kind":"nothing"},"name":"mixedCaseName_watcha_gonna_do","serializedName":"mixedCaseName_watcha_gonna_do","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}}},{"annotations":[],"default":{"kind":"nothing"},"name":"AAAAHH_I_M_capitalIZed_weirdlYYY","serializedName":"AAAAHH_I_M_capitalIZed_weirdlYYY","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.strings","name":"StringNE"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.db"};
+
+export const snTestTable: ADL.ScopedName = {moduleName:"protoapp.db", name:"TestTable"};
+
+export function texprTestTable(): ADL.ATypeExpr<TestTable> {
+  return {value : {typeRef : {kind: "reference", value : snTestTable}, parameters : []}};
+}
+
 export const _AST_MAP: { [key: string]: ADL.ScopedDecl } = {
   "protoapp.db.AppUser" : AppUser_AST,
   "protoapp.db.AppUserTable" : AppUserTable_AST,
   "protoapp.db.AppUserId" : AppUserId_AST,
   "protoapp.db.Message" : Message_AST,
   "protoapp.db.MessageTable" : MessageTable_AST,
-  "protoapp.db.MessageId" : MessageId_AST
+  "protoapp.db.MessageId" : MessageId_AST,
+  "protoapp.db.TestTable" : TestTable_AST
 };
