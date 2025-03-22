@@ -157,8 +157,8 @@ pub async fn new_message(
     let (icolumns, ivalues) = InsertRow::new()
         .field(T::id(), &id)
         .field(T::posted_at(), &posted_at)
-        .field(T::posted_by(), &user_id)
-        .field(T::message(), &message)
+        .field(T::posted_by(), user_id)
+        .field(T::message(), message)
         .build();
 
     let (sql, values) = Query::insert()

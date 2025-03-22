@@ -97,7 +97,7 @@ impl OServer {
         let _ = server.await;
     }
 
-    async fn await_receiver(shutdown: oneshot::Receiver<()>) -> () {
+    async fn await_receiver(shutdown: oneshot::Receiver<()>) {
         let _ = shutdown.await;
     }
 }

@@ -208,7 +208,7 @@ fn claims_from_bearer_token(
         log::error!("failed to validate jwt: {}", e);
         forbidden()
     })?;
-    return Ok(claims);
+    Ok(claims)
 }
 
 pub fn forbidden() -> HandlerError {

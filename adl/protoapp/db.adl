@@ -27,7 +27,6 @@ struct Message {
   Instant posted_at;
   AppUserId posted_by;
   StringML message;
-
 };
 newtype MessageTable = WithId<Message>;
 type MessageId = DbKey<MessageTable>;
