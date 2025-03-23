@@ -7,27 +7,30 @@ use serde::Serialize;
  * Request types
  */
 #[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
-pub struct HttpGet<I, O> {
+pub struct HttpReq<I, O> {
+  pub method: HttpMethod,
+
   pub path: String,
 
   pub security: HttpSecurity,
 
-  #[serde(default="HttpGet::<I, O>::def_req_type")]
+  #[serde(default="HttpReq::<I, O>::def_req_type")]
   #[serde(rename="reqType")]
   pub req_type: std::marker::PhantomData<I>,
 
-  #[serde(default="HttpGet::<I, O>::def_resp_type")]
+  #[serde(default="HttpReq::<I, O>::def_resp_type")]
   #[serde(rename="respType")]
   pub resp_type: std::marker::PhantomData<O>,
 }
 
-impl<I, O> HttpGet<I, O> {
-  pub fn new(path: String, security: HttpSecurity) -> HttpGet<I, O> {
-    HttpGet {
+impl<I, O> HttpReq<I, O> {
+  pub fn new(method: HttpMethod, path: String, security: HttpSecurity) -> HttpReq<I, O> {
+    HttpReq {
+      method: method,
       path: path,
       security: security,
-      req_type: HttpGet::<I, O>::def_req_type(),
-      resp_type: HttpGet::<I, O>::def_resp_type(),
+      req_type: HttpReq::<I, O>::def_req_type(),
+      resp_type: HttpReq::<I, O>::def_resp_type(),
     }
   }
 
@@ -41,37 +44,12 @@ impl<I, O> HttpGet<I, O> {
 }
 
 #[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
-pub struct HttpPost<I, O> {
-  pub path: String,
+pub enum HttpMethod {
+  #[serde(rename="get")]
+  Get,
 
-  pub security: HttpSecurity,
-
-  #[serde(default="HttpPost::<I, O>::def_req_type")]
-  #[serde(rename="reqType")]
-  pub req_type: std::marker::PhantomData<I>,
-
-  #[serde(default="HttpPost::<I, O>::def_resp_type")]
-  #[serde(rename="respType")]
-  pub resp_type: std::marker::PhantomData<O>,
-}
-
-impl<I, O> HttpPost<I, O> {
-  pub fn new(path: String, security: HttpSecurity) -> HttpPost<I, O> {
-    HttpPost {
-      path: path,
-      security: security,
-      req_type: HttpPost::<I, O>::def_req_type(),
-      resp_type: HttpPost::<I, O>::def_resp_type(),
-    }
-  }
-
-  pub fn def_req_type() -> std::marker::PhantomData<I> {
-    std::marker::PhantomData
-  }
-
-  pub fn def_resp_type() -> std::marker::PhantomData<O> {
-    std::marker::PhantomData
-  }
+  #[serde(rename="post")]
+  Post,
 }
 
 #[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]

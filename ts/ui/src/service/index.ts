@@ -14,10 +14,10 @@ export class Service extends ServiceBase {
     super(http, baseUrl, RESOLVER);
   }
 
-  login = this.mkPostFn(api.login);
-  refresh = this.mkPostFn(api.refresh);
-  logout = this.mkPostFn(api.logout);
-  new_message = this.mkAuthPostFn(api.new_message);
-  recent_messages = this.mkAuthGetFn(api.recent_messages);
-  who_am_i = this.mkAuthGetFn(api.who_am_i);
+  login = this.mkReqFn(api.login);
+  refresh = this.mkReqFn(api.refresh);
+  logout = this.mkReqFn(api.logout);
+  new_message = this.mkAuthReqFn(api.new_message);
+  recent_messages = this.mkAuthReqFn(api.recent_messages);
+  who_am_i = this.mkAuthReqFn(api.who_am_i);
 };

@@ -2,19 +2,19 @@ module common.http {
 
 /// Request types
 
-struct HttpGet<I,O> {
+struct HttpReq<I,O> {
+  HttpMethod method;
   String path;
   HttpSecurity security;
   TypeToken<I> reqType = null;
   TypeToken<O> respType = null;
 };
 
-struct HttpPost<I,O> {
-  String path;
-  HttpSecurity security;
-  TypeToken<I> reqType = null;
-  TypeToken<O> respType = null;
+union HttpMethod {
+  Void get;
+  Void post;
 };
+
 
 union HttpSecurity {
   // The endpoint is publically accessible

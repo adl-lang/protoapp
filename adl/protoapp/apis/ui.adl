@@ -1,8 +1,7 @@
 module protoapp.apis.ui {
 
 import common.http.Unit;
-import common.http.HttpPost;
-import common.http.HttpGet;
+import common.http.HttpReq;
 import common.time.Instant;
 import common.strings.EmailAddress;
 import common.strings.Password;
@@ -15,7 +14,8 @@ import protoapp.db.MessageId;
 struct ApiRequests {
 
   /// AWS default compatible health check
-  HttpGet<Void,Void> healthy = {
+  HttpReq<Void,Void> healthy = {
+    "method": "get",
     "path": "/",
     "security" : "public"
   };
@@ -23,7 +23,8 @@ struct ApiRequests {
   /// Login a user
   ///
   /// The response will set an httpOnly cookie containing the refresh token
-  HttpPost<LoginReq, LoginResp> login = {
+  HttpReq<LoginReq, LoginResp> login = {
+    "method": "post",
     "path": "/login",
     "security" : "public"
   };
@@ -32,50 +33,58 @@ struct ApiRequests {
   ///
   /// If the refresh token is not provided in the request body, then it will
   /// be read from the refrestToken cookie in the request.
-  HttpPost<RefreshReq, RefreshResp> refresh = {
+  HttpReq<RefreshReq, RefreshResp> refresh = {
+    "method": "post",
     "path": "/refresh",
     "security" : "public"
   };
 
   /// Clear the `refreshToken` cookie.
-  HttpPost<Unit, Unit> logout = {
+  HttpReq<Unit, Unit> logout = {
+    "method": "post",
     "path": "/logout",
     "security" : "public"
   };
 
   /// Post a message to the noticeboard
-  HttpPost<NewMessageReq, MessageId> new_message = {
+  HttpReq<NewMessageReq, MessageId> new_message = {
+    "method": "post",
     "path": "/messages/new",
     "security" : "token"
   };
 
   /// Get recent noticeboard messages
-  HttpGet<RecentMessagesReq, Paginated<Message> > recent_messages = {
+  HttpReq<RecentMessagesReq, Paginated<Message> > recent_messages = {
+    "method": "get",
     "path": "/messages/recent",
     "security" : "token"
   };
 
   /// Gets info about the logged in user
   // NOTE: Fails with 401 if the token is invalid or user does not exist
-  HttpGet<Void,UserWithId> who_am_i = {
+  HttpReq<Void,UserWithId> who_am_i = {
+    "method": "get",
     "path": "/whoami",
     "security" : "token"
   };
 
   /// Create a new user
-  HttpPost<UserDetails, AppUserId> create_user = {
+  HttpReq<UserDetails, AppUserId> create_user = {
+    "method": "post",
     "path": "/users/create",
     "security" : { "tokenWithRole": "admin" }
   };
 
   /// Update a user
-  HttpPost<WithId<AppUserId,UserDetails>, Unit> update_user = {
+  HttpReq<WithId<AppUserId,UserDetails>, Unit> update_user = {
+    "method": "post",
     "path": "/users/update",
     "security" : { "tokenWithRole": "admin" }
   };
 
   /// Query users
-  HttpGet<QueryUsersReq, Paginated<UserWithId>> query_users = {
+  HttpReq<QueryUsersReq, Paginated<UserWithId>> query_users = {
+    "method": "get",
     "path": "/users/query",
     "security" : { "tokenWithRole": "admin" }
   };

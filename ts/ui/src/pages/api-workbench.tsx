@@ -1,4 +1,4 @@
-import { HttpSecurity, snHttpGet, snHttpPost, texprHttpGet, texprHttpPost } from "@/adl-gen/common/http";
+import { HttpSecurity, snHttpReq, texprHttpReq } from "@/adl-gen/common/http";
 import * as API from "@/adl-gen/protoapp/apis/ui";
 import { RESOLVER } from "@/adl-gen/resolver";
 import * as AST from "@/adl-gen/sys/adlast";
@@ -371,52 +371,21 @@ function getEndpoints<API>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<API>
 
   const endpoints: Endpoint[] = [];
   for (const f of struct.fields) {
-    if (f.typeExpr.typeRef.kind === 'reference' && scopedNamesEqual(f.typeExpr.typeRef.value, snHttpGet)) {
-      endpoints.push(getHttpGetEndpoint(resolver, f))
-    } else if (f.typeExpr.typeRef.kind === 'reference' && scopedNamesEqual(f.typeExpr.typeRef.value, snHttpPost)) {
-      endpoints.push(getHttpPostEndpoint(resolver, f))
+    if (f.typeExpr.typeRef.kind === 'reference' && scopedNamesEqual(f.typeExpr.typeRef.value, snHttpReq)) {
+      endpoints.push(getHttpEndpoint(resolver, f))
     }
   }
   return endpoints;
 }
 
-function getHttpGetEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field): HttpEndpoint<I, O> {
+function getHttpEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field): HttpEndpoint<I, O> {
   if (field.default.kind !== 'just') {
     throw new Error("API endpoint must have a default value");
   }
   const texprI = ADL.makeATypeExpr<I>(field.typeExpr.parameters[0]);
   const texprO = ADL.makeATypeExpr<O>(field.typeExpr.parameters[1]);
 
-  const jb = createJsonBinding(resolver, texprHttpGet(texprI, texprO));
-  const httpGet = jb.fromJson(field.default.value);
-
-  const veditorI = createVEditor(texprI, resolver, UI_FACTORY);
-  const veditorO = createVEditor(texprO, resolver, UI_FACTORY);
-  const jsonBindingI = createJsonBinding(resolver, texprI);
-  const jsonBindingO = createJsonBinding(resolver, texprO);
-
-  const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
-  return {
-    name: field.name,
-    path: httpGet.path,
-    method: 'get',
-    docString,
-    security: httpGet.security,
-    veditorI,
-    veditorO,
-    jsonBindingI,
-    jsonBindingO,
-  }
-}
-
-function getHttpPostEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field): HttpEndpoint<I, O> {
-  if (field.default.kind !== 'just') {
-    throw new Error("API endpoint must have a default value");
-  }
-  const texprI = ADL.makeATypeExpr<I>(field.typeExpr.parameters[0]);
-  const texprO = ADL.makeATypeExpr<O>(field.typeExpr.parameters[1]);
-
-  const jb = createJsonBinding(resolver, texprHttpPost(texprI, texprO));
+  const jb = createJsonBinding(resolver, texprHttpReq(texprI, texprO));
   const httpPost = jb.fromJson(field.default.value);
 
   const veditorI = createVEditor(texprI, resolver, UI_FACTORY);

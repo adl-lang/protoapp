@@ -9,8 +9,7 @@ use std::future::Future;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use crate::adl::gen::common::http::HttpSecurity;
-use crate::adl::gen::common::http::{HttpGet, HttpPost};
+use crate::adl::gen::common::http::{HttpMethod, HttpReq, HttpSecurity};
 
 use super::jwt;
 
@@ -34,19 +33,9 @@ pub enum HandlerError {
 
 pub trait RouteExt {
     /**
-     * Add a handler for an ADL specified HttpPost endpoint
+     * Add a handler for an ADL specified HttpReq endpoint
      */
-    fn adl_post<S, I, O, FO>(self, req: HttpPost<I, O>, f: fn(AdlReqContext<S>, I) -> FO) -> Self
-    where
-        S: Send + Sync + Clone + 'static,
-        I: Send + Sync + DeserializeOwned + 'static,
-        O: Send + Sync + Serialize + 'static,
-        FO: Future<Output = HandlerResult<O>> + Send + 'static;
-
-    /**
-     * Add a handler for an ADL specified HttpGet endpoint
-     */
-    fn adl_get<S, I, O, FO>(self, req: HttpGet<I, O>, f: fn(AdlReqContext<S>, I) -> FO) -> Self
+    fn adl_req<S, I, O, FO>(self, req: HttpReq<I, O>, f: fn(AdlReqContext<S>, I) -> FO) -> Self
     where
         S: Send + Sync + Clone + 'static,
         I: Send + Sync + DeserializeOwned + 'static,
@@ -55,29 +44,14 @@ pub trait RouteExt {
 }
 
 impl RouteExt for Route {
-    fn adl_post<S, I, O, FO>(self, req: HttpPost<I, O>, f: fn(AdlReqContext<S>, I) -> FO) -> Self
+    fn adl_req<S, I, O, FO>(self, req: HttpReq<I, O>, f: fn(AdlReqContext<S>, I) -> FO) -> Self
     where
         S: Send + Sync + Clone + 'static,
         I: Send + Sync + DeserializeOwned + 'static,
         O: Send + Sync + Serialize + 'static,
         FO: Future<Output = HandlerResult<O>> + Send + 'static,
     {
-        let endpoint = AdlPost {
-            req,
-            handler: f,
-            phantom: PhantomData,
-        };
-        self.at(endpoint.req.path.clone(), endpoint)
-    }
-
-    fn adl_get<S, I, O, FO>(self, req: HttpGet<I, O>, f: fn(AdlReqContext<S>, I) -> FO) -> Self
-    where
-        S: Send + Sync + Clone + 'static,
-        I: Send + Sync + DeserializeOwned + 'static,
-        O: Send + Sync + Serialize + 'static,
-        FO: Future<Output = HandlerResult<O>> + Send + 'static,
-    {
-        let endpoint = AdlGet {
+        let endpoint = AdlReq {
             req,
             handler: f,
             phantom: PhantomData,
@@ -98,37 +72,13 @@ pub type DynJwtSecurityCheck = Arc<Box<dyn JwtSecurityCheck + Send + Sync>>;
 
 //---------------------------------------------------------------------------
 
-pub struct AdlPost<S, I, O, FO> {
-    req: HttpPost<I, O>,
+pub struct AdlReq<S, I, O, FO> {
+    req: HttpReq<I, O>,
     handler: fn(AdlReqContext<S>, I) -> FO,
     phantom: PhantomData<S>,
 }
 
-impl<S, I, O, FO> Endpoint for AdlPost<S, I, O, FO>
-where
-    S: Send + Sync + Clone + 'static,
-    I: Send + Sync + DeserializeOwned + 'static,
-    O: Send + Sync + Serialize + 'static,
-    FO: Future<Output = HandlerResult<O>> + Send,
-{
-    type Output = Response;
-    async fn call(&self, mut req: Request) -> poem::Result<Self::Output> {
-        let mut body = RequestBody::new(req.take_body());
-        let ctx = get_adl_request_context(&req, &self.req.security)?;
-        let i: Json<I> = Json::from_request(&req, &mut body).await?;
-        let o = (self.handler)(ctx, i.0).await?;
-        Ok(Json(o).into_response())
-    }
-}
-
-//---------------------------------------------------------------------------
-
-pub struct AdlGet<S, I, O, FO> {
-    req: HttpGet<I, O>,
-    handler: fn(AdlReqContext<S>, I) -> FO,
-    phantom: PhantomData<S>,
-}
-impl<S, I, O, FO> AdlGet<S, I, O, FO>
+impl<S, I, O, FO> AdlReq<S, I, O, FO>
 where
     S: Send + Sync + Clone + 'static,
     I: Send + Sync + DeserializeOwned + 'static,
@@ -164,7 +114,7 @@ struct Params {
     input: String,
 }
 
-impl<S, I, O, FO> Endpoint for AdlGet<S, I, O, FO>
+impl<S, I, O, FO> Endpoint for AdlReq<S, I, O, FO>
 where
     S: Send + Sync + Clone + 'static,
     I: Send + Sync + DeserializeOwned + 'static,
@@ -172,10 +122,13 @@ where
     FO: Future<Output = HandlerResult<O>> + Send,
 {
     type Output = Response;
-
-    async fn call(&self, req: Request) -> poem::Result<Self::Output> {
+    async fn call(&self, mut req: Request) -> poem::Result<Self::Output> {
+        let mut body = RequestBody::new(req.take_body());
         let ctx = get_adl_request_context(&req, &self.req.security)?;
-        let i = Self::decode_query_string(req)?;
+        let i: I = match self.req.method {
+            HttpMethod::Get => Self::decode_query_string(req)?,
+            HttpMethod::Post => Json::from_request(&req, &mut body).await?.0,
+        };
         let o = (self.handler)(ctx, i).await?;
         Ok(Json(o).into_response())
     }

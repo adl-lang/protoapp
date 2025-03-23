@@ -1,6 +1,6 @@
 import { HttpFetch, HttpRequest } from "./http";
 import * as ADL from "@adllang/adl-runtime";
-import { HttpGet, HttpPost } from "@/adl-gen/common/http";
+import { HttpReq } from "@/adl-gen/common/http";
 import { createJsonBinding, Json, JsonBinding } from "@adllang/adl-runtime";
 import { QueryStats } from "@mui/icons-material";
 
@@ -14,7 +14,7 @@ export class ServiceBase {
   ) {
   }
 
-  mkPostFn<I, O>(rtype: HttpPost<I, O>): ReqFn<I, O> {
+  mkReqFn<I, O>(rtype: HttpReq<I, O>): ReqFn<I, O> {
     const bb = createBiBinding<I, O>(this.resolver, rtype);
     return (req: I) => {
       const jsonArgs = bb.reqJB.toJson(req);
@@ -22,32 +22,13 @@ export class ServiceBase {
     };
   }
 
-  mkAuthPostFn<I, O>(rtype: HttpPost<I, O>): AuthReqFn<I, O> {
+  mkAuthReqFn<I, O>(rtype: HttpReq<I, O>): AuthReqFn<I, O> {
     const bb = createBiBinding<I, O>(this.resolver, rtype);
     return (authToken:string, req: I) => {
       const jsonArgs = bb.reqJB.toJson(req);
       return this.requestAdl("post", rtype.path, undefined, jsonArgs, bb.respJB, authToken);
     };
   }
-
-  mkGetFn<I, O>(rtype: HttpGet<I,O>): ReqFn<I,O> {
-    const bb = createBiBinding<I, O>(this.resolver, rtype);
-    return (req: I) => {
-      const reqJson = bb.reqJB.toJson(req);
-      const queryString = encodeQueryString(reqJson);
-      return this.requestAdl("get", rtype.path, queryString, undefined, bb.respJB, undefined);
-    };
-  }
-
-  mkAuthGetFn<I, O>(rtype: HttpGet<I,O>): AuthReqFn<I,O> {
-    const bb = createBiBinding<I, O>(this.resolver, rtype);
-    return (authToken:string, req: I) => {
-      const reqJson = bb.reqJB.toJson(req);
-      const queryString = encodeQueryString(reqJson);
-      return this.requestAdl("get", rtype.path, queryString, undefined, bb.respJB, authToken);
-    };
-  }
-
 
   async requestAdl<O>(
     method: "get" | "post",

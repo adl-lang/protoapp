@@ -10,78 +10,78 @@ export interface ApiRequests {
   /**
    * AWS default compatible health check
    */
-  healthy: common_http.HttpGet<null, null>;
+  healthy: common_http.HttpReq<null, null>;
   /**
    * Login a user
    * The response will set an httpOnly cookie containing the refresh token
    */
-  login: common_http.HttpPost<LoginReq, LoginResp>;
+  login: common_http.HttpReq<LoginReq, LoginResp>;
   /**
    * Get a refreshed access token
    * If the refresh token is not provided in the request body, then it will
    * be read from the refrestToken cookie in the request.
    */
-  refresh: common_http.HttpPost<RefreshReq, RefreshResp>;
+  refresh: common_http.HttpReq<RefreshReq, RefreshResp>;
   /**
    * Clear the `refreshToken` cookie.
    */
-  logout: common_http.HttpPost<common_http.Unit, common_http.Unit>;
+  logout: common_http.HttpReq<common_http.Unit, common_http.Unit>;
   /**
    * Post a message to the noticeboard
    */
-  new_message: common_http.HttpPost<NewMessageReq, protoapp_db.MessageId>;
+  new_message: common_http.HttpReq<NewMessageReq, protoapp_db.MessageId>;
   /**
    * Get recent noticeboard messages
    */
-  recent_messages: common_http.HttpGet<RecentMessagesReq, Paginated<Message>>;
+  recent_messages: common_http.HttpReq<RecentMessagesReq, Paginated<Message>>;
   /**
    * Gets info about the logged in user
    */
-  who_am_i: common_http.HttpGet<null, UserWithId>;
+  who_am_i: common_http.HttpReq<null, UserWithId>;
   /**
    * Create a new user
    */
-  create_user: common_http.HttpPost<UserDetails, protoapp_db.AppUserId>;
+  create_user: common_http.HttpReq<UserDetails, protoapp_db.AppUserId>;
   /**
    * Update a user
    */
-  update_user: common_http.HttpPost<WithId<protoapp_db.AppUserId, UserDetails>, common_http.Unit>;
+  update_user: common_http.HttpReq<WithId<protoapp_db.AppUserId, UserDetails>, common_http.Unit>;
   /**
    * Query users
    */
-  query_users: common_http.HttpGet<QueryUsersReq, Paginated<UserWithId>>;
+  query_users: common_http.HttpReq<QueryUsersReq, Paginated<UserWithId>>;
 }
 
 export function makeApiRequests(
   input: {
-    healthy?: common_http.HttpGet<null, null>,
-    login?: common_http.HttpPost<LoginReq, LoginResp>,
-    refresh?: common_http.HttpPost<RefreshReq, RefreshResp>,
-    logout?: common_http.HttpPost<common_http.Unit, common_http.Unit>,
-    new_message?: common_http.HttpPost<NewMessageReq, protoapp_db.MessageId>,
-    recent_messages?: common_http.HttpGet<RecentMessagesReq, Paginated<Message>>,
-    who_am_i?: common_http.HttpGet<null, UserWithId>,
-    create_user?: common_http.HttpPost<UserDetails, protoapp_db.AppUserId>,
-    update_user?: common_http.HttpPost<WithId<protoapp_db.AppUserId, UserDetails>, common_http.Unit>,
-    query_users?: common_http.HttpGet<QueryUsersReq, Paginated<UserWithId>>,
+    healthy?: common_http.HttpReq<null, null>,
+    login?: common_http.HttpReq<LoginReq, LoginResp>,
+    refresh?: common_http.HttpReq<RefreshReq, RefreshResp>,
+    logout?: common_http.HttpReq<common_http.Unit, common_http.Unit>,
+    new_message?: common_http.HttpReq<NewMessageReq, protoapp_db.MessageId>,
+    recent_messages?: common_http.HttpReq<RecentMessagesReq, Paginated<Message>>,
+    who_am_i?: common_http.HttpReq<null, UserWithId>,
+    create_user?: common_http.HttpReq<UserDetails, protoapp_db.AppUserId>,
+    update_user?: common_http.HttpReq<WithId<protoapp_db.AppUserId, UserDetails>, common_http.Unit>,
+    query_users?: common_http.HttpReq<QueryUsersReq, Paginated<UserWithId>>,
   }
 ): ApiRequests {
   return {
-    healthy: input.healthy === undefined ? {path : "/", security : {kind : "public"}, reqType : ADL.texprVoid(), respType : ADL.texprVoid()} : input.healthy,
-    login: input.login === undefined ? {path : "/login", security : {kind : "public"}, reqType : texprLoginReq(), respType : texprLoginResp()} : input.login,
-    refresh: input.refresh === undefined ? {path : "/refresh", security : {kind : "public"}, reqType : texprRefreshReq(), respType : texprRefreshResp()} : input.refresh,
-    logout: input.logout === undefined ? {path : "/logout", security : {kind : "public"}, reqType : common_http.texprUnit(), respType : common_http.texprUnit()} : input.logout,
-    new_message: input.new_message === undefined ? {path : "/messages/new", security : {kind : "token"}, reqType : texprNewMessageReq(), respType : protoapp_db.texprMessageId()} : input.new_message,
-    recent_messages: input.recent_messages === undefined ? {path : "/messages/recent", security : {kind : "token"}, reqType : texprRecentMessagesReq(), respType : texprPaginated(texprMessage())} : input.recent_messages,
-    who_am_i: input.who_am_i === undefined ? {path : "/whoami", security : {kind : "token"}, reqType : ADL.texprVoid(), respType : texprUserWithId()} : input.who_am_i,
-    create_user: input.create_user === undefined ? {path : "/users/create", security : {kind : "tokenWithRole", value : "admin"}, reqType : texprUserDetails(), respType : protoapp_db.texprAppUserId()} : input.create_user,
-    update_user: input.update_user === undefined ? {path : "/users/update", security : {kind : "tokenWithRole", value : "admin"}, reqType : texprWithId(protoapp_db.texprAppUserId(), texprUserDetails()), respType : common_http.texprUnit()} : input.update_user,
-    query_users: input.query_users === undefined ? {path : "/users/query", security : {kind : "tokenWithRole", value : "admin"}, reqType : texprQueryUsersReq(), respType : texprPaginated(texprUserWithId())} : input.query_users,
+    healthy: input.healthy === undefined ? {method : "get", path : "/", security : {kind : "public"}, reqType : ADL.texprVoid(), respType : ADL.texprVoid()} : input.healthy,
+    login: input.login === undefined ? {method : "post", path : "/login", security : {kind : "public"}, reqType : texprLoginReq(), respType : texprLoginResp()} : input.login,
+    refresh: input.refresh === undefined ? {method : "post", path : "/refresh", security : {kind : "public"}, reqType : texprRefreshReq(), respType : texprRefreshResp()} : input.refresh,
+    logout: input.logout === undefined ? {method : "post", path : "/logout", security : {kind : "public"}, reqType : common_http.texprUnit(), respType : common_http.texprUnit()} : input.logout,
+    new_message: input.new_message === undefined ? {method : "post", path : "/messages/new", security : {kind : "token"}, reqType : texprNewMessageReq(), respType : protoapp_db.texprMessageId()} : input.new_message,
+    recent_messages: input.recent_messages === undefined ? {method : "get", path : "/messages/recent", security : {kind : "token"}, reqType : texprRecentMessagesReq(), respType : texprPaginated(texprMessage())} : input.recent_messages,
+    who_am_i: input.who_am_i === undefined ? {method : "get", path : "/whoami", security : {kind : "token"}, reqType : ADL.texprVoid(), respType : texprUserWithId()} : input.who_am_i,
+    create_user: input.create_user === undefined ? {method : "post", path : "/users/create", security : {kind : "tokenWithRole", value : "admin"}, reqType : texprUserDetails(), respType : protoapp_db.texprAppUserId()} : input.create_user,
+    update_user: input.update_user === undefined ? {method : "post", path : "/users/update", security : {kind : "tokenWithRole", value : "admin"}, reqType : texprWithId(protoapp_db.texprAppUserId(), texprUserDetails()), respType : common_http.texprUnit()} : input.update_user,
+    query_users: input.query_users === undefined ? {method : "get", path : "/users/query", security : {kind : "tokenWithRole", value : "admin"}, reqType : texprQueryUsersReq(), respType : texprPaginated(texprUserWithId())} : input.query_users,
   };
 }
 
 const ApiRequests_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"ApiRequests","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"AWS default compatible health check\n"}],"default":{"kind":"just","value":{"path":"/","security":"public"}},"name":"healthy","serializedName":"healthy","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}},{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpGet"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Login a user\n\nThe response will set an httpOnly cookie containing the refresh token\n"}],"default":{"kind":"just","value":{"path":"/login","security":"public"}},"name":"login","serializedName":"login","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"LoginReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"LoginResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Get a refreshed access token\n\nIf the refresh token is not provided in the request body, then it will\nbe read from the refrestToken cookie in the request.\n"}],"default":{"kind":"just","value":{"path":"/refresh","security":"public"}},"name":"refresh","serializedName":"refresh","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RefreshReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RefreshResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Clear the `refreshToken` cookie.\n"}],"default":{"kind":"just","value":{"path":"/logout","security":"public"}},"name":"logout","serializedName":"logout","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Post a message to the noticeboard\n"}],"default":{"kind":"just","value":{"path":"/messages/new","security":"token"}},"name":"new_message","serializedName":"new_message","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"NewMessageReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.db","name":"MessageId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Get recent noticeboard messages\n"}],"default":{"kind":"just","value":{"path":"/messages/recent","security":"token"}},"name":"recent_messages","serializedName":"recent_messages","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RecentMessagesReq"}}},{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"Message"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"Paginated"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpGet"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Gets info about the logged in user\n"}],"default":{"kind":"just","value":{"path":"/whoami","security":"token"}},"name":"who_am_i","serializedName":"who_am_i","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserWithId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpGet"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Create a new user\n"}],"default":{"kind":"just","value":{"path":"/users/create","security":{"tokenWithRole":"admin"}}},"name":"create_user","serializedName":"create_user","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserDetails"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.db","name":"AppUserId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Update a user\n"}],"default":{"kind":"just","value":{"path":"/users/update","security":{"tokenWithRole":"admin"}}},"name":"update_user","serializedName":"update_user","typeExpr":{"parameters":[{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.db","name":"AppUserId"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserDetails"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"WithId"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpPost"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Query users\n"}],"default":{"kind":"just","value":{"path":"/users/query","security":{"tokenWithRole":"admin"}}},"name":"query_users","serializedName":"query_users","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"QueryUsersReq"}}},{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserWithId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"Paginated"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpGet"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.ui"};
+  {"decl":{"annotations":[],"name":"ApiRequests","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"AWS default compatible health check\n"}],"default":{"kind":"just","value":{"method":"get","path":"/","security":"public"}},"name":"healthy","serializedName":"healthy","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}},{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Login a user\n\nThe response will set an httpOnly cookie containing the refresh token\n"}],"default":{"kind":"just","value":{"method":"post","path":"/login","security":"public"}},"name":"login","serializedName":"login","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"LoginReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"LoginResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Get a refreshed access token\n\nIf the refresh token is not provided in the request body, then it will\nbe read from the refrestToken cookie in the request.\n"}],"default":{"kind":"just","value":{"method":"post","path":"/refresh","security":"public"}},"name":"refresh","serializedName":"refresh","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RefreshReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RefreshResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Clear the `refreshToken` cookie.\n"}],"default":{"kind":"just","value":{"method":"post","path":"/logout","security":"public"}},"name":"logout","serializedName":"logout","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Post a message to the noticeboard\n"}],"default":{"kind":"just","value":{"method":"post","path":"/messages/new","security":"token"}},"name":"new_message","serializedName":"new_message","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"NewMessageReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.db","name":"MessageId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Get recent noticeboard messages\n"}],"default":{"kind":"just","value":{"method":"get","path":"/messages/recent","security":"token"}},"name":"recent_messages","serializedName":"recent_messages","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RecentMessagesReq"}}},{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"Message"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"Paginated"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Gets info about the logged in user\n"}],"default":{"kind":"just","value":{"method":"get","path":"/whoami","security":"token"}},"name":"who_am_i","serializedName":"who_am_i","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserWithId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Create a new user\n"}],"default":{"kind":"just","value":{"method":"post","path":"/users/create","security":{"tokenWithRole":"admin"}}},"name":"create_user","serializedName":"create_user","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserDetails"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.db","name":"AppUserId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Update a user\n"}],"default":{"kind":"just","value":{"method":"post","path":"/users/update","security":{"tokenWithRole":"admin"}}},"name":"update_user","serializedName":"update_user","typeExpr":{"parameters":[{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.db","name":"AppUserId"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserDetails"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"WithId"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Query users\n"}],"default":{"kind":"just","value":{"method":"get","path":"/users/query","security":{"tokenWithRole":"admin"}}},"name":"query_users","serializedName":"query_users","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"QueryUsersReq"}}},{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserWithId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"Paginated"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.ui"};
 
 export const snApiRequests: ADL.ScopedName = {moduleName:"protoapp.apis.ui", name:"ApiRequests"};
 

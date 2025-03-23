@@ -1,10 +1,11 @@
 use rand::Rng;
+use reqwest::header::{HeaderMap, HeaderValue};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::Executor;
 
-use crate::adl::gen::common::http::{HttpGet, HttpPost};
+use crate::adl::gen::common::http::{HttpMethod, HttpReq};
 use crate::adl::gen::protoapp::apis;
 use crate::adl::gen::protoapp::apis::ui::LoginReq;
 use crate::adl::gen::protoapp::config::server::{DbConnectionConfig, ServerConfig};
@@ -81,62 +82,58 @@ impl DbTestEnv {
     }
 }
 
-pub async fn server_public_request<I: Serialize, O: DeserializeOwned>(
-    endpoint: HttpPost<I, O>,
+pub async fn server_public_req<I: Serialize, O: DeserializeOwned>(
+    endpoint: HttpReq<I, O>,
     req: &I,
 ) -> O {
-    let client = reqwest::Client::new();
-    let resp = client
-        .post(format!("http://localhost:8181{}", endpoint.path))
-        .json(req)
-        .send()
-        .await
-        .unwrap();
+    let resp = server_req(endpoint, None, req).await;
     assert_eq!(resp.status(), 200);
     resp.json().await.unwrap()
 }
 
-pub async fn server_auth_post<I: Serialize, O: DeserializeOwned>(
-    endpoint: HttpPost<I, O>,
+pub async fn server_auth_req<I: Serialize, O: DeserializeOwned>(
+    endpoint: HttpReq<I, O>,
     jwt: &str,
     req: &I,
 ) -> O {
-    let resp = server_auth_post1(endpoint, jwt, req).await;
+    let resp = server_req(endpoint, Some(jwt), req).await;
+    assert_eq!(resp.status(), 200);
     resp.json().await.unwrap()
 }
 
-pub async fn server_auth_post1<I: Serialize, O: DeserializeOwned>(
-    endpoint: HttpPost<I, O>,
-    jwt: &str,
+pub async fn server_req<I: Serialize, O: DeserializeOwned>(
+    endpoint: HttpReq<I, O>,
+    jwt: Option<&str>,
     req: &I,
 ) -> reqwest::Response {
     let client = reqwest::Client::new();
-    
-    client
-        .post(format!("http://localhost:8181{}", endpoint.path))
-        .header("Authorization", format!("Bearer {}", jwt))
-        .json(req)
-        .send()
-        .await
-        .unwrap()
-}
-
-pub async fn server_auth_get<I: Serialize, O: DeserializeOwned>(
-    endpoint: HttpGet<I, O>,
-    jwt: &str,
-    req: &I,
-) -> O {
-    let client = reqwest::Client::new();
-    let query = encode_query_string(req);
-    log::info!("client query: {}", query);
-    let resp = client
-        .get(format!("http://localhost:8181{}{}", endpoint.path, query))
-        .header("Authorization", format!("Bearer {}", jwt))
-        .send()
-        .await
-        .unwrap();
-    assert_eq!(resp.status(), 200);
-    resp.json().await.unwrap()
+    let mut headers = HeaderMap::new();
+    if let Some(jwt) = jwt {
+        headers.insert(
+            "Authorization",
+            HeaderValue::from_str(&format!("Bearer {}", jwt)).unwrap(),
+        );
+    }
+    let resp = match endpoint.method {
+        HttpMethod::Get => client
+            .get(format!(
+                "http://localhost:8181{}{}",
+                endpoint.path,
+                encode_query_string(req)
+            ))
+            .headers(headers)
+            .send()
+            .await
+            .unwrap(),
+        HttpMethod::Post => client
+            .post(format!("http://localhost:8181{}", endpoint.path))
+            .json(req)
+            .headers(headers)
+            .send()
+            .await
+            .unwrap(),
+    };
+    resp
 }
 
 pub fn encode_query_string<I: Serialize>(i: &I) -> String {
@@ -192,7 +189,7 @@ pub async fn create_test_user(
 }
 
 pub async fn login_user(login_req: &LoginReq) -> String {
-    let resp = server_public_request(apis::ui::ApiRequests::def_login(), login_req).await;
+    let resp = server_public_req(apis::ui::ApiRequests::def_login(), login_req).await;
     match resp {
         apis::ui::LoginResp::Tokens(tokens) => tokens.access_jwt,
         apis::ui::LoginResp::InvalidCredentials => panic!("invalid credentials"),
