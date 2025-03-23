@@ -27,6 +27,8 @@ struct Message {
   Instant posted_at;
   AppUserId posted_by;
   StringML message;
+  U1 u1;
+  U2 u2;
 };
 newtype MessageTable = WithId<Message>;
 type MessageId = DbKey<MessageTable>;
@@ -36,4 +38,13 @@ annotation MessageTable DbTable {
   "id_prefix": "M-"
 };
 
+union U1 {
+  Void a;
+  Void b;
+};
+
+union U2 {
+  Void a;
+  Bool b;
+};
 };

@@ -70,14 +70,22 @@ pub struct Message {
   pub posted_by: AppUserId,
 
   pub message: StringML,
+
+  #[serde(rename="u1")]
+  pub u_1: U1,
+
+  #[serde(rename="u2")]
+  pub u_2: U2,
 }
 
 impl Message {
-  pub fn new(posted_at: Instant, posted_by: AppUserId, message: StringML) -> Message {
+  pub fn new(posted_at: Instant, posted_by: AppUserId, message: StringML, u_1: U1, u_2: U2) -> Message {
     Message {
       posted_at: posted_at,
       posted_by: posted_by,
       message: message,
+      u_1: u_1,
+      u_2: u_2,
     }
   }
 }
@@ -107,3 +115,21 @@ impl<'de> Deserialize<'de> for MessageTable
 }
 
 pub type MessageId = DbKey<MessageTable>;
+
+#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
+pub enum U1 {
+  #[serde(rename="a")]
+  A,
+
+  #[serde(rename="b")]
+  B,
+}
+
+#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
+pub enum U2 {
+  #[serde(rename="a")]
+  A,
+
+  #[serde(rename="b")]
+  B(bool),
+}
