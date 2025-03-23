@@ -16,8 +16,6 @@ create table message(
   posted_at timestamp with time zone not null, -- Instant
   posted_by text not null,             -- AppUserId
   message text not null,               -- StringML
-  u_1 text not null,                   -- U1
-  u_2 jsonb not null,                  -- U2
   primary key(id)
 );
 

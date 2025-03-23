@@ -74,16 +74,5 @@ impl Message {
     pub fn message() -> ColumnSpec<adlgen::common::strings::StringML> {
         ColumnSpec::new(Self::table_str(), "message")
     }
-
-    pub fn u1() -> ColumnSpec<adlgen::protoapp::db::U1> {
-        ColumnSpec::new(Self::table_str(), "u_1")
-    }
-
-    pub fn u2() -> ColumnSpec<adlgen::protoapp::db::U2> {
-        ColumnSpec::new(Self::table_str(), "u_2")
-    }
 }
 
-
-derive_db_conversions_adl_enum!(adlgen::protoapp::db::U1);
-derive_db_conversions_adl!(adlgen::protoapp::db::U2);
