@@ -24,7 +24,6 @@ struct ApiRequests {
   ///
   /// The response will set an httpOnly cookie containing the refresh token
   HttpReq<LoginReq, LoginResp> login = {
-    "method": "post",
     "path": "/login",
     "security" : "public"
   };
@@ -34,21 +33,18 @@ struct ApiRequests {
   /// If the refresh token is not provided in the request body, then it will
   /// be read from the refrestToken cookie in the request.
   HttpReq<RefreshReq, RefreshResp> refresh = {
-    "method": "post",
     "path": "/refresh",
     "security" : "public"
   };
 
   /// Clear the `refreshToken` cookie.
   HttpReq<Unit, Unit> logout = {
-    "method": "post",
     "path": "/logout",
     "security" : "public"
   };
 
   /// Post a message to the noticeboard
   HttpReq<NewMessageReq, MessageId> new_message = {
-    "method": "post",
     "path": "/messages/new",
     "security" : "token"
   };
@@ -70,14 +66,12 @@ struct ApiRequests {
 
   /// Create a new user
   HttpReq<UserDetails, AppUserId> create_user = {
-    "method": "post",
     "path": "/users/create",
     "security" : { "tokenWithRole": "admin" }
   };
 
   /// Update a user
   HttpReq<WithId<AppUserId,UserDetails>, Unit> update_user = {
-    "method": "post",
     "path": "/users/update",
     "security" : { "tokenWithRole": "admin" }
   };

@@ -8,6 +8,7 @@ use serde::Serialize;
  */
 #[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
 pub struct HttpReq<I, O> {
+  #[serde(default="HttpReq::<I, O>::def_method")]
   pub method: HttpMethod,
 
   pub path: String,
@@ -24,14 +25,18 @@ pub struct HttpReq<I, O> {
 }
 
 impl<I, O> HttpReq<I, O> {
-  pub fn new(method: HttpMethod, path: String, security: HttpSecurity) -> HttpReq<I, O> {
+  pub fn new(path: String, security: HttpSecurity) -> HttpReq<I, O> {
     HttpReq {
-      method: method,
+      method: HttpReq::<I, O>::def_method(),
       path: path,
       security: security,
       req_type: HttpReq::<I, O>::def_req_type(),
       resp_type: HttpReq::<I, O>::def_resp_type(),
     }
+  }
+
+  pub fn def_method() -> HttpMethod {
+    HttpMethod::Post
   }
 
   pub fn def_req_type() -> std::marker::PhantomData<I> {

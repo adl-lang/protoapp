@@ -93,7 +93,6 @@ where
     //
     fn decode_query_string(req: Request) -> poem::Result<I> {
         let query_str = req.uri().query();
-        log::info!("server query: {:?}", query_str);
         match query_str {
             None => {
                 let i = serde_json::from_value(serde_json::Value::Null)

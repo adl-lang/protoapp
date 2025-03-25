@@ -3,7 +3,13 @@ module common.http {
 /// Request types
 
 struct HttpReq<I,O> {
-  HttpMethod method;
+
+  // Requests are post by default. If a given request:
+  //     - is side-effect free
+  //     - has a body I is small enough to fit encoded in the URI
+  // one can set the method to "get", eg to allow CDN caching etc 
+  HttpMethod method = "post";
+
   String path;
   HttpSecurity security;
   TypeToken<I> reqType = null;
