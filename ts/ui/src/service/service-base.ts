@@ -18,7 +18,12 @@ export class ServiceBase {
     const bb = createBiBinding<I, O>(this.resolver, rtype);
     return (req: I) => {
       const jsonArgs = bb.reqJB.toJson(req);
-      return this.requestAdl("post", rtype.path, undefined, jsonArgs, bb.respJB, undefined);
+      if (rtype.method === 'get') {
+          const queryString = encodeQueryString(jsonArgs);
+          return this.requestAdl('get', rtype.path, queryString, undefined , bb.respJB, undefined);
+      } else {
+        return this.requestAdl('post', rtype.path, undefined, jsonArgs, bb.respJB, undefined);
+      }
     };
   }
 
@@ -26,7 +31,12 @@ export class ServiceBase {
     const bb = createBiBinding<I, O>(this.resolver, rtype);
     return (authToken:string, req: I) => {
       const jsonArgs = bb.reqJB.toJson(req);
-      return this.requestAdl("post", rtype.path, undefined, jsonArgs, bb.respJB, authToken);
+      if (rtype.method === 'get') {
+          const queryString = encodeQueryString(jsonArgs);
+          return this.requestAdl('get', rtype.path, queryString, undefined , bb.respJB, authToken);
+      } else {
+        return this.requestAdl('post', rtype.path, undefined, jsonArgs, bb.respJB, authToken);
+      }
     };
   }
 

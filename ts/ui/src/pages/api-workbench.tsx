@@ -152,7 +152,7 @@ function ModalChooseEndpoint(props: {
         <div>Select an endpoint:</div>
         <Divider sx={{ marginTop: "10px", marginBottom: "10px" }} />
         {props.endpoints.map(e =>
-          <Box sx={{ marginTop: "20px", marginBottom: "20px" }}>
+          <Box key={e.name} sx={{ marginTop: "20px", marginBottom: "20px"}}>
             <Button onClick={() => props.choose(e)}>
               {e.name}
             </Button>
@@ -386,7 +386,7 @@ function getHttpEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field): Ht
   const texprO = ADL.makeATypeExpr<O>(field.typeExpr.parameters[1]);
 
   const jb = createJsonBinding(resolver, texprHttpReq(texprI, texprO));
-  const httpPost = jb.fromJson(field.default.value);
+  const httpReq = jb.fromJson(field.default.value);
 
   const veditorI = createVEditor(texprI, resolver, UI_FACTORY);
   const veditorO = createVEditor(texprO, resolver, UI_FACTORY);
@@ -396,10 +396,10 @@ function getHttpEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field): Ht
   const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
   return {
     name: field.name,
-    path: httpPost.path,
-    method: 'post',
+    path: httpReq.path,
+    method: httpReq.method,
     docString,
-    security: httpPost.security,
+    security: httpReq.security,
     veditorI,
     veditorO,
     jsonBindingI,
