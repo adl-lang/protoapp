@@ -1,0 +1,18 @@
+[workspace]
+members = [ "server", "shared" ]
+resolver = "2"
+
+[workspace.dependencies]
+shared = { path = "shared" }
+
+base64 = "0.21.2"
+env_logger = "0.10.0"
+sqlx = { version = "0.6.3", features = ["runtime-tokio-native-tls", "postgres", "time", "json"] }
+sea-query = {version="0.28.5", features=["with-json","with-time"]}
+sea-query-binder = { version="0.3.1", features = ["sqlx-postgres", "with-json", "with-time"]}
+rand = "0.8.5"
+serde = { version = "1.0.160", features = ["serde_derive"] }
+serde_json = "1.0.96"
+tokio = { version = "1.27.0", features = ["full"] }
+thiserror = { version = "2.0.12" }
+uuid = "1.16.0"

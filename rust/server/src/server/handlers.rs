@@ -2,21 +2,22 @@ use poem::handler;
 use poem::web::cookie::{Cookie, CookieJar};
 use poem::web::Json;
 
-use crate::adl::custom::common::db::DbKey;
-use crate::adl::gen::common::http::Unit;
-use crate::adl::gen::protoapp::apis::ui::{
+use shared::adl::custom::common::db::DbKey;
+use shared::adl::gen::common::http::Unit;
+use shared::adl::gen::protoapp::apis::ui::{
     ApiRequests, LoginReq, LoginResp, LoginTokens, Message, Paginated, QueryUsersReq,
     RecentMessagesReq, RefreshReq, RefreshResp, User, UserDetails, UserWithId, WithId,
 };
-use crate::adl::gen::protoapp::config::server::ServerConfig;
-use crate::adl::gen::protoapp::db::{AppUser, AppUserId};
-use crate::adl::gen::protoapp::{apis::ui::NewMessageReq, db::MessageId};
-use crate::server::poem_adl_interop::get_adl_request_context;
+use shared::adl::gen::protoapp::config::server::ServerConfig;
+use shared::adl::gen::protoapp::db::{AppUser, AppUserId};
+use shared::adl::gen::protoapp::{apis::ui::NewMessageReq, db::MessageId};
 
-use super::jwt::AccessClaims;
-use super::passwords::{hash_password, verify_password};
-use super::poem_adl_interop::{forbidden, AdlReqContext, HandlerResult};
-use super::{db, jwt, AppState};
+use crate::server::jwt::AccessClaims;
+use crate::server::passwords::{hash_password, verify_password};
+use crate::server::poem_adl_interop::{
+    forbidden, get_adl_request_context, AdlReqContext, HandlerResult,
+};
+use crate::server::{db, jwt, AppState};
 
 type ReqContext = AdlReqContext<AppState>;
 

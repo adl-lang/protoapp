@@ -1,8 +1,8 @@
 use clap::{Args, Parser, Subcommand};
-use protoapp::{
-    adl::gen::protoapp::db::AppUser,
-    server::{db, passwords::hash_password},
-};
+
+use shared::adl::gen::protoapp::db::AppUser;
+
+use protoapp::server::{db, passwords::hash_password};
 use sqlx::postgres::PgPoolOptions;
 
 #[tokio::main]

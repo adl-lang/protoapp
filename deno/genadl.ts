@@ -37,7 +37,7 @@ async function main() {
     //----------------------------------------------------------------------
     // Generate rust for the protoapp server
     
-    const outputDir = repo + "/rust/server/src";
+    const outputDir = repo + "/rust/shared/src";
     await genRust({
       ...commonFlags,
       adlModules: [

@@ -1,0 +1,6 @@
+ts/ui/src/adl-gen/** linguist-generated
+rust/shared/src/adl/gen/** linguist-generated
+rust/shared/src/adl/db/schema.rs linguist-generated
+sql/adl-gen/** linguist-generated
+rust/server/migrations/00000000000020_adl-tables.latest.sql linguist-generated
+rust/server/migrations/00000000000030_adl-views.latest.sql linguist-generated

@@ -4,7 +4,7 @@ use sqlx::{postgres::PgPoolOptions, PgPool};
 use std::sync::Arc;
 use tokio::{sync::oneshot, task::JoinHandle};
 
-use crate::adl::gen::protoapp::config::server::ServerConfig;
+use shared::adl::gen::protoapp::config::server::ServerConfig;
 
 pub mod db;
 mod handlers;

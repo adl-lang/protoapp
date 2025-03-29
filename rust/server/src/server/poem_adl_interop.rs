@@ -9,7 +9,7 @@ use std::future::Future;
 use std::marker::PhantomData;
 use std::sync::Arc;
 
-use crate::adl::gen::common::http::{HttpMethod, HttpReq, HttpSecurity};
+use shared::adl::gen::common::http::{HttpMethod, HttpReq, HttpSecurity};
 
 use super::jwt;
 
