@@ -17,6 +17,7 @@ import { Modal } from './modal';
 import { GridRow, Rendered, RenderFn, RenderProps, VEditor } from './veditor';
 import { Box, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TextField } from '@mui/material';
 import { styled } from "@mui/material";
+import { Fragment } from 'react';
 
 export function fieldElement(element:JSX.Element): Rendered {
   return {
@@ -71,7 +72,7 @@ export class UiFactory implements Factory<RenderFn> {
 
       return {
         element: () => {
-          return <StructGrid>{renderStructRows(0, rows)}</StructGrid>;
+          return <StructGrid>{renderStructRows([], rows)}</StructGrid>;
         },
         gridElement: () => {
           return {
@@ -301,27 +302,30 @@ function wideGridRow(element: JSX.Element | undefined): GridRow[] {
   return [];
 }
 
-function renderStructRows(indent: number, rows: GridRow[]): JSX.Element[] {
-  const elements: JSX.Element[] = [];
+function renderStructRows(keyprefix: number[], rows: GridRow[]) {
+  const result: JSX.Element[] = [];
+  const indent = keyprefix.length;
   const indentElement = indent == 0 ? undefined : <Box sx={{width:`${indent * 30}px`}} />;
-  for(const row of rows) {
+  rows.forEach( (row,i) => {
+    const key = [...keyprefix, i ];
+    const keyString = key.toString();
     if (row.kind === 'wide') {
-      elements.push(
-        <StructGridWideValue>{indentElement}{row.element}</StructGridWideValue>
+      result.push(
+        <StructGridWideValue key={keyString}>{indentElement}{row.element}</StructGridWideValue>
       );
     } else if (row.kind === 'labelled') {
-      elements.push(
-        <>
+      result.push(
+        <Fragment key={keyString}>
           <StructGridLabel>{indentElement}{row.label}</StructGridLabel>
           {row.element.beside && <StructGridValue>{row.element.beside}</StructGridValue>}
-        </>
+        </Fragment>
       );
       if (row.element.below) {
-        elements.push(...renderStructRows(indent+1,row.element.below));
+        result.push(...renderStructRows(key, row.element.below));
       }
     }
-  }
-  return elements;
+  });
+  return result;
 }
 
 const StructGrid = styled('div')({
