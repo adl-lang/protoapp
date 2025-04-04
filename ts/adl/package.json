@@ -1,0 +1,22 @@
+{
+  "name": "adl",
+  "private": true,
+  "version": "0.0.1",
+  "type": "module",
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@adllang/adl-runtime": "npm:@jsr/adllang__adl-runtime@0.1.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "exports": {
+    ".": "./dist/index.js",
+    "./resolver": "./dist/resolver.js",
+    "./common/*": "./dist/common/*.js",
+    "./protoapp/*": "./dist/protoapp/*.js",
+    "./sys/*": "./dist/sys/*.js"
+  }
+}

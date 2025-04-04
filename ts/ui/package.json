@@ -9,6 +9,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "adl": "workspace:*",
     "@adllang/adl-runtime": "npm:@jsr/adllang__adl-runtime@0.1.2",
     "@emotion/react": "^11.13.3",
     "@emotion/styled": "^11.13.0",

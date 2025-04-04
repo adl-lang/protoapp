@@ -14,16 +14,12 @@ async function main() {
 
   {
     //----------------------------------------------------------------------
-    // Generate typescript for the protoapp ui
+    // Generate typescript for the adl package
 
-    const outputDir = repo + "/ts/ui/src/adl-gen";
+    const outputDir = repo + "/ts/adl/src";
     await genTypescript({
       ...commonFlags,
-      adlModules: [
-        "protoapp.apis.ui",
-        "sys.adlast",
-        "common.ui",
-      ],
+      adlModules: ["protoapp.apis.ui", "sys.adlast", "common.ui"],
       tsStyle: "tsc",
       outputDir: outputDir,
       includeResolver: true,
@@ -31,20 +27,42 @@ async function main() {
       generateTransitive: true,
       excludeAstAnnotations: [],
     });
+
+    // ensure pnpm dependencies are installed
+    let cmd = new Deno.Command("pnpm", {
+      args: ["install"],
+      cwd: repo + "/ts",
+    });
+    const installOutput = await cmd.output();
+    if (installOutput.stderr.length > 0) {
+      console.error(
+        "pnpm install stderr:",
+        new TextDecoder().decode(installOutput.stderr),
+      );
+    }
+
+    // build the adl package so it can be consumed
+    cmd = new Deno.Command("pnpm", {
+      args: ["run", "build"],
+      cwd: repo + "/ts/adl",
+    });
+    const buildOutput = await cmd.output();
+    if (buildOutput.stderr.length > 0) {
+      console.error(
+        "pnpm build stderr:",
+        new TextDecoder().decode(buildOutput.stderr),
+      );
+    }
   }
 
   {
     //----------------------------------------------------------------------
-    // Generate rust for the protoapp server
+    // Generate rust for the server
 
     const outputDir = repo + "/rust/adl/src";
     await genRust({
       ...commonFlags,
-      adlModules: [
-        "protoapp.apis.ui",
-        "protoapp.db",
-        "protoapp.config.server",
-      ],
+      adlModules: ["protoapp.apis.ui", "protoapp.db", "protoapp.config.server"],
       outputDir: outputDir,
       module: "gen",
       runtimeModule: "rt",
@@ -55,9 +73,7 @@ async function main() {
 
     await genRustSeaQuerySchema({
       ...commonFlags,
-      adlModules: [
-        "protoapp.db",
-      ],
+      adlModules: ["protoapp.db"],
       outputFile: outputDir + "/db/schema.rs",
     });
   }
@@ -69,9 +85,7 @@ async function main() {
     await genCreateSqlSchema({
       ...commonFlags,
       mergeAdlExts: ["adl-pg"],
-      adlModules: [
-        "protoapp.db",
-      ],
+      adlModules: ["protoapp.db"],
       createFile: repo + "/sql/adl-gen/adl-tables.latest.sql",
       viewsFile: repo + "/sql/adl-gen/adl-views.latest.sql",
     });
@@ -95,7 +109,6 @@ export function getRepoRoot(): string {
   return path.dirname(path.dirname(modulepath));
 }
 
-main()
-  .catch((err) => {
-    console.error("error in main", err);
-  });
+main().catch((err) => {
+  console.error("error in main", err);
+});

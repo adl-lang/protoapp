@@ -9,9 +9,9 @@ import { fieldElement, UiFactory, wideFieldElement } from "./mui/factory";
 import { invalid, OVEditor, UpdateFn, valid } from "./model/veditor/type";
 import { RenderFn, RenderProps } from "./mui/veditor";
 import { IconButton, InputAdornment, TextField } from "@mui/material";
-import { snPassword, snStringML } from "@/adl-gen/common/strings";
-import { snDbKey, texprDbTable } from "@/adl-gen/common/db";
-import { RESOLVER } from "@/adl-gen/resolver";
+import { snPassword, snStringML } from "adl/common/strings";
+import { snDbKey, texprDbTable } from "adl/common/db";
+import { RESOLVER } from "adl/resolver";
 import { useState } from "react";
 import { Visibility, VisibilityOff } from "@mui/icons-material";
 

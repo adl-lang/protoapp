@@ -1,7 +1,7 @@
 import { HttpFetch } from "./http";
-import * as API from "@/adl-gen/protoapp/apis/ui";
+import * as API from "adl/protoapp/apis/ui";
 import { ServiceBase } from "./service-base";
-import { RESOLVER } from "../adl-gen/resolver";
+import { RESOLVER } from "adl/resolver";
 
 
 const api = API.makeApiRequests({});

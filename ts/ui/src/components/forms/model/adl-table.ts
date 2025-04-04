@@ -4,7 +4,7 @@ import { getFormLabelFromAnnotation } from "./adl-annotations";
 import { enumField, maybeField, nullableField, adlPrimitiveFieldFns } from "./fields/adl";
 import { ATypeExpr, DeclResolver, ScopedDecl } from "@adllang/adl-runtime";
 import { isEnum } from "@adllang/adl-runtime";
-import * as adlast from "@/adl-gen/sys/adlast";
+import * as adlast from "adl/sys/adlast";
 import * as adltree from "./adl-tree";
 import { CustomContext, fieldLabel } from "./veditor/adlfactory";
 

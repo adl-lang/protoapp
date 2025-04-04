@@ -1,6 +1,6 @@
 import { HttpFetch, HttpRequest } from "./http";
 import * as ADL from "@adllang/adl-runtime";
-import { HttpReq } from "@/adl-gen/common/http";
+import { HttpReq } from "adl/common/http";
 import { createJsonBinding, Json, JsonBinding } from "@adllang/adl-runtime";
 import { QueryStats } from "@mui/icons-material";
 

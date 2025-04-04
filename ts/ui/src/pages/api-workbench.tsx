@@ -1,8 +1,8 @@
-import { HttpSecurity, snHttpReq, texprHttpReq } from "@/adl-gen/common/http";
-import * as API from "@/adl-gen/protoapp/apis/ui";
-import { RESOLVER } from "@/adl-gen/resolver";
-import * as AST from "@/adl-gen/sys/adlast";
-import { texprDoc } from "@/adl-gen/sys/annotations";
+import { HttpSecurity, snHttpReq, texprHttpReq } from "adl/common/http";
+import * as API from "adl/protoapp/apis/ui";
+import { RESOLVER } from "adl/resolver";
+import * as AST from "adl/sys/adlast";
+import { texprDoc } from "adl/sys/annotations";
 import { createVEditor } from "@/components/forms/model/veditor/adlfactory";
 import { AdlForm, useAdlFormState } from "@/components/forms/mui/form";
 import { Modal } from "@/components/forms/mui/modal";
