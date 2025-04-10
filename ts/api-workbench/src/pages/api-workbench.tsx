@@ -8,7 +8,7 @@ import { AdlForm, useAdlFormState } from "@/components/forms/mui/form";
 import { Modal } from "@/components/forms/mui/modal";
 import { VEditor } from "@/components/forms/mui/veditor";
 import { createUiFactory } from "@/components/forms/factory";
-import { AppState, useAppState } from "@/hooks/use-app-state";
+import { AppState, AuthState, useAppState } from "@/hooks/use-app-state";
 import { AdlRequestError, encodeQueryString, ServiceBase } from "@/service/service-base";
 import * as ADL from "@adllang/adl-runtime";
 import { Json, JsonBinding, createJsonBinding, scopedNamesEqual } from "@adllang/adl-runtime";
@@ -118,6 +118,9 @@ export function ApiWorkbench() {
     }
   }
 
+  const loginEndpoint = endpoints.find((ep) => ep.name === "login");
+  const logoutEndpoint = endpoints.find((ep) => ep.name === "logout");
+
   return (
     <Container fixed>
       <Box>
@@ -125,7 +128,15 @@ export function ApiWorkbench() {
           <Typography variant="h4" component="h1" sx={{ mb: 2, marginTop: "20px" }}>
             API Workbench
           </Typography>
-          <Button onClick={() => appState.logout()}>Logout</Button>
+          <LoginLogoutButton
+            authState={appState.authState}
+            login={() =>
+              loginEndpoint && setModal({ state: "create-request", endpoint: loginEndpoint, initial: undefined })
+            }
+            logout={() =>
+              logoutEndpoint && setModal({ state: "create-request", endpoint: logoutEndpoint, initial: undefined })
+            }
+          />
         </Box>
         {prevRequests.map((value, i) => (
           <CompletedRequestView
@@ -159,6 +170,16 @@ export function ApiWorkbench() {
       {renderModal()}
     </Container>
   );
+}
+
+function LoginLogoutButton(props: { authState: AuthState; login: () => void; logout: () => void }) {
+  switch (props.authState.kind) {
+    case "noauth":
+    case "authfailed":
+      return <Button onClick={props.login}>Login</Button>;
+    case "auth":
+      return <Button onClick={props.logout}>Logout</Button>;
+  }
 }
 
 function ModalChooseEndpoint(props: { endpoints: Endpoint[]; choose: (e: Endpoint) => void; cancel: () => void }) {
@@ -353,11 +374,13 @@ async function executeRequest<I, O>(
   };
 }
 
-function updateAppState<I, O>(appState: AppState, endpoint: HttpEndpoint<I, O>, _req: I, resp: O) {
+function updateAppState<I, O>(appState: AppState, endpoint: HttpEndpoint<I, O>, req: I, resp: O) {
   // All the endpoint handling is generic except for here, where we update the auth state when the
   // login or logout endpoints are called.
   switch (endpoint.name) {
     case "login":
+      // Clear the password to avoid showing it on screen in the request history
+      (req as API.LoginReq).password = "";
       appState.setAuthStateFromLogin(resp as API.LoginResp);
       break;
     case "logout":
