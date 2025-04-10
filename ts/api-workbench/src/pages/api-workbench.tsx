@@ -18,8 +18,6 @@ import RefreshIcon from "@mui/icons-material/Refresh";
 import { JSX, useMemo, useRef, useState } from "react";
 import JsonView from "react18-json-view";
 import "react18-json-view/src/style.css";
-import { navigate } from "raviger";
-import { useLogout } from "../hooks/use-logout";
 
 type ModalState = ChooseEndpoint | CreateRequest<unknown>;
 
@@ -54,7 +52,6 @@ export function ApiWorkbench() {
   const appState = useAppState();
   const { authState, api } = appState;
   const jwt_decoded = authState.kind === "auth" ? authState.auth.jwt_decoded : undefined;
-  const logout = useLogout();
 
   const endpoints = useMemo(() => {
     const allEndpoints = getEndpoints(RESOLVER, API.texprApiRequests());
@@ -128,7 +125,7 @@ export function ApiWorkbench() {
           <Typography variant="h4" component="h1" sx={{ mb: 2, marginTop: "20px" }}>
             API Workbench
           </Typography>
-          <Button onClick={() => logout()}>Logout</Button>
+          <Button onClick={() => appState.logout()}>Logout</Button>
         </Box>
         {prevRequests.map((value, i) => (
           <CompletedRequestView
@@ -432,7 +429,7 @@ function getHttpEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field): Ht
   };
 }
 
-function endpointHasReqContent(endpoint: Endpoint): boolean {
+function endpointHasReqContent(_endpoint: Endpoint): boolean {
   return true;
 }
 
