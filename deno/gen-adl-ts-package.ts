@@ -7,7 +7,6 @@ export interface GenAdlTsParams extends AdlSourceParams {
   packageName: string;
   packageRoot: string;
   buildOutputDir: `/${string}`;
-  typescriptVersion: string;
   adlRuntimeVersion: string;
   verbose?: boolean;
 }
@@ -40,7 +39,7 @@ export async function genAdlTsPackage(params: GenAdlTsParams): Promise<void> {
   );
   writer.write(`  },\n`);
   writer.write(`  "devDependencies": {\n`);
-  writer.write(`    "typescript": "${params.typescriptVersion}"\n`);
+  writer.write(`    "typescript": "catalog:"\n`);
   writer.write(`  },\n`);
   writer.write(`  "exports": {\n`);
   writer.write(`    ".": "./dist/index.js",\n`);

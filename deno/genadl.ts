@@ -35,7 +35,6 @@ async function main() {
       packageName: "@protoapp/adl",
       packageRoot: repo + "/ts/adl",
       buildOutputDir: "/dist",
-      typescriptVersion: "^5.6.3",
       adlRuntimeVersion: "0.1.2",
     });
   }
