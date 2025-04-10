@@ -115,7 +115,8 @@ pub async fn server_req<I: Serialize, O: DeserializeOwned>(
             HeaderValue::from_str(&format!("Bearer {}", jwt)).unwrap(),
         );
     }
-    let resp = match endpoint.method {
+
+    match endpoint.method {
         HttpMethod::Get => client
             .get(format!(
                 "http://localhost:8181{}{}",
@@ -133,8 +134,7 @@ pub async fn server_req<I: Serialize, O: DeserializeOwned>(
             .send()
             .await
             .unwrap(),
-    };
-    resp
+    }
 }
 
 pub fn encode_query_string<I: Serialize>(i: &I) -> String {

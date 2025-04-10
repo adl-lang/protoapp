@@ -240,10 +240,7 @@ fn is_valid_login(resp: &apis::ui::LoginResp) -> bool {
 }
 
 fn is_valid_refresh(resp: &apis::ui::RefreshResp) -> bool {
-    match resp {
-        apis::ui::RefreshResp::AccessToken(_) => true,
-        _ => false,
-    }
+    matches!(resp, apis::ui::RefreshResp::AccessToken(_))
 }
 
 fn get_login_tokens(resp: apis::ui::LoginResp) -> Option<LoginTokens> {

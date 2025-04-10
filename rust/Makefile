@@ -20,7 +20,7 @@ build: install-toolchain
 
 check: install-toolchain
 	cargo fmt --check
-	cargo clippy --workspace -- -D warnings
+	cargo clippy --all-targets --workspace -- -D warnings
 
 check-build: check build
 
