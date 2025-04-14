@@ -93,6 +93,4 @@ export function getRepoRoot(): string {
   return path.dirname(path.dirname(modulepath));
 }
 
-main().catch((err) => {
-  console.error("error in main", err);
-});
+await main();
