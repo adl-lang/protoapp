@@ -1,5 +1,5 @@
 import * as path from "@std/path";
-import { genRust, genTypescript } from "@adllang/adlc-tools";
+import { AdlcError, genRust, genTypescript } from "@adllang/adlc-tools";
 
 import { genAdlTsPackage } from "./gen-adl-ts-package.ts";
 import { genCreateSqlSchema } from "./gen-sqlschema.ts";
@@ -93,4 +93,13 @@ export function getRepoRoot(): string {
   return path.dirname(path.dirname(modulepath));
 }
 
-await main();
+try {
+  await main();
+} catch (e: unknown) {
+  if (e instanceof AdlcError && e.showTraceback === false) {
+    console.error(e.message);
+  } else {
+    console.error(e);
+  }
+  Deno.exit(1);
+}

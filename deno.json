@@ -1,14 +1,14 @@
 {
     "lock": "./deno/deno.lock",
     "tasks" : {
-      "genadl" : "deno run --check=all --allow-all deno/genadl.ts && cd ts && pnpm install",
+      "genadl" : "deno run --quiet --check=all --allow-all deno/genadl.ts && cd ts && pnpm install",
       "build-server-image": "cd rust/server && docker build --tag protoapp-server:latest .",
       "build-ui-image": "cd ts/ui && docker build --file Dockerfile --tag protoapp-ui:latest .."
     },
     "imports": {
       "@adllang/local-setup": "jsr:@adllang/local-setup@^0.16.0",
       "@adllang/adl-runtime": "jsr:@adllang/adl-runtime@^0.1.0",
-      "@adllang/adlc-tools": "jsr:@adllang/adlc-tools@^0.1.4",
+      "@adllang/adlc-tools": "jsr:@adllang/adlc-tools@^0.1.5",
       "@mesqueeb/case-anything": "jsr:@mesqueeb/case-anything@^3.1.0",
       "@std/path": "jsr:@std/path@^1.0.8",
       "mustache_ts": "https://deno.land/x/mustache_ts@v0.4.1.1/mustache.ts"
