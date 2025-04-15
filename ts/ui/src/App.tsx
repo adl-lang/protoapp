@@ -106,7 +106,7 @@ const App: React.FC = () => {
 
   return (
     <div>
-      <h1>ProtoApp</h1>
+      <h1>Protoapp</h1>
 
       {accessToken === null ?
         <form onSubmit={handleLogin}>

@@ -191,3 +191,23 @@ pnpm run dev
 
 The (minimal) web application will be accessible at: http://localhost:5173
 The api workbench will be accessible at: http://localhost:5174
+
+## 4 Forking
+
+The following linux commands can be used to rename "protoapp" to "myproject" in a fork
+of this repo:
+
+```
+git mv adl/{protoapp,myproject}
+git mv rust/adl/src/gen/{protoapp,myproject}
+git mv rust/server/src/bin/{protoapp,myproject}-server.rs
+git mv rust/server/src/bin/{protoapp,myproject}-tools.rs
+git mv ts/adl/src/{protoapp,myproject}
+sed -i -e 's|protoapp|myproject|g'  $(git ls-files)
+sed -i -e 's|Protoapp|MyProject|g'  $(git ls-files)
+sed -i -e 's|PROTOAPP|MYPROJECT|g'  $(git ls-files)
+deno task genadl
+```
+
+macos sed doesn't support multi file in place updates, so an alternative tool will
+be required.
