@@ -199,13 +199,17 @@ fn claims_from_bearer_token(
     let jwt = jwt::bearer_token_from_auth_header(auth_header).ok_or(forbidden())?;
     let claims = jwt::decode_access(jwt_secret, &jwt).map_err(|e| {
         log::error!("failed to validate jwt: {}", e);
-        forbidden()
+        unauthorized()
     })?;
     Ok(claims)
 }
 
 pub fn forbidden() -> HandlerError {
     HandlerError::Poem(poem::Error::from_status(StatusCode::FORBIDDEN))
+}
+
+pub fn unauthorized() -> HandlerError {
+    HandlerError::Poem(poem::Error::from_status(StatusCode::UNAUTHORIZED))
 }
 
 //---------------------------------------------------------------------------
