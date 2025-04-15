@@ -196,7 +196,7 @@ fn claims_from_bearer_token(
     jwt_secret: &str,
     auth_header: &str,
 ) -> HandlerResult<jwt::AccessClaims> {
-    let jwt = jwt::bearer_token_from_auth_header(auth_header).ok_or(forbidden())?;
+    let jwt = jwt::bearer_token_from_auth_header(auth_header).ok_or(unauthorized())?;
     let claims = jwt::decode_access(jwt_secret, &jwt).map_err(|e| {
         log::error!("failed to validate jwt: {}", e);
         unauthorized()
