@@ -30,7 +30,7 @@ impl AppState {
         }
     }
 }
-pub async fn run(config: ServerConfig) {
+pub async fn run(config: ServerConfig) -> Result<(), std::io::Error> {
     let db = &config.db;
 
     let db_connection_url = format!(
@@ -56,7 +56,7 @@ pub async fn run(config: ServerConfig) {
     let addr = &app_state.config.http_bind_addr;
     let server = poem::Server::new(TcpListener::bind(addr)).run(ep);
     log::info!("Listening on http://{}", addr);
-    let _ = server.await;
+    server.await
 }
 
 /**

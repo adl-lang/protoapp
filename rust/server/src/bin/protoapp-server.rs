@@ -13,10 +13,11 @@ async fn main() {
 
     match res {
         Err(e) => {
-            eprintln!("Error: {e}");
+            log::error!("server exited with error: {e}");
             std::process::exit(1);
         }
         Ok(_) => {
+            log::info!("server exited successfully");
             std::process::exit(0);
         }
     }
@@ -35,7 +36,7 @@ async fn run() -> anyhow::Result<()> {
         .map_err(|e| anyhow::anyhow!("unable to parse config file: {}", e))?;
 
     inject_secrets(&mut config)?;
-    server::run(config).await;
+    server::run(config).await?;
     Ok(())
 }
 
