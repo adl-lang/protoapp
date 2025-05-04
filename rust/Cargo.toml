@@ -13,3 +13,4 @@ sea-query-binder = { version="0.3.1", features = ["sqlx-postgres", "with-json", 
 rand = "0.8.5"
 serde = { version = "1.0.160", features = ["serde_derive"] }
 serde_json = "1.0.96"
+time = "0.3.41"
