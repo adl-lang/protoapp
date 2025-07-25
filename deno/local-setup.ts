@@ -5,7 +5,7 @@ import {
   packages,
 } from "@adllang/local-setup";
 
-const ADL = packages.adl("1.2.4");
+const ADL = packages.adl("1.3");
 const NODE = packages.nodejs("20.7.0");
 const PNPM = packages.pnpm("10.6.5");
 
