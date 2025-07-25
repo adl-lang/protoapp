@@ -2,6 +2,7 @@
   "version": "4",
   "specifiers": {
     "jsr:@adllang/adl-runtime@0.1": "0.1.2",
+    "jsr:@adllang/adlc-tools@~0.2.2": "0.2.2",
     "jsr:@adllang/jsonbinding@~0.2.3": "0.2.4",
     "jsr:@adllang/local-setup@0.16": "0.16.0",
     "jsr:@mesqueeb/case-anything@^3.1.0": "3.1.0",
