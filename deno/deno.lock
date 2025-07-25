@@ -2,7 +2,6 @@
   "version": "4",
   "specifiers": {
     "jsr:@adllang/adl-runtime@0.1": "0.1.2",
-    "jsr:@adllang/adlc-tools@~0.1.5": "0.1.5",
     "jsr:@adllang/jsonbinding@~0.2.3": "0.2.4",
     "jsr:@adllang/local-setup@0.16": "0.16.0",
     "jsr:@mesqueeb/case-anything@^3.1.0": "3.1.0",
@@ -27,8 +26,8 @@
         "jsr:@std/encoding"
       ]
     },
-    "@adllang/adlc-tools@0.1.5": {
-      "integrity": "a284b0909a4daaab151207cd3bb60f767b3473e6deddeb65137df436fa9854ed",
+    "@adllang/adlc-tools@0.2.2": {
+      "integrity": "9a394f70e708a761df1b8801ace1925b5e0b03707b680f328ec6a7936bc148f9",
       "dependencies": [
         "jsr:@adllang/adl-runtime",
         "jsr:@std/fs",
@@ -40,6 +39,9 @@
     },
     "@adllang/jsonbinding@0.2.4": {
       "integrity": "e179c359ff9a8b2e4b06f7370a72447a2dd018df443ed4bb19181d5d6d2869f2"
+    },
+    "@adllang/jsonbinding@0.2.5": {
+      "integrity": "c34bbdfbb059781eb8fc0812f5e482a1fefdcd1ad94c6e2c12a20caf9f207e62"
     },
     "@adllang/local-setup@0.16.0": {
       "integrity": "6b9d4f12a3b3077fcf2b9b98cd7c031fe2f275d017a12222b2005cd4a11a761b",
@@ -61,6 +63,9 @@
     "@std/encoding@1.0.9": {
       "integrity": "025b8f18eb1749bc30d1353bf48b77d1eb5e35610220fa226f5a046b9240c5d7"
     },
+    "@std/encoding@1.0.10": {
+      "integrity": "8783c6384a2d13abd5e9e87a7ae0520a30e9f56aeeaa3bdf910a3eaaf5c811a1"
+    },
     "@std/fs@1.0.6": {
       "integrity": "42b56e1e41b75583a21d5a37f6a6a27de9f510bcd36c0c85791d685ca0b85fa2",
       "dependencies": [
@@ -73,6 +78,12 @@
         "jsr:@std/path"
       ]
     },
+    "@std/fs@1.0.19": {
+      "integrity": "051968c2b1eae4d2ea9f79a08a3845740ef6af10356aff43d3e2ef11ed09fb06"
+    },
+    "@std/internal@1.0.10": {
+      "integrity": "e3be62ce42cab0e177c27698e5d9800122f67b766a0bea6ca4867886cbde8cf7"
+    },
     "@std/io@0.225.0": {
       "integrity": "c1db7c5e5a231629b32d64b9a53139445b2ca640d828c26bf23e1c55f8c079b3",
       "dependencies": [
@@ -81,6 +92,9 @@
     },
     "@std/path@1.0.8": {
       "integrity": "548fa456bb6a04d3c1a1e7477986b6cffbce95102d0bb447c67c4ee70e0364be"
+    },
+    "@std/path@1.1.1": {
+      "integrity": "fe00026bd3a7e6a27f73709b83c607798be40e20c81dde655ce34052fd82ec76"
     }
   },
   "remote": {
@@ -227,7 +241,7 @@
   "workspace": {
     "dependencies": [
       "jsr:@adllang/adl-runtime@0.1",
-      "jsr:@adllang/adlc-tools@~0.1.5",
+      "jsr:@adllang/adlc-tools@~0.2.2",
       "jsr:@adllang/local-setup@0.16",
       "jsr:@mesqueeb/case-anything@^3.1.0",
       "jsr:@std/path@^1.0.8"
