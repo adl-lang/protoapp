@@ -4,7 +4,6 @@
     "jsr:@adllang/adl-runtime@0.1": "0.1.2",
     "jsr:@adllang/adlc-tools@~0.2.2": "0.2.2",
     "jsr:@adllang/jsonbinding@~0.2.3": "0.2.4",
-    "jsr:@adllang/local-setup@0.16": "0.16.0",
     "jsr:@mesqueeb/case-anything@^3.1.0": "3.1.0",
     "jsr:@std/bytes@^1.0.2": "1.0.4",
     "jsr:@std/encoding@^1.0.5": "1.0.9",
@@ -43,14 +42,6 @@
     },
     "@adllang/jsonbinding@0.2.5": {
       "integrity": "c34bbdfbb059781eb8fc0812f5e482a1fefdcd1ad94c6e2c12a20caf9f207e62"
-    },
-    "@adllang/local-setup@0.16.0": {
-      "integrity": "6b9d4f12a3b3077fcf2b9b98cd7c031fe2f275d017a12222b2005cd4a11a761b",
-      "dependencies": [
-        "jsr:@std/fs",
-        "jsr:@std/io",
-        "jsr:@std/path"
-      ]
     },
     "@mesqueeb/case-anything@3.1.0": {
       "integrity": "0e463b752f95dbdfa42c97b0e60911170fd8206508522fffc23a9e83d63bb4c2"
@@ -243,7 +234,6 @@
     "dependencies": [
       "jsr:@adllang/adl-runtime@0.1",
       "jsr:@adllang/adlc-tools@~0.2.2",
-      "jsr:@adllang/local-setup@0.16",
       "jsr:@mesqueeb/case-anything@^3.1.0",
       "jsr:@std/path@^1.0.8"
     ]
