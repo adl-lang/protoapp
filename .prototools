@@ -4,4 +4,4 @@ deno = "2.2.5"
 adlc = "1.3.0"
 
 [plugins]
-adlc = "file://proto/adlc.toml"
+adlc = "https://raw.githubusercontent.com/adl-lang/proto-toml-plugins/main/adlc/plugin.toml"
