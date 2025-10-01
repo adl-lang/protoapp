@@ -13,12 +13,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup pnpm using local-setup script
-        run: |
-          source deno/local-setup.sh
-          # Make sure .local/bin is added to PATH for subsequent steps
-          echo "$PWD/.local/bin" >> $GITHUB_PATH
-          deno --version
+      - name: Setup tools using proto
+        uses: moonrepo/setup-toolchain@v0
+        with:
+          auto-install: true
 
       - name: Install deps
         working-directory: ./ts
