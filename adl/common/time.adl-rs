@@ -9,4 +9,22 @@ annotation Instant RustCustomType {
   "stdTraits": ["Eq", "PartialEq", "Hash", "Serialize", "Deserialize", "Clone"]
 };
 
+annotation LocalDate RustCustomType {
+  "rustname" : "crate::custom::common::time::LocalDate",
+  "helpers" : "crate::custom::common::time::LocalDate",
+  "stdTraits": ["Eq", "PartialEq", "Hash", "Serialize", "Deserialize", "Clone"]
+};
+
+annotation LocalTime RustCustomType {
+  "rustname" : "crate::custom::common::time::LocalTime",
+  "helpers" : "crate::custom::common::time::LocalTime",
+  "stdTraits": ["Eq", "PartialEq", "Hash", "Serialize", "Deserialize", "Clone"]
+};
+
+annotation LocalDateTime RustCustomType {
+  "rustname" : "crate::custom::common::time::LocalDateTime",
+  "helpers" : "crate::custom::common::time::LocalDateTime",
+  "stdTraits": ["Eq", "PartialEq", "Hash", "Serialize", "Deserialize", "Clone"]
+};
+
 };
