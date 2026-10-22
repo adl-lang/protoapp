@@ -15,25 +15,22 @@ dev-server: check dev-db
 	RUST_LOG=info                                                 \
 	cargo run --bin protoapp-server
 
-build: install-toolchain
+build:
 	cargo build --workspace
 
-check: install-toolchain
+check:
 	cargo fmt --check
 	cargo clippy --all-targets --workspace -- -D warnings
 
 check-build: check build
 
-ci-test: install-toolchain
+ci-test:
 	DB_CONNECTION_URL=postgresql://postgres:xyzzy@localhost:5432/appdb \
 	cargo test -- --test-threads=1
 
-test: install-toolchain dev-db
+test: dev-db
 	DB_CONNECTION_URL=postgresql://postgres:xyzzy@localhost:5432/appdb \
 	cargo test -- --test-threads=1
 
 dev-db:
 	(cd ../platform/dev && docker compose up -d db)
-
-install-toolchain:
-	rustup show active-toolchain || rustup toolchain install
