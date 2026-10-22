@@ -109,6 +109,18 @@ node --version
 adlc show --version 
 ```
 
+If you use [nix](https://nixos.org), the whole toolchain is instead available as a
+dev shell — the rust toolchain (from `rust/rust-toolchain.toml`), the postgres
+client, and the same node, pnpm, deno and adlc versions as `.prototools`:
+
+```
+nix develop ./nix
+```
+
+or, with [direnv](https://direnv.net), by putting `use flake ./nix` in a local `.envrc`.
+This covers linux-x64 and macos-arm64, the platforms adlc is released for; on other
+systems the shell omits adlc and leaves code generation to proto.
+
 # 3 Local development
 
 When you've changed any ADL, regenerate rust/typescript/sql code with

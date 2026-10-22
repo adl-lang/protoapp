@@ -3,6 +3,12 @@ name = "protoapp"
 version = "0.1.0"
 edition = "2021"
 
+[lints.clippy]
+# Fires across the poem interop layer because `poem::Error` is ~176 bytes, so
+# any `Result` carrying one trips the size threshold. Two of the sites return
+# poem's own `poem::Result`, which we cannot box without giving up its API.
+result_large_err = "allow"
+
 [dependencies]
 adl = { workspace = true }
 anyhow = "1.0.70"
