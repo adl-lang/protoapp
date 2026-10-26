@@ -164,30 +164,47 @@ impl JwtSecurityCheck for AccessTokenChecker {
         security: &HttpSecurity,
         auth_header: Option<&str>,
     ) -> HandlerResult<Option<jwt::AccessClaims>> {
-        // Get the claims from the auth header, if there is one
+        // Get the claims from the auth header, if there is one.
+        //
+        // A token that fails to decode is only fatal for endpoints that
+        // actually require one. On a public endpoint a malformed, expired or
+        // non-Bearer credential is treated as anonymous, so that a client
+        // holding a stale token can still reach login/refresh/logout.
         let claims = match auth_header {
-            Some(ah) => Some(claims_from_bearer_token(&self.jwt_access_secret, ah)?),
             None => None,
+            Some(ah) => match claims_from_bearer_token(&self.jwt_access_secret, ah) {
+                Ok(claims) => Some(claims),
+                Err(e) => match security {
+                    HttpSecurity::Public => None,
+                    HttpSecurity::Token | HttpSecurity::TokenWithRole(_) => return Err(e),
+                },
+            },
         };
 
-        // Check whether the claims match the endpoints security rules
-        let request_allowed = match security {
-            HttpSecurity::Public => true,
-            HttpSecurity::Token => claims.is_some(),
-            HttpSecurity::TokenWithRole(role) => {
-                if let Some(claims) = &claims {
-                    claims.role == *role
+        // Check whether the claims match the endpoints security rules.
+        // Missing or unusable credentials are a 401; credentials carrying the
+        // wrong role are a 403.
+        match security {
+            HttpSecurity::Public => Ok(claims),
+            HttpSecurity::Token => {
+                if claims.is_some() {
+                    Ok(claims)
                 } else {
-                    false
+                    log::warn!("request without jwt claims to a token endpoint");
+                    Err(unauthorized())
                 }
             }
-        };
-
-        if request_allowed {
-            Ok(claims)
-        } else {
-            log::error!("request without valid jwt claims");
-            Err(forbidden())
+            HttpSecurity::TokenWithRole(role) => match claims.as_ref().map(|c| c.role == *role) {
+                None => {
+                    log::warn!("request without jwt claims to a role restricted endpoint");
+                    Err(unauthorized())
+                }
+                Some(true) => Ok(claims),
+                Some(false) => {
+                    log::warn!("request with insufficient role, {} required", role);
+                    Err(forbidden())
+                }
+            },
         }
     }
 }
@@ -198,7 +215,9 @@ fn claims_from_bearer_token(
 ) -> HandlerResult<jwt::AccessClaims> {
     let jwt = jwt::bearer_token_from_auth_header(auth_header).ok_or(unauthorized())?;
     let claims = jwt::decode_access(jwt_secret, &jwt).map_err(|e| {
-        log::error!("failed to validate jwt: {}", e);
+        // Not necessarily an error: on a public endpoint the caller is just
+        // treated as anonymous. check_security logs the cases that are fatal.
+        log::debug!("failed to validate jwt: {}", e);
         unauthorized()
     })?;
     Ok(claims)

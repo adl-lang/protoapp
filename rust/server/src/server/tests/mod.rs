@@ -210,6 +210,97 @@ async fn server_user_crud() {
     db.cleanup().await;
 }
 
+#[tokio::test]
+async fn server_security_policy() {
+    let mut db = DbTestEnv::new().await;
+    let oserver = OServer::spawn(AppState::new(test_server_config(), db.pool.clone()));
+
+    let u1 = create_test_user_joe(&mut db).await;
+
+    {
+        // A public endpoint works with no credentials at all
+        let resp = server_req(apis::ui::ApiRequests::def_healthy(), None, &()).await;
+        assert_eq!(resp.status(), 200);
+    }
+
+    {
+        // An unusable token must not fail a public endpoint: it is ignored,
+        // rather than rejected, so a stale token can't lock a client out.
+        let resp = server_req(apis::ui::ApiRequests::def_healthy(), Some("garbage"), &()).await;
+        assert_eq!(resp.status(), 200);
+    }
+
+    {
+        // ... in particular, login still works while carrying a stale token
+        let resp = server_req(apis::ui::ApiRequests::def_login(), Some("garbage"), &u1).await;
+        assert_eq!(resp.status(), 200);
+    }
+
+    {
+        // A valid token on a public endpoint is still accepted (and still
+        // reaches the handler as claims, which public handlers may come to use)
+        let jwt = login_user(&u1).await;
+        let resp = server_req(apis::ui::ApiRequests::def_healthy(), Some(&jwt), &()).await;
+        assert_eq!(resp.status(), 200);
+    }
+
+    {
+        // A token endpoint rejects a request with no credentials
+        let resp = server_req(apis::ui::ApiRequests::def_who_am_i(), None, &()).await;
+        assert_eq!(resp.status(), 401);
+    }
+
+    {
+        // A role restricted endpoint rejects absent credentials as 401, not 403
+        let resp = server_req(
+            apis::ui::ApiRequests::def_query_users(),
+            None,
+            &apis::ui::QueryUsersReq {
+                page: PageReq {
+                    offset: 0,
+                    limit: 10,
+                },
+            },
+        )
+        .await;
+        assert_eq!(resp.status(), 401);
+    }
+
+    {
+        // ... and one with an unusable token
+        let resp = server_req(apis::ui::ApiRequests::def_who_am_i(), Some("garbage"), &()).await;
+        assert_eq!(resp.status(), 401);
+    }
+
+    {
+        // ... but accepts a valid one
+        let jwt = login_user(&u1).await;
+        let resp = server_req(apis::ui::ApiRequests::def_who_am_i(), Some(&jwt), &()).await;
+        assert_eq!(resp.status(), 200);
+    }
+
+    {
+        // Valid credentials carrying the wrong role are a 403, distinct from
+        // the 401s above for absent or unusable credentials.
+        let jwt = login_user(&u1).await;
+        let resp = server_req(
+            apis::ui::ApiRequests::def_create_user(),
+            Some(&jwt),
+            &apis::ui::UserDetails {
+                fullname: "Austin".to_owned(),
+                email: "austin@mycompany.org".to_owned(),
+                is_admin: false,
+                password: "sukpepolup".to_owned(),
+            },
+        )
+        .await;
+        assert_eq!(resp.status(), 403);
+    }
+
+    oserver.shutdown().await.unwrap();
+    db.cleanup().await;
+}
+
 async fn send_message(jwt: &str, message: &str) {
     let _ = server_auth_req(
         apis::ui::ApiRequests::def_new_message(),
