@@ -5,8 +5,8 @@ use poem::web::Json;
 use adl::custom::common::db::DbKey;
 use adl::gen::common::http::Unit;
 use adl::gen::protoapp::apis::ui::{
-    ApiRequests, LoginReq, LoginResp, LoginTokens, Message, Paginated, QueryUsersReq,
-    RecentMessagesReq, RefreshReq, RefreshResp, User, UserDetails, UserWithId, WithId,
+    LoginReq, LoginResp, LoginTokens, Message, Paginated, QueryUsersReq, RecentMessagesReq,
+    RefreshReq, RefreshResp, User, UserDetails, UserWithId, WebRequests, WithId,
 };
 use adl::gen::protoapp::config::server::ServerConfig;
 use adl::gen::protoapp::db::{AppUser, AppUserId};
@@ -153,7 +153,7 @@ pub async fn login_with_cookies(
     cookies: &CookieJar,
     i: Json<LoginReq>,
 ) -> poem::Result<Json<LoginResp>> {
-    let ctx = get_adl_request_context(req, &ApiRequests::def_login().security)?;
+    let ctx = get_adl_request_context(req, &WebRequests::def_login().security)?;
     let eresp = login(ctx, i.0).await;
     if let Ok(LoginResp::Tokens(tokens)) = &eresp {
         let mut cookie = Cookie::new_with_str(REFRESH_TOKEN, tokens.refresh_jwt.clone());
@@ -169,7 +169,7 @@ pub async fn refresh_with_cookies(
     cookies: &CookieJar,
     mut i: Json<RefreshReq>,
 ) -> poem::Result<Json<RefreshResp>> {
-    let ctx = get_adl_request_context(req, &ApiRequests::def_refresh().security)?;
+    let ctx = get_adl_request_context(req, &WebRequests::def_refresh().security)?;
     let token_from_cookie = cookies.get(REFRESH_TOKEN).map(|c| c.value_str().to_owned());
 
     // If there's no refresh token in the request, use the one from the cookie
@@ -185,7 +185,7 @@ pub async fn logout_with_cookies(
     cookies: &CookieJar,
     mut i: Json<Unit>,
 ) -> poem::Result<Json<Unit>> {
-    let ctx = get_adl_request_context(req, &ApiRequests::def_refresh().security)?;
+    let ctx = get_adl_request_context(req, &WebRequests::def_logout().security)?;
     cookies.remove(REFRESH_TOKEN);
     let eresp = logout(ctx, i.0).await;
     eresp.map(Json).map_err(poem::Error::from)

@@ -190,7 +190,7 @@ pub async fn create_test_user(
 }
 
 pub async fn login_user(login_req: &LoginReq) -> String {
-    let resp = server_public_req(apis::ui::ApiRequests::def_login(), login_req).await;
+    let resp = server_public_req(apis::ui::WebRequests::def_login(), login_req).await;
     match resp {
         apis::ui::LoginResp::Tokens(tokens) => tokens.access_jwt,
         apis::ui::LoginResp::InvalidCredentials => panic!("invalid credentials"),

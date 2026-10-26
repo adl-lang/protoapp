@@ -2,7 +2,7 @@ use poem::endpoint::{DynEndpoint, ToDynEndpoint};
 use poem::session::{CookieConfig, CookieSession};
 use poem::{post, EndpointExt, Route};
 
-use adl::gen::protoapp::apis::ui::ApiRequests;
+use adl::gen::protoapp::apis::ui::{ApiRequests, WebRequests};
 
 use crate::server::handlers;
 use crate::server::poem_adl_interop::{new_access_token_checker, RouteExt};
@@ -29,15 +29,15 @@ pub fn build_routes(state: AppState) -> Box<dyn DynEndpoint<Output = poem::Respo
     // Add handlers that need custom cookie handling
     let routes = routes
         .at(
-            ApiRequests::def_login().path,
+            WebRequests::def_login().path,
             post(handlers::login_with_cookies),
         )
         .at(
-            ApiRequests::def_refresh().path,
+            WebRequests::def_refresh().path,
             post(handlers::refresh_with_cookies),
         )
         .at(
-            ApiRequests::def_logout().path,
+            WebRequests::def_logout().path,
             post(handlers::logout_with_cookies),
         );
 

@@ -20,29 +20,6 @@ struct ApiRequests {
     "security" : "public"
   };
 
-  /// Login a user
-  ///
-  /// The response will set an httpOnly cookie containing the refresh token
-  HttpReq<LoginReq, LoginResp> login = {
-    "path": "/login",
-    "security" : "public"
-  };
-
-  /// Get a refreshed access token
-  ///
-  /// If the refresh token is not provided in the request body, then it will
-  /// be read from the refrestToken cookie in the request.
-  HttpReq<RefreshReq, RefreshResp> refresh = {
-    "path": "/refresh",
-    "security" : "public"
-  };
-
-  /// Clear the `refreshToken` cookie.
-  HttpReq<Unit, Unit> logout = {
-    "path": "/logout",
-    "security" : "public"
-  };
-
   /// Post a message to the noticeboard
   HttpReq<NewMessageReq, MessageId> new_message = {
     "path": "/messages/new",
@@ -81,6 +58,34 @@ struct ApiRequests {
     "method": "get",
     "path": "/users/query",
     "security" : { "tokenWithRole": "admin" }
+  };
+};
+
+/// Endpoints that read or write browser cookies, and so are wired up by hand
+/// rather than through the generated handler trait.
+struct WebRequests {
+
+  /// Login a user
+  ///
+  /// The response will set an httpOnly cookie containing the refresh token
+  HttpReq<LoginReq, LoginResp> login = {
+    "path": "/login",
+    "security" : "public"
+  };
+
+  /// Get a refreshed access token
+  ///
+  /// If the refresh token is not provided in the request body, then it will
+  /// be read from the refrestToken cookie in the request.
+  HttpReq<RefreshReq, RefreshResp> refresh = {
+    "path": "/refresh",
+    "security" : "public"
+  };
+
+  /// Clear the `refreshToken` cookie.
+  HttpReq<Unit, Unit> logout = {
+    "path": "/logout",
+    "security" : "public"
   };
 };
 

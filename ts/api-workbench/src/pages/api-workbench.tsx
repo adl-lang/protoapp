@@ -54,7 +54,10 @@ export function ApiWorkbench() {
   const jwt_decoded = authState.kind === "auth" ? authState.auth.jwt_decoded : undefined;
 
   const endpoints = useMemo(() => {
-    const allEndpoints = getEndpoints(RESOLVER, API.texprApiRequests());
+    const allEndpoints = [
+      ...getEndpoints(RESOLVER, API.texprApiRequests()),
+      ...getEndpoints(RESOLVER, API.texprWebRequests()),
+    ];
 
     // only show endpoints accessible for the current authstate
     return allEndpoints.filter(

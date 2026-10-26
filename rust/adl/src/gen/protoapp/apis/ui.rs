@@ -23,27 +23,6 @@ pub struct ApiRequests {
   pub healthy: HttpReq<(), ()>,
 
   /**
-   * Login a user
-   * The response will set an httpOnly cookie containing the refresh token
-   */
-  #[serde(default="ApiRequests::def_login")]
-  pub login: HttpReq<LoginReq, LoginResp>,
-
-  /**
-   * Get a refreshed access token
-   * If the refresh token is not provided in the request body, then it will
-   * be read from the refrestToken cookie in the request.
-   */
-  #[serde(default="ApiRequests::def_refresh")]
-  pub refresh: HttpReq<RefreshReq, RefreshResp>,
-
-  /**
-   * Clear the `refreshToken` cookie.
-   */
-  #[serde(default="ApiRequests::def_logout")]
-  pub logout: HttpReq<Unit, Unit>,
-
-  /**
    * Post a message to the noticeboard
    */
   #[serde(default="ApiRequests::def_new_message")]
@@ -84,9 +63,6 @@ impl ApiRequests {
   pub fn new() -> ApiRequests {
     ApiRequests {
       healthy: ApiRequests::def_healthy(),
-      login: ApiRequests::def_login(),
-      refresh: ApiRequests::def_refresh(),
-      logout: ApiRequests::def_logout(),
       new_message: ApiRequests::def_new_message(),
       recent_messages: ApiRequests::def_recent_messages(),
       who_am_i: ApiRequests::def_who_am_i(),
@@ -98,18 +74,6 @@ impl ApiRequests {
 
   pub fn def_healthy() -> HttpReq<(), ()> {
     HttpReq::<(), ()>{method : HttpMethod::Get, path : "/".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
-  }
-
-  pub fn def_login() -> HttpReq<LoginReq, LoginResp> {
-    HttpReq::<LoginReq, LoginResp>{method : HttpMethod::Post, path : "/login".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
-  }
-
-  pub fn def_refresh() -> HttpReq<RefreshReq, RefreshResp> {
-    HttpReq::<RefreshReq, RefreshResp>{method : HttpMethod::Post, path : "/refresh".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
-  }
-
-  pub fn def_logout() -> HttpReq<Unit, Unit> {
-    HttpReq::<Unit, Unit>{method : HttpMethod::Post, path : "/logout".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_new_message() -> HttpReq<NewMessageReq, MessageId> {
@@ -134,6 +98,56 @@ impl ApiRequests {
 
   pub fn def_query_users() -> HttpReq<QueryUsersReq, Paginated<UserWithId>> {
     HttpReq::<QueryUsersReq, Paginated<UserWithId>>{method : HttpMethod::Get, path : "/users/query".to_string(), security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+  }
+}
+
+/**
+ * Endpoints that read or write browser cookies, and so are wired up by hand
+ * rather than through the generated handler trait.
+ */
+#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
+pub struct WebRequests {
+  /**
+   * Login a user
+   * The response will set an httpOnly cookie containing the refresh token
+   */
+  #[serde(default="WebRequests::def_login")]
+  pub login: HttpReq<LoginReq, LoginResp>,
+
+  /**
+   * Get a refreshed access token
+   * If the refresh token is not provided in the request body, then it will
+   * be read from the refrestToken cookie in the request.
+   */
+  #[serde(default="WebRequests::def_refresh")]
+  pub refresh: HttpReq<RefreshReq, RefreshResp>,
+
+  /**
+   * Clear the `refreshToken` cookie.
+   */
+  #[serde(default="WebRequests::def_logout")]
+  pub logout: HttpReq<Unit, Unit>,
+}
+
+impl WebRequests {
+  pub fn new() -> WebRequests {
+    WebRequests {
+      login: WebRequests::def_login(),
+      refresh: WebRequests::def_refresh(),
+      logout: WebRequests::def_logout(),
+    }
+  }
+
+  pub fn def_login() -> HttpReq<LoginReq, LoginResp> {
+    HttpReq::<LoginReq, LoginResp>{method : HttpMethod::Post, path : "/login".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+  }
+
+  pub fn def_refresh() -> HttpReq<RefreshReq, RefreshResp> {
+    HttpReq::<RefreshReq, RefreshResp>{method : HttpMethod::Post, path : "/refresh".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+  }
+
+  pub fn def_logout() -> HttpReq<Unit, Unit> {
+    HttpReq::<Unit, Unit>{method : HttpMethod::Post, path : "/logout".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 }
 

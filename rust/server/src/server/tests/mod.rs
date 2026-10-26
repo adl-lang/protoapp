@@ -27,7 +27,7 @@ async fn server_login() {
 
     let tokens = {
         // Check that we can login as joe
-        let resp = server_public_req(apis::ui::ApiRequests::def_login(), &u1).await;
+        let resp = server_public_req(apis::ui::WebRequests::def_login(), &u1).await;
         assert!(is_valid_login(&resp));
         get_login_tokens(resp).unwrap()
     };
@@ -35,7 +35,7 @@ async fn server_login() {
     {
         // Check that we can refresh using the refresh token
         let resp = server_public_req(
-            apis::ui::ApiRequests::def_refresh(),
+            apis::ui::WebRequests::def_refresh(),
             &RefreshReq {
                 refresh_token: Some(tokens.refresh_jwt),
             },
@@ -47,7 +47,7 @@ async fn server_login() {
     {
         // Check that we can't refresh using the access token
         let resp = server_public_req(
-            apis::ui::ApiRequests::def_refresh(),
+            apis::ui::WebRequests::def_refresh(),
             &RefreshReq {
                 refresh_token: Some(tokens.access_jwt),
             },
@@ -58,13 +58,13 @@ async fn server_login() {
 
     {
         // Check that we can logout
-        server_public_req(apis::ui::ApiRequests::def_logout(), &Unit {}).await;
+        server_public_req(apis::ui::WebRequests::def_logout(), &Unit {}).await;
     }
 
     {
         // Check that we can't login with the wrong password
         let resp = server_public_req(
-            apis::ui::ApiRequests::def_login(),
+            apis::ui::WebRequests::def_login(),
             &apis::ui::LoginReq {
                 email: "joe@test.com".to_owned(),
                 password: "xxxxxx".to_owned(),
@@ -77,7 +77,7 @@ async fn server_login() {
     {
         // Check that we can't login with an invalid email
         let resp = server_public_req(
-            apis::ui::ApiRequests::def_login(),
+            apis::ui::WebRequests::def_login(),
             &apis::ui::LoginReq {
                 email: "mike@test.com".to_owned(),
                 password: "abcde".to_owned(),
@@ -151,10 +151,10 @@ async fn server_user_crud() {
     let u1 = create_test_user_joe(&mut db).await;
     let u2 = create_test_user_sarah(&mut db).await;
 
-    let u1_jwt = get_login_tokens(server_public_req(apis::ui::ApiRequests::def_login(), &u1).await)
+    let u1_jwt = get_login_tokens(server_public_req(apis::ui::WebRequests::def_login(), &u1).await)
         .unwrap()
         .access_jwt;
-    let u2_jwt = get_login_tokens(server_public_req(apis::ui::ApiRequests::def_login(), &u2).await)
+    let u2_jwt = get_login_tokens(server_public_req(apis::ui::WebRequests::def_login(), &u2).await)
         .unwrap()
         .access_jwt;
 
@@ -232,7 +232,7 @@ async fn server_security_policy() {
 
     {
         // ... in particular, login still works while carrying a stale token
-        let resp = server_req(apis::ui::ApiRequests::def_login(), Some("garbage"), &u1).await;
+        let resp = server_req(apis::ui::WebRequests::def_login(), Some("garbage"), &u1).await;
         assert_eq!(resp.status(), 200);
     }
 
