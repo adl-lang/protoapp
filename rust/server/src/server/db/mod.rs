@@ -1,4 +1,4 @@
-use sea_query::{Expr, Func, Order, PostgresQueryBuilder, Query};
+use sea_query::{Asterisk, Expr, Func, Order, PostgresQueryBuilder, Query};
 use sea_query_binder::SqlxBinder;
 use sqlx::Row;
 use std::time::SystemTime;
@@ -133,7 +133,7 @@ pub async fn user_count(pool: &DbPool) -> sqlx::Result<u64> {
 
     let (sql, values) = Query::select()
         .from(M::table())
-        .expr(Func::count(Expr::asterisk()))
+        .expr(Func::count(Expr::col(Asterisk)))
         .build_sqlx(PostgresQueryBuilder);
 
     let count: i64 = sqlx::query_with(&sql, values)
@@ -205,7 +205,7 @@ pub async fn message_count(pool: &DbPool) -> sqlx::Result<u64> {
 
     let (sql, values) = Query::select()
         .from(M::table())
-        .expr(Func::count(Expr::asterisk()))
+        .expr(Func::count(Expr::col(Asterisk)))
         .build_sqlx(PostgresQueryBuilder);
 
     let count: i64 = sqlx::query_with(&sql, values)
