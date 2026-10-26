@@ -15,6 +15,7 @@ dependencies = [
 name = "adl"
 version = "0.1.0"
 dependencies = [
+ "adl-derive",
  "base64 0.21.7",
  "rand 0.8.5",
  "sea-query",
@@ -22,6 +23,15 @@ dependencies = [
  "serde_json",
  "sqlx",
  "time",
+]
+
+[[package]]
+name = "adl-derive"
+version = "0.1.0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.100",
 ]
 
 [[package]]

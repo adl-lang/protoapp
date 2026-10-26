@@ -60,3 +60,14 @@ impl RustCustomType {
     "".to_string()
   }
 }
+
+/**
+ * ADL declaration annotation requesting extra traits on the
+ * generated type's derive attribute.
+ * The names are emitted verbatim, so they may be qualified
+ * paths, eg "my_crate::MyDerive". Names that are already being
+ * derived are ignored, as are `Serialize` and `Deserialize` on
+ * a newtype, where those impls are hand written.
+ * Has no effect on a type alias, which has no derive attribute.
+ */
+pub type RustExtraDeriveTraits = Vec<String>;

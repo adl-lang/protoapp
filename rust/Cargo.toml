@@ -1,9 +1,10 @@
 [workspace]
-members = [ "server", "adl" ]
+members = [ "server", "adl", "adl/derive" ]
 resolver = "2"
 
 [workspace.dependencies]
 adl = { path = "adl" }
+adl-derive = { path = "adl/derive" }
 
 base64 = "0.21.2"
 env_logger = "0.10.0"

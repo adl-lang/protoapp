@@ -5,8 +5,8 @@ use poem::web::Json;
 use adl::custom::common::db::DbKey;
 use adl::gen::common::http::Unit;
 use adl::gen::protoapp::apis::ui::{
-    LoginReq, LoginResp, LoginTokens, Message, Paginated, QueryUsersReq, RecentMessagesReq,
-    RefreshReq, RefreshResp, User, UserDetails, UserWithId, WebRequests, WithId,
+    ApiRequestsHandlers, LoginReq, LoginResp, LoginTokens, Message, Paginated, QueryUsersReq,
+    RecentMessagesReq, RefreshReq, RefreshResp, User, UserDetails, UserWithId, WebRequests, WithId,
 };
 use adl::gen::protoapp::config::server::ServerConfig;
 use adl::gen::protoapp::db::{AppUser, AppUserId};
@@ -15,14 +15,114 @@ use adl::gen::protoapp::{apis::ui::NewMessageReq, db::MessageId};
 use crate::server::jwt::AccessClaims;
 use crate::server::passwords::{hash_password, verify_password};
 use crate::server::poem_adl_interop::{
-    forbidden, get_adl_request_context, AdlReqContext, HandlerResult,
+    forbidden, get_adl_request_context, AdlReqContext, HandlerError, HandlerResult,
 };
 use crate::server::{db, jwt, AppState};
 
 type ReqContext = AdlReqContext<AppState>;
 
-pub async fn healthy(_ctx: ReqContext, _i: ()) -> HandlerResult<()> {
-    Ok(())
+/// Implements the generated [`ApiRequestsHandlers`] trait, which carries one
+/// method per endpoint declared in the ADL `ApiRequests` struct. Adding an
+/// endpoint there stops this impl compiling until it is implemented.
+///
+/// The cookie endpoints are not here: they belong to the ADL `WebRequests`
+/// struct and are wired by hand below, since they need poem's `CookieJar`.
+pub struct Handlers;
+
+impl ApiRequestsHandlers<ReqContext> for Handlers {
+    type Error = HandlerError;
+
+    async fn healthy(&self, _ctx: ReqContext, _req: ()) -> Result<(), Self::Error> {
+        Ok(())
+    }
+
+    async fn new_message(
+        &self,
+        ctx: ReqContext,
+        req: NewMessageReq,
+    ) -> Result<MessageId, Self::Error> {
+        let user_id = user_from_claims(&ctx.claims)?;
+        let message_id = db::new_message(&ctx.state.db_pool, &user_id, &req.message).await?;
+        Ok(message_id)
+    }
+
+    async fn recent_messages(
+        &self,
+        ctx: ReqContext,
+        req: RecentMessagesReq,
+    ) -> Result<Paginated<Message>, Self::Error> {
+        let messages =
+            db::recent_messages(&ctx.state.db_pool, req.page.offset, req.page.limit).await?;
+        let total_count = db::message_count(&ctx.state.db_pool).await?;
+        Ok(Paginated {
+            items: messages,
+            current_offset: req.page.offset,
+            total_count,
+        })
+    }
+
+    async fn who_am_i(&self, ctx: ReqContext, _req: ()) -> Result<UserWithId, Self::Error> {
+        let user_id = user_from_claims(&ctx.claims)?;
+        let user = db::get_user_with_id(&ctx.state.db_pool, &user_id).await?;
+        match user {
+            Some((user_id, user)) => Ok(UserWithId {
+                id: user_id.clone(),
+                value: User {
+                    fullname: user.fullname,
+                    email: user.email,
+                    is_admin: user.is_admin,
+                },
+            }),
+            None => Err(forbidden()),
+        }
+    }
+
+    async fn create_user(
+        &self,
+        ctx: ReqContext,
+        req: UserDetails,
+    ) -> Result<AppUserId, Self::Error> {
+        let hashed_password = hash_password(&req.password).expect("password can be hashed");
+        let user = AppUser {
+            fullname: req.fullname.clone(),
+            email: req.email.clone(),
+            is_admin: req.is_admin,
+            hashed_password,
+        };
+        let id = db::create_user(&ctx.state.db_pool, &user).await?;
+        Ok(id)
+    }
+
+    async fn update_user(
+        &self,
+        ctx: ReqContext,
+        req: WithId<AppUserId, UserDetails>,
+    ) -> Result<Unit, Self::Error> {
+        let hashed_password = hash_password(&req.value.password).expect("password can be hashed");
+        let user = AppUser {
+            fullname: req.value.fullname.clone(),
+            email: req.value.email.clone(),
+            is_admin: req.value.is_admin,
+            hashed_password,
+        };
+        db::update_user(&ctx.state.db_pool, &req.id, &user).await?;
+        Ok(Unit {})
+    }
+
+    async fn query_users(
+        &self,
+        ctx: ReqContext,
+        req: QueryUsersReq,
+    ) -> Result<Paginated<UserWithId>, Self::Error> {
+        let users = db::query_users(&ctx.state.db_pool, req.page.offset, req.page.limit).await?;
+        let total_count = db::user_count(&ctx.state.db_pool).await?;
+        let page = Paginated {
+            items: users,
+            current_offset: req.page.offset,
+            total_count,
+        };
+        Ok(page)
+    }
 }
 
 pub async fn login(ctx: ReqContext, i: LoginReq) -> HandlerResult<LoginResp> {
@@ -69,82 +169,6 @@ pub async fn refresh(ctx: ReqContext, i: RefreshReq) -> HandlerResult<RefreshRes
 
 pub async fn logout(_ctx: ReqContext, _i: Unit) -> HandlerResult<Unit> {
     Ok(Unit {})
-}
-
-pub async fn new_message(ctx: ReqContext, i: NewMessageReq) -> HandlerResult<MessageId> {
-    let user_id = user_from_claims(&ctx.claims)?;
-    let message_id = db::new_message(&ctx.state.db_pool, &user_id, &i.message).await?;
-    Ok(message_id)
-}
-
-pub async fn recent_messages(
-    ctx: ReqContext,
-    i: RecentMessagesReq,
-) -> HandlerResult<Paginated<Message>> {
-    let messages = db::recent_messages(&ctx.state.db_pool, i.page.offset, i.page.limit).await?;
-    let total_count = db::message_count(&ctx.state.db_pool).await?;
-    Ok(Paginated {
-        items: messages,
-        current_offset: i.page.offset,
-        total_count,
-    })
-}
-
-pub async fn who_am_i(ctx: ReqContext, _i: ()) -> HandlerResult<UserWithId> {
-    let user_id = user_from_claims(&ctx.claims)?;
-    let user = db::get_user_with_id(&ctx.state.db_pool, &user_id).await?;
-    match user {
-        Some((user_id, user)) => Ok(UserWithId {
-            id: user_id.clone(),
-            value: User {
-                fullname: user.fullname,
-                email: user.email,
-                is_admin: user.is_admin,
-            },
-        }),
-        None => Err(forbidden()),
-    }
-}
-
-pub async fn create_user(ctx: ReqContext, i: UserDetails) -> HandlerResult<AppUserId> {
-    let hashed_password = hash_password(&i.password).expect("password can be hashed");
-    let user = AppUser {
-        fullname: i.fullname.clone(),
-        email: i.email.clone(),
-        is_admin: i.is_admin,
-        hashed_password,
-    };
-    let id = db::create_user(&ctx.state.db_pool, &user).await?;
-    Ok(id)
-}
-
-pub async fn update_user(
-    ctx: ReqContext,
-    i: WithId<AppUserId, UserDetails>,
-) -> HandlerResult<Unit> {
-    let hashed_password = hash_password(&i.value.password).expect("password can be hashed");
-    let user = AppUser {
-        fullname: i.value.fullname.clone(),
-        email: i.value.email.clone(),
-        is_admin: i.value.is_admin,
-        hashed_password,
-    };
-    db::update_user(&ctx.state.db_pool, &i.id, &user).await?;
-    Ok(Unit {})
-}
-
-pub async fn query_users(
-    ctx: ReqContext,
-    i: QueryUsersReq,
-) -> HandlerResult<Paginated<UserWithId>> {
-    let users = db::query_users(&ctx.state.db_pool, i.page.offset, i.page.limit).await?;
-    let total_count = db::user_count(&ctx.state.db_pool).await?;
-    let page = Paginated {
-        items: users,
-        current_offset: i.page.offset,
-        total_count,
-    };
-    Ok(page)
 }
 
 #[handler]

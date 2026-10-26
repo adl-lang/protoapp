@@ -14,7 +14,7 @@ use crate::gen::protoapp::db::MessageId;
 use serde::Deserialize;
 use serde::Serialize;
 
-#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
+#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize,adl::HttpApi)]
 pub struct ApiRequests {
   /**
    * AWS default compatible health check
