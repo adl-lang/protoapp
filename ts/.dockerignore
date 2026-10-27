@@ -1,0 +1,5 @@
+# Keep the build context to sources. Everything here is either large or a
+# host build artifact that the image must rebuild for its own platform.
+node_modules
+dist
+*.local

@@ -3,7 +3,7 @@
     "tasks" : {
       "genadl" : "deno run --quiet --check=all --allow-all deno/genadl.ts && cd ts && pnpm install",
       "build-server-image": "cd rust && docker build --file server/Dockerfile --tag protoapp-server:latest .",
-      "build-ui-image": "cd ts/ui && docker build --file Dockerfile --tag protoapp-ui:latest .."
+      "build-ui-image": "cd ts && docker build --file ui/Dockerfile --tag protoapp-ui:latest ."
     },
     "imports": {
       "@adllang/adl-runtime": "jsr:@adllang/adl-runtime@^0.1.0",

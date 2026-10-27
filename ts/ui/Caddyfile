@@ -1,0 +1,18 @@
+{
+  {$CADDY_DEBUG:}
+}
+
+{$SITE_ADDRESS:http://localhost} {
+
+  handle_path /api/* {
+    reverse_proxy {$API_ENDPOINT} {
+      header_up Host {upstream_hostport}
+    }
+  }
+
+  handle {
+    root * /usr/share/caddy
+    try_files {path} /index.html
+    file_server
+  }
+}
