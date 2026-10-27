@@ -4,17 +4,20 @@ import * as ADL from '@adllang/adl-runtime';
 
 /**
  * Request types
+ * An API is a struct whose fields are HttpReq values. The HTTP path of each
+ * endpoint is derived from its field name, as "/" ++ the field name, and must
+ * be derived identically by every backend that consumes an API: the rust
+ * server, the typescript client and the api workbench.
  */
 export interface HttpReq<I, O> {
   method: HttpMethod;
-  path: string;
   security: HttpSecurity;
   reqType: ADL.ATypeExpr<I>;
   respType: ADL.ATypeExpr<O>;
 }
 
 const HttpReq_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Request types\n"}],"name":"HttpReq","type_":{"kind":"struct_","value":{"fields":[{"annotations":[],"default":{"kind":"just","value":"post"},"name":"method","serializedName":"method","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpMethod"}}}},{"annotations":[],"default":{"kind":"nothing"},"name":"path","serializedName":"path","typeExpr":{"parameters":[],"typeRef":{"kind":"primitive","value":"String"}}},{"annotations":[],"default":{"kind":"nothing"},"name":"security","serializedName":"security","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpSecurity"}}}},{"annotations":[],"default":{"kind":"just","value":null},"name":"reqType","serializedName":"reqType","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"typeParam","value":"I"}}],"typeRef":{"kind":"primitive","value":"TypeToken"}}},{"annotations":[],"default":{"kind":"just","value":null},"name":"respType","serializedName":"respType","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"typeParam","value":"O"}}],"typeRef":{"kind":"primitive","value":"TypeToken"}}}],"typeParams":["I","O"]}},"version":{"kind":"nothing"}},"moduleName":"common.http"};
+  {"decl":{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Request types\nAn API is a struct whose fields are HttpReq values. The HTTP path of each\nendpoint is derived from its field name, as \"/\" ++ the field name, and must\nbe derived identically by every backend that consumes an API: the rust\nserver, the typescript client and the api workbench.\n"}],"name":"HttpReq","type_":{"kind":"struct_","value":{"fields":[{"annotations":[],"default":{"kind":"just","value":"post"},"name":"method","serializedName":"method","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpMethod"}}}},{"annotations":[],"default":{"kind":"nothing"},"name":"security","serializedName":"security","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpSecurity"}}}},{"annotations":[],"default":{"kind":"just","value":null},"name":"reqType","serializedName":"reqType","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"typeParam","value":"I"}}],"typeRef":{"kind":"primitive","value":"TypeToken"}}},{"annotations":[],"default":{"kind":"just","value":null},"name":"respType","serializedName":"respType","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"typeParam","value":"O"}}],"typeRef":{"kind":"primitive","value":"TypeToken"}}}],"typeParams":["I","O"]}},"version":{"kind":"nothing"}},"moduleName":"common.http"};
 
 export const snHttpReq: ADL.ScopedName = {moduleName:"common.http", name:"HttpReq"};
 

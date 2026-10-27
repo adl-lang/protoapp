@@ -13,12 +13,12 @@ export class Service extends ServiceBase {
   }
 
   // public api
-  login = this.mkReqFn(web.login);
-  refresh = this.mkReqFn(web.refresh);
-  logout = this.mkReqFn(web.logout);
+  login = this.mkReqFn(web, "login");
+  refresh = this.mkReqFn(web, "refresh");
+  logout = this.mkReqFn(web, "logout");
 
   // token protected api
-  whoAmI = this.mkAuthReqFn(api.who_am_i);
-  newMessage = this.mkAuthReqFn(api.new_message);
-  recentMessages = this.mkAuthReqFn(api.recent_messages);
+  whoAmI = this.mkAuthReqFn(api, "who_am_i");
+  newMessage = this.mkAuthReqFn(api, "new_message");
+  recentMessages = this.mkAuthReqFn(api, "recent_messages");
 }

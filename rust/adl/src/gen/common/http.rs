@@ -5,13 +5,15 @@ use serde::Serialize;
 
 /**
  * Request types
+ * An API is a struct whose fields are HttpReq values. The HTTP path of each
+ * endpoint is derived from its field name, as "/" ++ the field name, and must
+ * be derived identically by every backend that consumes an API: the rust
+ * server, the typescript client and the api workbench.
  */
 #[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
 pub struct HttpReq<I, O> {
   #[serde(default="HttpReq::<I, O>::def_method")]
   pub method: HttpMethod,
-
-  pub path: String,
 
   pub security: HttpSecurity,
 
@@ -25,10 +27,9 @@ pub struct HttpReq<I, O> {
 }
 
 impl<I, O> HttpReq<I, O> {
-  pub fn new(path: String, security: HttpSecurity) -> HttpReq<I, O> {
+  pub fn new(security: HttpSecurity) -> HttpReq<I, O> {
     HttpReq {
       method: HttpReq::<I, O>::def_method(),
-      path: path,
       security: security,
       req_type: HttpReq::<I, O>::def_req_type(),
       resp_type: HttpReq::<I, O>::def_resp_type(),

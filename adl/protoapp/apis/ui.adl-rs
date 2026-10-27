@@ -8,4 +8,10 @@ import adlc.config.rust.*;
 // See rust/adl/derive.
 annotation ApiRequests RustExtraDeriveTraits ["adl::HttpApi"];
 
+// WebRequests is wired up by hand, so it needs no generated registration. The
+// derive is still worth having: it yields the PATH_ constants that the manual
+// wiring mounts at, and a handler trait that keeps those hand written
+// endpoints checked against the ADL in the same way.
+annotation WebRequests RustExtraDeriveTraits ["adl::HttpApi"];
+
 };

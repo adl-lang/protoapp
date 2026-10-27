@@ -16,20 +16,17 @@ struct ApiRequests {
   /// AWS default compatible health check
   HttpReq<Void,Void> healthy = {
     "method": "get",
-    "path": "/",
     "security" : "public"
   };
 
   /// Post a message to the noticeboard
   HttpReq<NewMessageReq, MessageId> new_message = {
-    "path": "/messages/new",
     "security" : "token"
   };
 
   /// Get recent noticeboard messages
   HttpReq<RecentMessagesReq, Paginated<Message> > recent_messages = {
     "method": "get",
-    "path": "/messages/recent",
     "security" : "token"
   };
 
@@ -37,26 +34,22 @@ struct ApiRequests {
   // NOTE: Fails with 401 if the token is invalid or user does not exist
   HttpReq<Void,UserWithId> who_am_i = {
     "method": "get",
-    "path": "/whoami",
     "security" : "token"
   };
 
   /// Create a new user
   HttpReq<UserDetails, AppUserId> create_user = {
-    "path": "/users/create",
     "security" : { "tokenWithRole": "admin" }
   };
 
   /// Update a user
   HttpReq<WithId<AppUserId,UserDetails>, Unit> update_user = {
-    "path": "/users/update",
     "security" : { "tokenWithRole": "admin" }
   };
 
   /// Query users
   HttpReq<QueryUsersReq, Paginated<UserWithId>> query_users = {
     "method": "get",
-    "path": "/users/query",
     "security" : { "tokenWithRole": "admin" }
   };
 };
@@ -69,7 +62,6 @@ struct WebRequests {
   ///
   /// The response will set an httpOnly cookie containing the refresh token
   HttpReq<LoginReq, LoginResp> login = {
-    "path": "/login",
     "security" : "public"
   };
 
@@ -78,13 +70,11 @@ struct WebRequests {
   /// If the refresh token is not provided in the request body, then it will
   /// be read from the refrestToken cookie in the request.
   HttpReq<RefreshReq, RefreshResp> refresh = {
-    "path": "/refresh",
     "security" : "public"
   };
 
   /// Clear the `refreshToken` cookie.
   HttpReq<Unit, Unit> logout = {
-    "path": "/logout",
     "security" : "public"
   };
 };

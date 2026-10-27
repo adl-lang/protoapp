@@ -10,28 +10,36 @@ export class ServiceBase {
     private readonly resolver: ADL.DeclResolver,
   ) {}
 
-  mkReqFn<I, O>(rtype: HttpReq<I, O>): ReqFn<I, O> {
-    const bb = createBiBinding<I, O>(this.resolver, rtype);
-    return (req: I) => {
+  // The endpoint is named by its api struct and field, rather than passed as
+  // an HttpReq value, because HttpReq no longer carries a path: the path comes
+  // from the field name, which a value on its own has no way to know.
+
+  mkReqFn<A, K extends EndpointKey<A> & keyof A & string>(api: A, name: K): ReqFn<ReqOf<A[K]>, RespOf<A[K]>> {
+    const rtype = endpointOf(api, name);
+    const path = endpointPath(name);
+    const bb = createBiBinding(this.resolver, rtype);
+    return (req) => {
       const jsonArgs = bb.reqJB.toJson(req);
       if (rtype.method === "get") {
         const queryString = encodeQueryString(jsonArgs);
-        return this.requestAdl("get", rtype.path, queryString, undefined, bb.respJB, undefined);
+        return this.requestAdl("get", path, queryString, undefined, bb.respJB, undefined);
       } else {
-        return this.requestAdl("post", rtype.path, undefined, jsonArgs, bb.respJB, undefined);
+        return this.requestAdl("post", path, undefined, jsonArgs, bb.respJB, undefined);
       }
     };
   }
 
-  mkAuthReqFn<I, O>(rtype: HttpReq<I, O>): AuthReqFn<I, O> {
-    const bb = createBiBinding<I, O>(this.resolver, rtype);
-    return (authToken: string, req: I) => {
+  mkAuthReqFn<A, K extends EndpointKey<A> & keyof A & string>(api: A, name: K): AuthReqFn<ReqOf<A[K]>, RespOf<A[K]>> {
+    const rtype = endpointOf(api, name);
+    const path = endpointPath(name);
+    const bb = createBiBinding(this.resolver, rtype);
+    return (authToken: string, req) => {
       const jsonArgs = bb.reqJB.toJson(req);
       if (rtype.method === "get") {
         const queryString = encodeQueryString(jsonArgs);
-        return this.requestAdl("get", rtype.path, queryString, undefined, bb.respJB, authToken);
+        return this.requestAdl("get", path, queryString, undefined, bb.respJB, authToken);
       } else {
-        return this.requestAdl("post", rtype.path, undefined, jsonArgs, bb.respJB, authToken);
+        return this.requestAdl("post", path, undefined, jsonArgs, bb.respJB, authToken);
       }
     };
   }
@@ -87,6 +95,40 @@ export function encodeQueryString(reqJson: Json) {
 
 export type ReqFn<I, O> = (req: I) => Promise<O>;
 export type AuthReqFn<I, O> = (authToken: string, req: I) => Promise<O>;
+
+/**
+ * The HTTP path of an endpoint, derived from its ADL field name.
+ *
+ * HttpReq carries no path: each backend derives one from the field the
+ * endpoint is declared under, and they must all derive it identically or
+ * requests miss the server's routes. The TypeScript backend uses the ADL field
+ * name verbatim as the property name, so the key here is already that name.
+ */
+export function endpointPath(name: string): string {
+  return "/" + name;
+}
+
+/** The request type of an `HttpReq` valued field. */
+type ReqOf<T> = T extends HttpReq<infer I, unknown> ? I : never;
+
+/** The response type of an `HttpReq` valued field. */
+type RespOf<T> = T extends HttpReq<unknown, infer O> ? O : never;
+
+/** Those fields of an api struct that are endpoints. */
+type EndpointKey<A> = {
+  [K in keyof A]: A[K] extends HttpReq<unknown, unknown> ? K : never;
+}[keyof A];
+
+/**
+ * The endpoint at `api[name]`.
+ *
+ * `EndpointKey` has already established that the field is an `HttpReq`, but
+ * not in a form the compiler can relate back to `ReqOf`/`RespOf`, hence the
+ * assertion.
+ */
+function endpointOf<A, K extends EndpointKey<A> & keyof A>(api: A, name: K): HttpReq<ReqOf<A[K]>, RespOf<A[K]>> {
+  return api[name] as HttpReq<ReqOf<A[K]>, RespOf<A[K]>>;
+}
 
 interface BiTypeExpr<I, O> {
   reqType: ADL.ATypeExpr<I>;

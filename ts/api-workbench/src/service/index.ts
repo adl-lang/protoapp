@@ -11,7 +11,7 @@ export class Service extends ServiceBase {
     super(http, baseUrl, RESOLVER);
   }
 
-  login = this.mkReqFn(web.login);
-  refresh = this.mkReqFn(web.refresh);
-  logout = this.mkReqFn(web.logout);
+  login = this.mkReqFn(web, "login");
+  refresh = this.mkReqFn(web, "refresh");
+  logout = this.mkReqFn(web, "logout");
 }

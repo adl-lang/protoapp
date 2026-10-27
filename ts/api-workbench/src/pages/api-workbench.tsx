@@ -9,7 +9,7 @@ import { Modal } from "@/components/forms/mui/modal";
 import { VEditor } from "@/components/forms/mui/veditor";
 import { createUiFactory } from "@/components/forms/factory";
 import { AppState, AuthState, useAppState } from "@/hooks/use-app-state";
-import { AdlRequestError, encodeQueryString, ServiceBase } from "@/service/service-base";
+import { AdlRequestError, encodeQueryString, endpointPath, ServiceBase } from "@/service/service-base";
 import * as ADL from "@adllang/adl-runtime";
 import { Json, JsonBinding, createJsonBinding, scopedNamesEqual } from "@adllang/adl-runtime";
 import { Box, Button, Card, CircularProgress, Container, Divider, IconButton, Typography } from "@mui/material";
@@ -444,7 +444,7 @@ function getHttpEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field): Ht
   const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
   return {
     name: field.name,
-    path: httpReq.path,
+    path: endpointPath(field.name),
     method: httpReq.method,
     docString,
     security: httpReq.security,

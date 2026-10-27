@@ -73,31 +73,31 @@ impl ApiRequests {
   }
 
   pub fn def_healthy() -> HttpReq<(), ()> {
-    HttpReq::<(), ()>{method : HttpMethod::Get, path : "/".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpReq::<(), ()>{method : HttpMethod::Get, security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_new_message() -> HttpReq<NewMessageReq, MessageId> {
-    HttpReq::<NewMessageReq, MessageId>{method : HttpMethod::Post, path : "/messages/new".to_string(), security : HttpSecurity::Token, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpReq::<NewMessageReq, MessageId>{method : HttpMethod::Post, security : HttpSecurity::Token, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_recent_messages() -> HttpReq<RecentMessagesReq, Paginated<Message>> {
-    HttpReq::<RecentMessagesReq, Paginated<Message>>{method : HttpMethod::Get, path : "/messages/recent".to_string(), security : HttpSecurity::Token, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpReq::<RecentMessagesReq, Paginated<Message>>{method : HttpMethod::Get, security : HttpSecurity::Token, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_who_am_i() -> HttpReq<(), UserWithId> {
-    HttpReq::<(), UserWithId>{method : HttpMethod::Get, path : "/whoami".to_string(), security : HttpSecurity::Token, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpReq::<(), UserWithId>{method : HttpMethod::Get, security : HttpSecurity::Token, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_create_user() -> HttpReq<UserDetails, AppUserId> {
-    HttpReq::<UserDetails, AppUserId>{method : HttpMethod::Post, path : "/users/create".to_string(), security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpReq::<UserDetails, AppUserId>{method : HttpMethod::Post, security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_update_user() -> HttpReq<WithId<AppUserId, UserDetails>, Unit> {
-    HttpReq::<WithId<AppUserId, UserDetails>, Unit>{method : HttpMethod::Post, path : "/users/update".to_string(), security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpReq::<WithId<AppUserId, UserDetails>, Unit>{method : HttpMethod::Post, security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_query_users() -> HttpReq<QueryUsersReq, Paginated<UserWithId>> {
-    HttpReq::<QueryUsersReq, Paginated<UserWithId>>{method : HttpMethod::Get, path : "/users/query".to_string(), security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpReq::<QueryUsersReq, Paginated<UserWithId>>{method : HttpMethod::Get, security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 }
 
@@ -105,7 +105,7 @@ impl ApiRequests {
  * Endpoints that read or write browser cookies, and so are wired up by hand
  * rather than through the generated handler trait.
  */
-#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
+#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize,adl::HttpApi)]
 pub struct WebRequests {
   /**
    * Login a user
@@ -139,15 +139,15 @@ impl WebRequests {
   }
 
   pub fn def_login() -> HttpReq<LoginReq, LoginResp> {
-    HttpReq::<LoginReq, LoginResp>{method : HttpMethod::Post, path : "/login".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpReq::<LoginReq, LoginResp>{method : HttpMethod::Post, security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_refresh() -> HttpReq<RefreshReq, RefreshResp> {
-    HttpReq::<RefreshReq, RefreshResp>{method : HttpMethod::Post, path : "/refresh".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpReq::<RefreshReq, RefreshResp>{method : HttpMethod::Post, security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_logout() -> HttpReq<Unit, Unit> {
-    HttpReq::<Unit, Unit>{method : HttpMethod::Post, path : "/logout".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpReq::<Unit, Unit>{method : HttpMethod::Post, security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 }
 

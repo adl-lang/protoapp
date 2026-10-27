@@ -30,9 +30,19 @@ pub trait Mount<Ctx>: Sized {
     /// Error the host maps to an HTTP response.
     type Error;
 
-    /// Mount one endpoint. `req` carries the method, path and security policy;
-    /// `handler` is the implementation, already erased to its wire types.
-    fn mount<I, O>(self, req: &HttpReq<I, O>, handler: Handler<Ctx, I, O, Self::Error>) -> Self
+    /// Mount one endpoint at `path`. `req` carries the method and security
+    /// policy; `handler` is the implementation, already erased to its wire
+    /// types.
+    ///
+    /// The path is passed separately because it is not part of `HttpReq`: it
+    /// is derived from the endpoint's ADL field name, which only the generated
+    /// code knows.
+    fn mount<I, O>(
+        self,
+        path: &str,
+        req: &HttpReq<I, O>,
+        handler: Handler<Ctx, I, O, Self::Error>,
+    ) -> Self
     where
         I: DeserializeOwned + Send + Sync + 'static,
         O: Serialize + Send + Sync + 'static;
@@ -40,16 +50,36 @@ pub trait Mount<Ctx>: Sized {
 
 /// An ADL API that can mount itself into a host.
 ///
-/// Implemented by `#[derive(HttpApi)]` for each API struct. `H` is the API's
+/// Implemented by `#[derive(HttpApi)]` for each API struct, so the trait and
+/// the derive share a name, as `serde::Serialize` does. `H` is the API's
 /// generated handler trait, which cannot be an associated type because it is a
 /// trait, so it stays a free parameter constrained by the generated impl.
 ///
 /// This is what lets a host write one mounting helper for every API, rather
 /// than one per API struct.
-pub trait Api<Ctx, M, H>
+pub trait HttpApi<Ctx, M, H>
 where
     M: Mount<Ctx>,
 {
     /// Mount every endpoint of this API into `mount`.
     fn register(&self, mount: M, handlers: std::sync::Arc<H>) -> M;
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::gen::protoapp::apis::ui::{ApiRequests, WebRequests};
+
+    /// Pins the rule that `#[derive(HttpApi)]` builds a path from the ADL
+    /// field name. Every backend has to derive paths identically, so a change
+    /// here is a change to the wire protocol and should fail loudly.
+    #[test]
+    fn paths_come_from_adl_field_names() {
+        assert_eq!(ApiRequests::PATH_HEALTHY, "/healthy");
+        assert_eq!(ApiRequests::PATH_NEW_MESSAGE, "/new_message");
+        assert_eq!(ApiRequests::PATH_WHO_AM_I, "/who_am_i");
+        assert_eq!(ApiRequests::PATH_QUERY_USERS, "/query_users");
+        assert_eq!(WebRequests::PATH_LOGIN, "/login");
+        assert_eq!(WebRequests::PATH_REFRESH, "/refresh");
+        assert_eq!(WebRequests::PATH_LOGOUT, "/logout");
+    }
 }

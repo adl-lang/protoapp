@@ -6,7 +6,8 @@ use adl::custom::common::db::DbKey;
 use adl::gen::common::http::Unit;
 use adl::gen::protoapp::apis::ui::{
     ApiRequestsHandlers, LoginReq, LoginResp, LoginTokens, Message, Paginated, QueryUsersReq,
-    RecentMessagesReq, RefreshReq, RefreshResp, User, UserDetails, UserWithId, WebRequests, WithId,
+    RecentMessagesReq, RefreshReq, RefreshResp, User, UserDetails, UserWithId, WebRequests,
+    WebRequestsHandlers, WithId,
 };
 use adl::gen::protoapp::config::server::ServerConfig;
 use adl::gen::protoapp::db::{AppUser, AppUserId};
@@ -25,8 +26,10 @@ type ReqContext = AdlReqContext<AppState>;
 /// method per endpoint declared in the ADL `ApiRequests` struct. Adding an
 /// endpoint there stops this impl compiling until it is implemented.
 ///
-/// The cookie endpoints are not here: they belong to the ADL `WebRequests`
-/// struct and are wired by hand below, since they need poem's `CookieJar`.
+/// The cookie endpoints are in the [`WebRequestsHandlers`] impl below. They
+/// belong to the ADL `WebRequests` struct and are mounted by hand, since they
+/// need poem's `CookieJar`, but implementing the generated trait keeps them
+/// checked against the ADL in the same way.
 pub struct Handlers;
 
 impl ApiRequestsHandlers<ReqContext> for Handlers {
@@ -125,50 +128,54 @@ impl ApiRequestsHandlers<ReqContext> for Handlers {
     }
 }
 
-pub async fn login(ctx: ReqContext, i: LoginReq) -> HandlerResult<LoginResp> {
-    // Lookup the user details
-    let user = db::get_user_with_email(&ctx.state.db_pool, &i.email).await?;
-    match user {
-        None => Ok(LoginResp::InvalidCredentials),
-        Some((user_id, user)) => {
-            if verify_password(&i.password, &user.hashed_password) {
-                // If found and we have a valid password return an access token and refresh token
-                let access_jwt = access_jwt_from_user(&ctx.state.config, &user_id, &user);
-                let refresh_jwt = jwt::create_refresh(&ctx.state.config, user_id.clone().0);
-                Ok(LoginResp::Tokens(LoginTokens {
-                    access_jwt,
-                    refresh_jwt,
-                }))
-            } else {
-                Ok(LoginResp::InvalidCredentials)
+impl WebRequestsHandlers<ReqContext> for Handlers {
+    type Error = HandlerError;
+
+    async fn login(&self, ctx: ReqContext, i: LoginReq) -> Result<LoginResp, Self::Error> {
+        // Lookup the user details
+        let user = db::get_user_with_email(&ctx.state.db_pool, &i.email).await?;
+        match user {
+            None => Ok(LoginResp::InvalidCredentials),
+            Some((user_id, user)) => {
+                if verify_password(&i.password, &user.hashed_password) {
+                    // If found and we have a valid password return an access token and refresh token
+                    let access_jwt = access_jwt_from_user(&ctx.state.config, &user_id, &user);
+                    let refresh_jwt = jwt::create_refresh(&ctx.state.config, user_id.clone().0);
+                    Ok(LoginResp::Tokens(LoginTokens {
+                        access_jwt,
+                        refresh_jwt,
+                    }))
+                } else {
+                    Ok(LoginResp::InvalidCredentials)
+                }
             }
         }
     }
-}
 
-pub async fn refresh(ctx: ReqContext, i: RefreshReq) -> HandlerResult<RefreshResp> {
-    match i.refresh_token {
-        None => Ok(RefreshResp::InvalidRefreshToken),
-        Some(refresh_jwt) => {
-            let claims =
-                match jwt::decode_refresh(&ctx.state.config.jwt_refresh_secret, &refresh_jwt) {
-                    Ok(claims) => claims,
-                    Err(_) => return Ok(RefreshResp::InvalidRefreshToken),
+    async fn refresh(&self, ctx: ReqContext, i: RefreshReq) -> Result<RefreshResp, Self::Error> {
+        match i.refresh_token {
+            None => Ok(RefreshResp::InvalidRefreshToken),
+            Some(refresh_jwt) => {
+                let claims =
+                    match jwt::decode_refresh(&ctx.state.config.jwt_refresh_secret, &refresh_jwt) {
+                        Ok(claims) => claims,
+                        Err(_) => return Ok(RefreshResp::InvalidRefreshToken),
+                    };
+                let user_id: AppUserId = DbKey::from_string(claims.sub.clone());
+                let user = db::get_user_with_id(&ctx.state.db_pool, &user_id).await?;
+                let user = match user {
+                    Some((_, user)) => user,
+                    None => return Ok(RefreshResp::InvalidRefreshToken),
                 };
-            let user_id: AppUserId = DbKey::from_string(claims.sub.clone());
-            let user = db::get_user_with_id(&ctx.state.db_pool, &user_id).await?;
-            let user = match user {
-                Some((_, user)) => user,
-                None => return Ok(RefreshResp::InvalidRefreshToken),
-            };
-            let access_jwt = access_jwt_from_user(&ctx.state.config, &user_id, &user);
-            Ok(RefreshResp::AccessToken(access_jwt))
+                let access_jwt = access_jwt_from_user(&ctx.state.config, &user_id, &user);
+                Ok(RefreshResp::AccessToken(access_jwt))
+            }
         }
     }
-}
 
-pub async fn logout(_ctx: ReqContext, _i: Unit) -> HandlerResult<Unit> {
-    Ok(Unit {})
+    async fn logout(&self, _ctx: ReqContext, _i: Unit) -> Result<Unit, Self::Error> {
+        Ok(Unit {})
+    }
 }
 
 #[handler]
@@ -178,7 +185,7 @@ pub async fn login_with_cookies(
     i: Json<LoginReq>,
 ) -> poem::Result<Json<LoginResp>> {
     let ctx = get_adl_request_context(req, &WebRequests::def_login().security)?;
-    let eresp = login(ctx, i.0).await;
+    let eresp = Handlers.login(ctx, i.0).await;
     if let Ok(LoginResp::Tokens(tokens)) = &eresp {
         let mut cookie = Cookie::new_with_str(REFRESH_TOKEN, tokens.refresh_jwt.clone());
         cookie.set_http_only(true);
@@ -199,7 +206,7 @@ pub async fn refresh_with_cookies(
     // If there's no refresh token in the request, use the one from the cookie
     let refresh_token = i.0.refresh_token.or(token_from_cookie);
 
-    let eresp = refresh(ctx, RefreshReq { refresh_token }).await;
+    let eresp = Handlers.refresh(ctx, RefreshReq { refresh_token }).await;
     eresp.map(Json).map_err(poem::Error::from)
 }
 
@@ -211,7 +218,7 @@ pub async fn logout_with_cookies(
 ) -> poem::Result<Json<Unit>> {
     let ctx = get_adl_request_context(req, &WebRequests::def_logout().security)?;
     cookies.remove(REFRESH_TOKEN);
-    let eresp = logout(ctx, i.0).await;
+    let eresp = Handlers.logout(ctx, i.0).await;
     eresp.map(Json).map_err(poem::Error::from)
 }
 

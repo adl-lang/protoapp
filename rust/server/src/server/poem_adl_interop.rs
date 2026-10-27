@@ -11,8 +11,8 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use adl::api::{Api, Handler, Mount};
 use adl::gen::common::http::{HttpMethod, HttpReq, HttpSecurity};
+use adl::http_api::{Handler, HttpApi, Mount};
 
 use super::jwt;
 use super::AppState;
@@ -43,8 +43,9 @@ pub enum HandlerError {
 pub trait DynRouteExt {
     fn adl_dyn_req<S, I, O>(
         self,
+        path: &str,
         req: &HttpReq<I, O>,
-        handler: adl::api::Handler<AdlReqContext<S>, I, O, HandlerError>,
+        handler: adl::http_api::Handler<AdlReqContext<S>, I, O, HandlerError>,
     ) -> Self
     where
         S: Send + Sync + Clone + 'static,
@@ -55,15 +56,15 @@ pub trait DynRouteExt {
 impl DynRouteExt for Route {
     fn adl_dyn_req<S, I, O>(
         self,
+        path: &str,
         req: &HttpReq<I, O>,
-        handler: adl::api::Handler<AdlReqContext<S>, I, O, HandlerError>,
+        handler: adl::http_api::Handler<AdlReqContext<S>, I, O, HandlerError>,
     ) -> Self
     where
         S: Send + Sync + Clone + 'static,
         I: Send + Sync + DeserializeOwned + 'static,
         O: Send + Sync + Serialize + 'static,
     {
-        let path = req.path.clone();
         self.at(
             path,
             AdlDynReq {
@@ -81,7 +82,7 @@ impl DynRouteExt for Route {
 struct AdlDynReq<S, I, O> {
     method: HttpMethod,
     security: HttpSecurity,
-    handler: adl::api::Handler<AdlReqContext<S>, I, O, HandlerError>,
+    handler: adl::http_api::Handler<AdlReqContext<S>, I, O, HandlerError>,
 }
 
 impl<S, I, O> Endpoint for AdlDynReq<S, I, O>
@@ -302,7 +303,7 @@ impl PoemRoutes<Route> {
     /// without further code here.
     pub fn adl_api_at<A, H>(self, api: &A, handlers: Arc<H>) -> Self
     where
-        A: Api<AdlReqContext<AppState>, Self, H>,
+        A: HttpApi<AdlReqContext<AppState>, Self, H>,
     {
         api.register(self, handlers)
     }
@@ -336,6 +337,7 @@ impl Mount<AdlReqContext<AppState>> for PoemRoutes<Route> {
 
     fn mount<I, O>(
         self,
+        path: &str,
         req: &HttpReq<I, O>,
         handler: Handler<AdlReqContext<AppState>, I, O, Self::Error>,
     ) -> Self
@@ -343,6 +345,6 @@ impl Mount<AdlReqContext<AppState>> for PoemRoutes<Route> {
         I: serde::de::DeserializeOwned + Send + Sync + 'static,
         O: serde::Serialize + Send + Sync + 'static,
     {
-        PoemRoutes(self.0.adl_dyn_req(req, handler))
+        PoemRoutes(self.0.adl_dyn_req(path, req, handler))
     }
 }

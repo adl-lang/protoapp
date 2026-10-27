@@ -23,16 +23,13 @@ pub fn build_routes(state: AppState) -> Box<dyn DynEndpoint<Output = poem::Respo
     // WebRequests endpoints, which take poem's CookieJar and so are wired by
     // hand rather than through the generated registration above.
     let routes = routes
+        .at(WebRequests::PATH_LOGIN, post(handlers::login_with_cookies))
         .at(
-            WebRequests::def_login().path,
-            post(handlers::login_with_cookies),
-        )
-        .at(
-            WebRequests::def_refresh().path,
+            WebRequests::PATH_REFRESH,
             post(handlers::refresh_with_cookies),
         )
         .at(
-            WebRequests::def_logout().path,
+            WebRequests::PATH_LOGOUT,
             post(handlers::logout_with_cookies),
         );
 

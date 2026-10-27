@@ -22,17 +22,17 @@ Files read: `adl/common/http.adl` and `rust/server/src/server/poem_adl_interop.r
 
 - **Endpoint type** (`common/http.adl`): `struct HttpReq<I,O>` with:
   - `method: HttpMethod`, a union of `get` and `post`, defaulting to `post`
-  - `path: String`
   - `security: HttpSecurity`, a union of `public`, `token`, and `tokenWithRole: String`
   - `reqType: TypeToken<I>` and `respType: TypeToken<O>`, both defaulting to null
 
-  An API is an ADL struct whose fields are `HttpReq<I,O>` values, with path and security
-  given as field defaults. The TypeScript client and the API workbench also consume
-  `path` and `security`.
+  An API is an ADL struct whose fields are `HttpReq<I,O>` values, with method and
+  security given as field defaults. The path is not among them: it is derived from the
+  field name by each backend, as described under "Path from the field name" below. The
+  TypeScript client and the API workbench also consume `security`.
 - **Server framework:** poem, with sqlx and postgres.
 - **`poem_adl_interop.rs`:**
-  - `RouteExt::adl_req(req: HttpReq<I,O>, f: fn(AdlReqContext<S>, I) -> FO)` mounts the
-    endpoint at `req.path` as a poem `Endpoint` (`AdlReq`).
+  - `DynRouteExt::adl_dyn_req(path, req: &HttpReq<I,O>, handler)` mounts the endpoint at
+    `path` as a poem `Endpoint` (`AdlDynReq`).
   - Input decoding: POST reads a JSON body. GET reads the query param
     `input=<urlencoded JSON>`; with no query string it deserializes from JSON `null`, which
     is used for Void inputs.
@@ -85,7 +85,7 @@ Files read: `adl/common/http.adl` and `rust/server/src/server/poem_adl_interop.r
 7. Smaller items:
    - Set an explicit request body size limit.
    - Move from `fn` pointer handlers to trait methods. This follows from item 1.
-   - Optionally derive the path from the field name (see below).
+   - Derive the path from the field name. **DONE** (see below).
 
 Items 1–5 can be done while staying on poem. Item 6 is the larger change.
 
@@ -145,21 +145,66 @@ plus `#[derive(AdlApi)]`. The derive proc macro (`syn` and `quote`) does the fol
   `register` takes `&self` because `method` and `security` are runtime ADL data on each
   `HttpReq` value.
 - Uses span-preserving errors that point at fields.
-- Macros only see tokens. Field default values (path, security) are not visible at
+- Macros only see tokens. Field default values (method, security) are not visible at
   expansion time, so they must come from the struct value at runtime, or from emitted
   attributes.
 
-### Optional: path from the field name
+### Path from the field name. DONE
 
-- Use the **ADL field name, not the Rust identifier**, because the Rust backend
-  snake-cases names and escapes keywords. Recover it from `#[serde(rename = "...")]` or
-  from a dedicated `#[adl(name = "...")]` attribute.
-- Paths are relative, and the developer supplies the mount prefix. Note that axum's
-  `nest_service` strips the prefix.
-- Keep `path` as an explicit override, for example `#[adl(path = ...)]` or the existing
-  ADL field.
-- The rule must be identical across backends: the Rust runtime, the TS client and the
-  workbench. Renaming a field becomes a wire-breaking change.
+`path` has been removed from `common.http.HttpReq`. An endpoint's path is now `"/"`
+followed by its **ADL field name**, derived independently but identically by each
+backend:
+
+- `#[derive(HttpApi)]` reads `#[serde(rename = "...")]` where the Rust backend had to
+  rename the field, and the identifier otherwise — never the identifier alone, which is
+  snake-cased and keyword-escaped. It emits each path as a `PATH_<FIELD>` associated
+  constant and passes it to `Mount::mount`, which gained a `path` parameter.
+- The TypeScript backend uses the ADL field name verbatim as the property name, so
+  `ServiceBase` and the workbench both derive from it directly (`endpointPath`).
+  `mkReqFn`/`mkAuthReqFn` now take the api struct and a field name rather than an
+  `HttpReq` value, because a value detached from its field cannot know its own path.
+
+`api::tests::paths_come_from_adl_field_names` pins the rule on the Rust side; the six
+server tests exercise it over real HTTP.
+
+Consequences, accepted deliberately:
+
+- **Paths moved.** `/whoami` is now `/who_am_i`, `/users/create` is `/create_user`, and
+  the health check is at `/healthy` rather than `/`. This was acceptable because protoapp
+  has no deployed external clients.
+- **Renaming an ADL field is now a wire-breaking change.** On the Rust side a rename at
+  least breaks the build wherever a `PATH_` constant is named; TypeScript just follows the
+  new name silently.
+- **No override exists yet.** The intended one is an ADL annotation,
+  `newtype HttpPath = String;`, applied as `@HttpPath "/"` to a field. TypeScript can
+  honour it today — field annotations reach the TS AST — but Rust cannot: the Rust backend
+  reads field annotations only for `RustStorageModel` and emits no AST, so the annotation
+  never reaches the derive. Honouring it on one side only would 404, so neither side does.
+
+#### Getting the override: the adlc change
+
+A meta annotation on the annotation declaration tells the Rust backend to carry it
+through. This is reachable because `Annotations t = Map ScopedName (t, JSON.Value)`
+(`lib0/lib/ADL/Compiler/AST.hs:19`) and `resolveAnnotations` stores
+`RT_Named (sn, decl)` (`Processing.hs:495-500`), so every use site can reach the
+annotation's own declaration. Nothing reads that component today.
+
+1. `adl/stdlib/adlc/config/rust.adl` — `type RustEmitAnnotation = Void;` (presence-only)
+2. regenerate `ADL/Adlc/Config/Rust.hs` via `adlc-bootstrap`
+3. `Rust/Internal.hs` — `snRustEmitAnnotation` plus a predicate over the resolved
+   annotation that checks the declaring decl
+4. `Rust.hs` — emit a per-struct inherent `field_annotations()` returning
+   `&'static [(field, annotation, json)]`, beside the two existing hardcoded field
+   attribute sites at `:164` and `:303`
+5. `adl/common/http.adl-rs` — `annotation HttpPath RustEmitAnnotation;`, keeping the
+   Rust-specific opt-in out of the backend-neutral module
+6. goldens
+
+An inherent function rather than a `#[adl_annotation(...)]` attribute, because an
+attribute is only legal where a derive registers it as a helper, which couples adlc's
+output to a derive being present; a function is always legal Rust and readable by
+anything. The derive then prefers the override over the field name, and the `PATH_`
+constants start carrying it with no change at the call sites.
 
 ### Mixing example (axum host)
 

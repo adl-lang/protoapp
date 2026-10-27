@@ -2,6 +2,10 @@ module common.http {
 
 /// Request types
 
+/// An API is a struct whose fields are HttpReq values. The HTTP path of each
+/// endpoint is derived from its field name, as "/" ++ the field name, and must
+/// be derived identically by every backend that consumes an API: the rust
+/// server, the typescript client and the api workbench.
 struct HttpReq<I,O> {
 
   // Requests are post by default. If a given request:
@@ -10,7 +14,6 @@ struct HttpReq<I,O> {
   // one can set the method to "get", eg to allow CDN caching etc 
   HttpMethod method = "post";
 
-  String path;
   HttpSecurity security;
   TypeToken<I> reqType = null;
   TypeToken<O> respType = null;
