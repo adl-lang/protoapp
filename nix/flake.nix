@@ -32,6 +32,13 @@
           buildInputs = rustEnv.buildInputs ++ (with pkgs; [
             postgresql_16
 
+            # Shows what the proc macros generate, eg
+            #   cargo expand -p adl gen::protoapp::apis::ui
+            # for #[derive(adl::HttpApi)]. It drives rustc's unstable
+            # -Zunpretty=expanded, but supplies RUSTC_BOOTSTRAP itself, so the
+            # stable toolchain above is enough and no nightly is needed.
+            cargo-expand
+
             # Also listed in ../.prototools, for contributors who use proto
             # rather than nix. The versions there are the ones these attrs
             # resolve to, so bumping the nixpkgs input means updating that
