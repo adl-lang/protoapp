@@ -5,7 +5,7 @@ use adl::gen::protoapp::apis::ui::{
 };
 
 use crate::server::tests::helpers::{
-    create_test_user, login_user, server_auth_req, server_public_req, server_req,
+    admin_path, create_test_user, login_user, server_auth_req, server_public_req, server_req,
     test_server_config, DbTestEnv,
 };
 use crate::server::{AppState, OServer};
@@ -27,7 +27,12 @@ async fn server_login() {
 
     let tokens = {
         // Check that we can login as joe
-        let resp = server_public_req(apis::ui::ApiRequests::def_login(), &u1).await;
+        let resp = server_public_req(
+            apis::ui::WebRequests::PATH_LOGIN,
+            apis::ui::WebRequests::def_login(),
+            &u1,
+        )
+        .await;
         assert!(is_valid_login(&resp));
         get_login_tokens(resp).unwrap()
     };
@@ -35,7 +40,8 @@ async fn server_login() {
     {
         // Check that we can refresh using the refresh token
         let resp = server_public_req(
-            apis::ui::ApiRequests::def_refresh(),
+            apis::ui::WebRequests::PATH_REFRESH,
+            apis::ui::WebRequests::def_refresh(),
             &RefreshReq {
                 refresh_token: Some(tokens.refresh_jwt),
             },
@@ -47,7 +53,8 @@ async fn server_login() {
     {
         // Check that we can't refresh using the access token
         let resp = server_public_req(
-            apis::ui::ApiRequests::def_refresh(),
+            apis::ui::WebRequests::PATH_REFRESH,
+            apis::ui::WebRequests::def_refresh(),
             &RefreshReq {
                 refresh_token: Some(tokens.access_jwt),
             },
@@ -58,13 +65,19 @@ async fn server_login() {
 
     {
         // Check that we can logout
-        server_public_req(apis::ui::ApiRequests::def_logout(), &Unit {}).await;
+        server_public_req(
+            apis::ui::WebRequests::PATH_LOGOUT,
+            apis::ui::WebRequests::def_logout(),
+            &Unit {},
+        )
+        .await;
     }
 
     {
         // Check that we can't login with the wrong password
         let resp = server_public_req(
-            apis::ui::ApiRequests::def_login(),
+            apis::ui::WebRequests::PATH_LOGIN,
+            apis::ui::WebRequests::def_login(),
             &apis::ui::LoginReq {
                 email: "joe@test.com".to_owned(),
                 password: "xxxxxx".to_owned(),
@@ -77,7 +90,8 @@ async fn server_login() {
     {
         // Check that we can't login with an invalid email
         let resp = server_public_req(
-            apis::ui::ApiRequests::def_login(),
+            apis::ui::WebRequests::PATH_LOGIN,
+            apis::ui::WebRequests::def_login(),
             &apis::ui::LoginReq {
                 email: "mike@test.com".to_owned(),
                 password: "abcde".to_owned(),
@@ -99,7 +113,13 @@ async fn server_user_profile() {
     let u1 = create_test_user_joe(&mut db).await;
     let u1_jwt = login_user(&u1).await;
 
-    let resp = server_auth_req(apis::ui::ApiRequests::def_who_am_i(), &u1_jwt, &()).await;
+    let resp = server_auth_req(
+        apis::ui::ApiRequests::PATH_WHO_AM_I,
+        apis::ui::ApiRequests::def_who_am_i(),
+        &u1_jwt,
+        &(),
+    )
+    .await;
     assert_eq!(resp.value.fullname, "Joe");
     assert_eq!(resp.value.email, "joe@test.com");
     assert!(!resp.value.is_admin);
@@ -151,17 +171,32 @@ async fn server_user_crud() {
     let u1 = create_test_user_joe(&mut db).await;
     let u2 = create_test_user_sarah(&mut db).await;
 
-    let u1_jwt = get_login_tokens(server_public_req(apis::ui::ApiRequests::def_login(), &u1).await)
-        .unwrap()
-        .access_jwt;
-    let u2_jwt = get_login_tokens(server_public_req(apis::ui::ApiRequests::def_login(), &u2).await)
-        .unwrap()
-        .access_jwt;
+    let u1_jwt = get_login_tokens(
+        server_public_req(
+            apis::ui::WebRequests::PATH_LOGIN,
+            apis::ui::WebRequests::def_login(),
+            &u1,
+        )
+        .await,
+    )
+    .unwrap()
+    .access_jwt;
+    let u2_jwt = get_login_tokens(
+        server_public_req(
+            apis::ui::WebRequests::PATH_LOGIN,
+            apis::ui::WebRequests::def_login(),
+            &u2,
+        )
+        .await,
+    )
+    .unwrap()
+    .access_jwt;
 
     // u1 is not an admin, so shouldn't be allowed to create new users
     {
         let http_resp = server_req(
-            apis::ui::ApiRequests::def_create_user(),
+            &admin_path(apis::ui::AdminApiRequests::PATH_CREATE_USER),
+            apis::ui::AdminApiRequests::def_create_user(),
             Some(&u1_jwt),
             &apis::ui::UserDetails {
                 fullname: "Austin".to_owned(),
@@ -177,7 +212,8 @@ async fn server_user_crud() {
     // u2 is an admin, so can create new users
     {
         let http_resp = server_req(
-            apis::ui::ApiRequests::def_create_user(),
+            &admin_path(apis::ui::AdminApiRequests::PATH_CREATE_USER),
+            apis::ui::AdminApiRequests::def_create_user(),
             Some(&u2_jwt),
             &apis::ui::UserDetails {
                 fullname: "Austin".to_owned(),
@@ -193,7 +229,8 @@ async fn server_user_crud() {
     // and can query existing users
     {
         let resp = server_auth_req(
-            apis::ui::ApiRequests::def_query_users(),
+            &admin_path(apis::ui::AdminApiRequests::PATH_QUERY_USERS),
+            apis::ui::AdminApiRequests::def_query_users(),
             &u2_jwt,
             &apis::ui::QueryUsersReq {
                 page: PageReq {
@@ -219,20 +256,38 @@ async fn server_security_policy() {
 
     {
         // A public endpoint works with no credentials at all
-        let resp = server_req(apis::ui::ApiRequests::def_healthy(), None, &()).await;
+        let resp = server_req(
+            apis::ui::ApiRequests::PATH_HEALTHY,
+            apis::ui::ApiRequests::def_healthy(),
+            None,
+            &(),
+        )
+        .await;
         assert_eq!(resp.status(), 200);
     }
 
     {
         // An unusable token must not fail a public endpoint: it is ignored,
         // rather than rejected, so a stale token can't lock a client out.
-        let resp = server_req(apis::ui::ApiRequests::def_healthy(), Some("garbage"), &()).await;
+        let resp = server_req(
+            apis::ui::ApiRequests::PATH_HEALTHY,
+            apis::ui::ApiRequests::def_healthy(),
+            Some("garbage"),
+            &(),
+        )
+        .await;
         assert_eq!(resp.status(), 200);
     }
 
     {
         // ... in particular, login still works while carrying a stale token
-        let resp = server_req(apis::ui::ApiRequests::def_login(), Some("garbage"), &u1).await;
+        let resp = server_req(
+            apis::ui::WebRequests::PATH_LOGIN,
+            apis::ui::WebRequests::def_login(),
+            Some("garbage"),
+            &u1,
+        )
+        .await;
         assert_eq!(resp.status(), 200);
     }
 
@@ -240,20 +295,33 @@ async fn server_security_policy() {
         // A valid token on a public endpoint is still accepted (and still
         // reaches the handler as claims, which public handlers may come to use)
         let jwt = login_user(&u1).await;
-        let resp = server_req(apis::ui::ApiRequests::def_healthy(), Some(&jwt), &()).await;
+        let resp = server_req(
+            apis::ui::ApiRequests::PATH_HEALTHY,
+            apis::ui::ApiRequests::def_healthy(),
+            Some(&jwt),
+            &(),
+        )
+        .await;
         assert_eq!(resp.status(), 200);
     }
 
     {
         // A token endpoint rejects a request with no credentials
-        let resp = server_req(apis::ui::ApiRequests::def_who_am_i(), None, &()).await;
+        let resp = server_req(
+            apis::ui::ApiRequests::PATH_WHO_AM_I,
+            apis::ui::ApiRequests::def_who_am_i(),
+            None,
+            &(),
+        )
+        .await;
         assert_eq!(resp.status(), 401);
     }
 
     {
         // A role restricted endpoint rejects absent credentials as 401, not 403
         let resp = server_req(
-            apis::ui::ApiRequests::def_query_users(),
+            &admin_path(apis::ui::AdminApiRequests::PATH_QUERY_USERS),
+            apis::ui::AdminApiRequests::def_query_users(),
             None,
             &apis::ui::QueryUsersReq {
                 page: PageReq {
@@ -268,14 +336,26 @@ async fn server_security_policy() {
 
     {
         // ... and one with an unusable token
-        let resp = server_req(apis::ui::ApiRequests::def_who_am_i(), Some("garbage"), &()).await;
+        let resp = server_req(
+            apis::ui::ApiRequests::PATH_WHO_AM_I,
+            apis::ui::ApiRequests::def_who_am_i(),
+            Some("garbage"),
+            &(),
+        )
+        .await;
         assert_eq!(resp.status(), 401);
     }
 
     {
         // ... but accepts a valid one
         let jwt = login_user(&u1).await;
-        let resp = server_req(apis::ui::ApiRequests::def_who_am_i(), Some(&jwt), &()).await;
+        let resp = server_req(
+            apis::ui::ApiRequests::PATH_WHO_AM_I,
+            apis::ui::ApiRequests::def_who_am_i(),
+            Some(&jwt),
+            &(),
+        )
+        .await;
         assert_eq!(resp.status(), 200);
     }
 
@@ -284,7 +364,8 @@ async fn server_security_policy() {
         // the 401s above for absent or unusable credentials.
         let jwt = login_user(&u1).await;
         let resp = server_req(
-            apis::ui::ApiRequests::def_create_user(),
+            &admin_path(apis::ui::AdminApiRequests::PATH_CREATE_USER),
+            apis::ui::AdminApiRequests::def_create_user(),
             Some(&jwt),
             &apis::ui::UserDetails {
                 fullname: "Austin".to_owned(),
@@ -303,6 +384,7 @@ async fn server_security_policy() {
 
 async fn send_message(jwt: &str, message: &str) {
     let _ = server_auth_req(
+        apis::ui::ApiRequests::PATH_NEW_MESSAGE,
         apis::ui::ApiRequests::def_new_message(),
         jwt,
         &apis::ui::NewMessageReq {
@@ -314,6 +396,7 @@ async fn send_message(jwt: &str, message: &str) {
 
 async fn recent_messages(jwt: &str, offset: u64, limit: u64) -> Paginated<Message> {
     server_auth_req(
+        apis::ui::ApiRequests::PATH_RECENT_MESSAGES,
         apis::ui::ApiRequests::def_recent_messages(),
         jwt,
         &apis::ui::RecentMessagesReq {

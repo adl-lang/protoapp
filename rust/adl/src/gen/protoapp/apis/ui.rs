@@ -14,34 +14,14 @@ use crate::gen::protoapp::db::MessageId;
 use serde::Deserialize;
 use serde::Serialize;
 
-#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
+#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize,adl::HttpApi,adl_rt::AdlAnnotations)]
 pub struct ApiRequests {
   /**
    * AWS default compatible health check
    */
   #[serde(default="ApiRequests::def_healthy")]
+  #[adl_annotation(name="common.http.HttpPath", value="\"/\"")]
   pub healthy: HttpReq<(), ()>,
-
-  /**
-   * Login a user
-   * The response will set an httpOnly cookie containing the refresh token
-   */
-  #[serde(default="ApiRequests::def_login")]
-  pub login: HttpReq<LoginReq, LoginResp>,
-
-  /**
-   * Get a refreshed access token
-   * If the refresh token is not provided in the request body, then it will
-   * be read from the refrestToken cookie in the request.
-   */
-  #[serde(default="ApiRequests::def_refresh")]
-  pub refresh: HttpReq<RefreshReq, RefreshResp>,
-
-  /**
-   * Clear the `refreshToken` cookie.
-   */
-  #[serde(default="ApiRequests::def_logout")]
-  pub logout: HttpReq<Unit, Unit>,
 
   /**
    * Post a message to the noticeboard
@@ -61,79 +41,132 @@ pub struct ApiRequests {
   #[serde(default="ApiRequests::def_who_am_i")]
   pub who_am_i: HttpReq<(), UserWithId>,
 
-  /**
-   * Create a new user
-   */
-  #[serde(default="ApiRequests::def_create_user")]
-  pub create_user: HttpReq<UserDetails, AppUserId>,
-
-  /**
-   * Update a user
-   */
-  #[serde(default="ApiRequests::def_update_user")]
-  pub update_user: HttpReq<WithId<AppUserId, UserDetails>, Unit>,
-
-  /**
-   * Query users
-   */
-  #[serde(default="ApiRequests::def_query_users")]
-  pub query_users: HttpReq<QueryUsersReq, Paginated<UserWithId>>,
+  #[serde(default="ApiRequests::def_admin")]
+  pub admin: AdminApiRequests,
 }
 
 impl ApiRequests {
   pub fn new() -> ApiRequests {
     ApiRequests {
       healthy: ApiRequests::def_healthy(),
-      login: ApiRequests::def_login(),
-      refresh: ApiRequests::def_refresh(),
-      logout: ApiRequests::def_logout(),
       new_message: ApiRequests::def_new_message(),
       recent_messages: ApiRequests::def_recent_messages(),
       who_am_i: ApiRequests::def_who_am_i(),
-      create_user: ApiRequests::def_create_user(),
-      update_user: ApiRequests::def_update_user(),
-      query_users: ApiRequests::def_query_users(),
+      admin: ApiRequests::def_admin(),
     }
   }
 
   pub fn def_healthy() -> HttpReq<(), ()> {
-    HttpReq::<(), ()>{method : HttpMethod::Get, path : "/".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
-  }
-
-  pub fn def_login() -> HttpReq<LoginReq, LoginResp> {
-    HttpReq::<LoginReq, LoginResp>{method : HttpMethod::Post, path : "/login".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
-  }
-
-  pub fn def_refresh() -> HttpReq<RefreshReq, RefreshResp> {
-    HttpReq::<RefreshReq, RefreshResp>{method : HttpMethod::Post, path : "/refresh".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
-  }
-
-  pub fn def_logout() -> HttpReq<Unit, Unit> {
-    HttpReq::<Unit, Unit>{method : HttpMethod::Post, path : "/logout".to_string(), security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpReq::<(), ()>{method : HttpMethod::Get, security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_new_message() -> HttpReq<NewMessageReq, MessageId> {
-    HttpReq::<NewMessageReq, MessageId>{method : HttpMethod::Post, path : "/messages/new".to_string(), security : HttpSecurity::Token, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpReq::<NewMessageReq, MessageId>{method : HttpMethod::Post, security : HttpSecurity::Token, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_recent_messages() -> HttpReq<RecentMessagesReq, Paginated<Message>> {
-    HttpReq::<RecentMessagesReq, Paginated<Message>>{method : HttpMethod::Get, path : "/messages/recent".to_string(), security : HttpSecurity::Token, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpReq::<RecentMessagesReq, Paginated<Message>>{method : HttpMethod::Get, security : HttpSecurity::Token, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_who_am_i() -> HttpReq<(), UserWithId> {
-    HttpReq::<(), UserWithId>{method : HttpMethod::Get, path : "/whoami".to_string(), security : HttpSecurity::Token, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpReq::<(), UserWithId>{method : HttpMethod::Get, security : HttpSecurity::Token, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+  }
+
+  pub fn def_admin() -> AdminApiRequests {
+    AdminApiRequests{create_user : HttpReq::<UserDetails, AppUserId>{method : HttpMethod::Post, security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}, update_user : HttpReq::<WithId<AppUserId, UserDetails>, Unit>{method : HttpMethod::Post, security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}, query_users : HttpReq::<QueryUsersReq, Paginated<UserWithId>>{method : HttpMethod::Get, security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}}
+  }
+}
+
+#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize,adl::HttpApi)]
+pub struct AdminApiRequests {
+  /**
+   * Create a new user
+   */
+  #[serde(default="AdminApiRequests::def_create_user")]
+  pub create_user: HttpReq<UserDetails, AppUserId>,
+
+  /**
+   * Update a user
+   */
+  #[serde(default="AdminApiRequests::def_update_user")]
+  pub update_user: HttpReq<WithId<AppUserId, UserDetails>, Unit>,
+
+  /**
+   * Query users
+   */
+  #[serde(default="AdminApiRequests::def_query_users")]
+  pub query_users: HttpReq<QueryUsersReq, Paginated<UserWithId>>,
+}
+
+impl AdminApiRequests {
+  pub fn new() -> AdminApiRequests {
+    AdminApiRequests {
+      create_user: AdminApiRequests::def_create_user(),
+      update_user: AdminApiRequests::def_update_user(),
+      query_users: AdminApiRequests::def_query_users(),
+    }
   }
 
   pub fn def_create_user() -> HttpReq<UserDetails, AppUserId> {
-    HttpReq::<UserDetails, AppUserId>{method : HttpMethod::Post, path : "/users/create".to_string(), security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpReq::<UserDetails, AppUserId>{method : HttpMethod::Post, security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_update_user() -> HttpReq<WithId<AppUserId, UserDetails>, Unit> {
-    HttpReq::<WithId<AppUserId, UserDetails>, Unit>{method : HttpMethod::Post, path : "/users/update".to_string(), security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpReq::<WithId<AppUserId, UserDetails>, Unit>{method : HttpMethod::Post, security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 
   pub fn def_query_users() -> HttpReq<QueryUsersReq, Paginated<UserWithId>> {
-    HttpReq::<QueryUsersReq, Paginated<UserWithId>>{method : HttpMethod::Get, path : "/users/query".to_string(), security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+    HttpReq::<QueryUsersReq, Paginated<UserWithId>>{method : HttpMethod::Get, security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+  }
+}
+
+/**
+ * Endpoints that read or write browser cookies, and so are wired up by hand
+ * rather than through the generated handler trait.
+ */
+#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize,adl::HttpApi)]
+pub struct WebRequests {
+  /**
+   * Login a user
+   * The response will set an httpOnly cookie containing the refresh token
+   */
+  #[serde(default="WebRequests::def_login")]
+  pub login: HttpReq<LoginReq, LoginResp>,
+
+  /**
+   * Get a refreshed access token
+   * If the refresh token is not provided in the request body, then it will
+   * be read from the refrestToken cookie in the request.
+   */
+  #[serde(default="WebRequests::def_refresh")]
+  pub refresh: HttpReq<RefreshReq, RefreshResp>,
+
+  /**
+   * Clear the `refreshToken` cookie.
+   */
+  #[serde(default="WebRequests::def_logout")]
+  pub logout: HttpReq<Unit, Unit>,
+}
+
+impl WebRequests {
+  pub fn new() -> WebRequests {
+    WebRequests {
+      login: WebRequests::def_login(),
+      refresh: WebRequests::def_refresh(),
+      logout: WebRequests::def_logout(),
+    }
+  }
+
+  pub fn def_login() -> HttpReq<LoginReq, LoginResp> {
+    HttpReq::<LoginReq, LoginResp>{method : HttpMethod::Post, security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+  }
+
+  pub fn def_refresh() -> HttpReq<RefreshReq, RefreshResp> {
+    HttpReq::<RefreshReq, RefreshResp>{method : HttpMethod::Post, security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+  }
+
+  pub fn def_logout() -> HttpReq<Unit, Unit> {
+    HttpReq::<Unit, Unit>{method : HttpMethod::Post, security : HttpSecurity::Public, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
   }
 }
 

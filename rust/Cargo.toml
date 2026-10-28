@@ -1,9 +1,17 @@
 [workspace]
-members = [ "server", "adl" ]
+members = [ "server", "adl", "adl/derive" ]
 resolver = "2"
 
 [workspace.dependencies]
 adl = { path = "adl" }
+adl-derive = { path = "adl/derive" }
+
+# The adlc runtime. Generated code uses it for the ADL custom types (Map,
+# Set, Maybe, Pair, Result, ByteVector), which adl/src/lib.rs re-exports as
+# the `rt` module that adlc's --runtime-module option names, and for the
+# AdlAnnotations derive that makes adlc's #[adl_annotation(..)] attributes
+# legal. Its source lives in the adlc repo.
+adl_rt = "0.1"
 
 base64 = "0.21.2"
 env_logger = "0.10.0"

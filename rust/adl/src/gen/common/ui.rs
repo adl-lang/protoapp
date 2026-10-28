@@ -1,6 +1,6 @@
 // @generated from adl module common.ui
 
-use crate::rt::custom::sys::types::pair::Pair;
+use adl_rt::custom::sys::types::pair::Pair;
 use serde::Deserialize;
 use serde::Serialize;
 

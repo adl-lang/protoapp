@@ -1,10 +1,11 @@
 import { HttpFetch } from "./http";
-import { ServiceBase } from "./service-base";
+import { endpoints, ServiceBase } from "./service-base";
 
 import * as API from "@protoapp/adl/protoapp/apis/ui";
 import { RESOLVER } from "@protoapp/adl/resolver";
 
-const api = API.makeApiRequests({});
+const api = endpoints(RESOLVER, API.texprApiRequests(), API.makeApiRequests({}));
+const web = endpoints(RESOLVER, API.texprWebRequests(), API.makeWebRequests({}));
 
 export class Service extends ServiceBase {
   constructor(http: HttpFetch, baseUrl: string) {
@@ -12,9 +13,9 @@ export class Service extends ServiceBase {
   }
 
   // public api
-  login = this.mkReqFn(api.login);
-  refresh = this.mkReqFn(api.refresh);
-  logout = this.mkReqFn(api.logout);
+  login = this.mkReqFn(web.login);
+  refresh = this.mkReqFn(web.refresh);
+  logout = this.mkReqFn(web.logout);
 
   // token protected api
   whoAmI = this.mkAuthReqFn(api.who_am_i);

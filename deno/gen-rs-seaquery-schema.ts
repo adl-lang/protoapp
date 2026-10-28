@@ -39,7 +39,7 @@ export async function genRustSeaQuerySchema(
   writer.write("\n");
   writer.write("use crate::custom::common::db::DbKey;\n");
   writer.write("use crate::gen as adlgen;\n");
-  writer.write("use crate::rt as adlrt;\n");
+  writer.write("use adl_rt as adlrt;\n");
   writer.write("\n");
 
   const declsToDerive: { [key: string]: DeclToDerive } = {};

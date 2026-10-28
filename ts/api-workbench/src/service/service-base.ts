@@ -1,7 +1,8 @@
 import { HttpFetch, HttpRequest } from "./http";
 import * as ADL from "@adllang/adl-runtime";
-import { HttpReq } from "@protoapp/adl/common/http";
-import { createJsonBinding, Json, JsonBinding } from "@adllang/adl-runtime";
+import { HttpReq, snHttpReq, texprHttpPath } from "@protoapp/adl/common/http";
+import * as AST from "@protoapp/adl/sys/adlast";
+import { createJsonBinding, Json, JsonBinding, scopedNamesEqual } from "@adllang/adl-runtime";
 
 export class ServiceBase {
   constructor(
@@ -10,28 +11,32 @@ export class ServiceBase {
     private readonly resolver: ADL.DeclResolver,
   ) {}
 
-  mkReqFn<I, O>(rtype: HttpReq<I, O>): ReqFn<I, O> {
-    const bb = createBiBinding<I, O>(this.resolver, rtype);
-    return (req: I) => {
+  // An endpoint is passed in as a value from `endpoints()` below, rather than
+  // named by its api struct and field, because an HttpReq on its own carries
+  // neither its path nor any way to find it.
+
+  mkReqFn<I, O>(endpoint: Endpoint<I, O>): ReqFn<I, O> {
+    const bb = createBiBinding(this.resolver, endpoint.req);
+    return (req) => {
       const jsonArgs = bb.reqJB.toJson(req);
-      if (rtype.method === "get") {
+      if (endpoint.req.method === "get") {
         const queryString = encodeQueryString(jsonArgs);
-        return this.requestAdl("get", rtype.path, queryString, undefined, bb.respJB, undefined);
+        return this.requestAdl("get", endpoint.path, queryString, undefined, bb.respJB, undefined);
       } else {
-        return this.requestAdl("post", rtype.path, undefined, jsonArgs, bb.respJB, undefined);
+        return this.requestAdl("post", endpoint.path, undefined, jsonArgs, bb.respJB, undefined);
       }
     };
   }
 
-  mkAuthReqFn<I, O>(rtype: HttpReq<I, O>): AuthReqFn<I, O> {
-    const bb = createBiBinding<I, O>(this.resolver, rtype);
-    return (authToken: string, req: I) => {
+  mkAuthReqFn<I, O>(endpoint: Endpoint<I, O>): AuthReqFn<I, O> {
+    const bb = createBiBinding(this.resolver, endpoint.req);
+    return (authToken: string, req) => {
       const jsonArgs = bb.reqJB.toJson(req);
-      if (rtype.method === "get") {
+      if (endpoint.req.method === "get") {
         const queryString = encodeQueryString(jsonArgs);
-        return this.requestAdl("get", rtype.path, queryString, undefined, bb.respJB, authToken);
+        return this.requestAdl("get", endpoint.path, queryString, undefined, bb.respJB, authToken);
       } else {
-        return this.requestAdl("post", rtype.path, undefined, jsonArgs, bb.respJB, authToken);
+        return this.requestAdl("post", endpoint.path, undefined, jsonArgs, bb.respJB, authToken);
       }
     };
   }
@@ -87,6 +92,90 @@ export function encodeQueryString(reqJson: Json) {
 
 export type ReqFn<I, O> = (req: I) => Promise<O>;
 export type AuthReqFn<I, O> = (authToken: string, req: I) => Promise<O>;
+
+/** An endpoint of an api struct: where it is mounted, and how to call it. */
+export interface Endpoint<I, O> {
+  path: string;
+  req: HttpReq<I, O>;
+}
+
+/**
+ * The endpoints of an api struct, keyed by their ADL field names.
+ *
+ * A field holding a nested api becomes a nested `Endpoints`, so an
+ * `AdminApiRequests` at field `admin` is reached as `api.admin.create_user`.
+ */
+export type Endpoints<A> = {
+  [K in keyof A]: A[K] extends HttpReq<unknown, unknown> ? Endpoint<ReqOf<A[K]>, RespOf<A[K]>> : Endpoints<A[K]>;
+};
+
+/**
+ * Pair every endpoint of an api struct with the path it is mounted at.
+ *
+ * `api` supplies each endpoint's method and security, which are runtime
+ * values; `texpr` supplies its declaration, which is where the path comes
+ * from, so both are needed.
+ *
+ * A field that is not an `HttpReq` is taken to be a nested api, exactly as
+ * the rust `HttpApi` derive takes it, and its endpoints are mounted under
+ * that field's own path. The two must agree, or requests miss the server's
+ * routes.
+ */
+export function endpoints<A>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<A>, api: A): Endpoints<A> {
+  return endpointsAt(resolver, texpr, api, "");
+}
+
+function endpointsAt<A>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<A>, api: A, prefix: string): Endpoints<A> {
+  if (texpr.value.typeRef.kind !== "reference" || texpr.value.parameters.length !== 0) {
+    throw new Error("an api must be a monomorphic declaration");
+  }
+  const decl = resolver(texpr.value.typeRef.value);
+  if (decl.decl.type_.kind !== "struct_") {
+    throw new Error(`an api must be a struct, but ${decl.moduleName}.${decl.decl.name} is not`);
+  }
+  const fields = api as Record<string, unknown>;
+  const result: Record<string, unknown> = {};
+  for (const field of decl.decl.type_.value.fields) {
+    const path = prefix + endpointPath(resolver, field);
+    if (field.typeExpr.typeRef.kind === "reference" && scopedNamesEqual(field.typeExpr.typeRef.value, snHttpReq)) {
+      result[field.name] = { path, req: fields[field.name] as HttpReq<unknown, unknown> };
+    } else {
+      result[field.name] = endpointsAt(resolver, ADL.makeATypeExpr<unknown>(field.typeExpr), fields[field.name], path);
+    }
+  }
+  // This loop mirrors the mapped type exactly, taking the same branch on the
+  // same condition, but the compiler cannot see that the two agree.
+  return result as Endpoints<A>;
+}
+
+/**
+ * The path of a field of an api struct, relative to where that struct is
+ * mounted: its `@HttpPath` annotation if it carries one, and otherwise "/"
+ * followed by the field name. For a nested api this is the prefix its own
+ * endpoints hang off.
+ *
+ * HttpReq carries no path, so each backend derives one from the declaration,
+ * and they must all derive it identically or requests miss the server's
+ * routes. The rust server reads the same annotation at compile time, out of
+ * the `#[adl_annotation(...)]` attributes adlc emits beside the generated
+ * field; see rust/adl/derive.
+ */
+export function endpointPath(resolver: ADL.DeclResolver, field: AST.Field): string {
+  const path = ADL.getAnnotation(createJsonBinding(resolver, texprHttpPath()), field.annotations);
+  if (path === undefined) {
+    return "/" + field.name;
+  }
+  if (!path.startsWith("/")) {
+    throw new Error(`the HttpPath on ${field.name} is used verbatim, so it must start with "/", but is "${path}"`);
+  }
+  return path;
+}
+
+/** The request type of an `HttpReq` valued field. */
+type ReqOf<T> = T extends HttpReq<infer I, unknown> ? I : never;
+
+/** The response type of an `HttpReq` valued field. */
+type RespOf<T> = T extends HttpReq<unknown, infer O> ? O : never;
 
 interface BiTypeExpr<I, O> {
   reqType: ADL.ATypeExpr<I>;

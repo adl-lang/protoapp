@@ -10,3 +10,8 @@ catalog:
   vite: ^6.2.0
   "@vitejs/plugin-react": ^4.3.4
 
+# Dependency lifecycle scripts are blocked by default from pnpm 10. esbuild's
+# postinstall resolves its platform binary; without this pnpm warns on every
+# install. Equivalent to running `pnpm approve-builds`.
+onlyBuiltDependencies:
+  - esbuild

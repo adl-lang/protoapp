@@ -9,7 +9,7 @@ import { Modal } from "@/components/forms/mui/modal";
 import { VEditor } from "@/components/forms/mui/veditor";
 import { createUiFactory } from "@/components/forms/factory";
 import { AppState, AuthState, useAppState } from "@/hooks/use-app-state";
-import { AdlRequestError, encodeQueryString, ServiceBase } from "@/service/service-base";
+import { AdlRequestError, encodeQueryString, endpointPath, ServiceBase } from "@/service/service-base";
 import * as ADL from "@adllang/adl-runtime";
 import { Json, JsonBinding, createJsonBinding, scopedNamesEqual } from "@adllang/adl-runtime";
 import { Box, Button, Card, CircularProgress, Container, Divider, IconButton, Typography } from "@mui/material";
@@ -54,7 +54,10 @@ export function ApiWorkbench() {
   const jwt_decoded = authState.kind === "auth" ? authState.auth.jwt_decoded : undefined;
 
   const endpoints = useMemo(() => {
-    const allEndpoints = getEndpoints(RESOLVER, API.texprApiRequests());
+    const allEndpoints = [
+      ...getEndpoints(RESOLVER, API.texprApiRequests()),
+      ...getEndpoints(RESOLVER, API.texprWebRequests()),
+    ];
 
     // only show endpoints accessible for the current authstate
     return allEndpoints.filter(
@@ -190,7 +193,9 @@ function ModalChooseEndpoint(props: { endpoints: Endpoint[]; choose: (e: Endpoin
         <Divider sx={{ marginTop: "10px", marginBottom: "10px" }} />
         {props.endpoints.map((e) => (
           <Box key={e.name} sx={{ marginTop: "20px", marginBottom: "20px" }}>
-            <Button onClick={() => props.choose(e)}>{e.name}</Button>
+            <Button onClick={() => props.choose(e)} sx={{ textTransform: "none" }}>
+              {e.path}
+            </Button>
             <Typography>{e.docString}</Typography>
           </Box>
         ))}
@@ -216,7 +221,7 @@ function ModalCreateRequest<I, O>(props: {
   return (
     <Modal onClickBackground={() => props.cancel()}>
       <div>
-        <div>{props.endpoint.name}</div>
+        <div>{props.endpoint.path}</div>
         <Divider sx={{ marginTop: "10px", marginBottom: "10px" }} />
         {endpointHasReqContent(props.endpoint) && (
           <>
@@ -245,7 +250,7 @@ function ExecutingRequestView<I, O>(props: { value: ExecutingRequest<I, O> }) {
   return (
     <Card sx={{ margin: "10px" }}>
       <Box sx={{ margin: "10px" }}>
-        <b>{endpoint.name}</b>
+        <b>{endpoint.path}</b>
       </Box>
       <Divider />
       {endpointHasReqContent(props.value.endpoint) && (
@@ -285,7 +290,7 @@ function CompletedRequestView<I, O>(props: {
           alignItems: "center",
         }}
       >
-        <b>{endpoint.name}</b>
+        <b>{endpoint.path}</b>
         <Box>
           <IconButton size="small" onClick={() => props.reexecute(props.value)}>
             <RefreshIcon fontSize="small" />
@@ -393,7 +398,13 @@ type Endpoint = HttpEndpoint<unknown, unknown>;
 type Method = "get" | "post";
 
 interface HttpEndpoint<I, O> {
+  /**
+   * The ADL field name, qualified by any apis it is nested in. Used to
+   * recognise specific endpoints; the UI labels them by `path`.
+   */
   name: string;
+
+  /** The full http path, including the prefixes of any enclosing apis. */
   path: string;
   method: Method;
   security: HttpSecurity;
@@ -404,7 +415,12 @@ interface HttpEndpoint<I, O> {
   jsonBindingO: JsonBinding<O>;
 }
 
-function getEndpoints<API>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<API>): Endpoint[] {
+function getEndpoints<API>(
+  resolver: ADL.DeclResolver,
+  texpr: ADL.ATypeExpr<API>,
+  prefix: string = "",
+  qualifier: string = "",
+): Endpoint[] {
   if (texpr.value.typeRef.kind !== "reference" || texpr.value.parameters.length != 0) {
     throw new Error("API must be a monomorphic declaration");
   }
@@ -416,14 +432,24 @@ function getEndpoints<API>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<API>
 
   const endpoints: Endpoint[] = [];
   for (const f of struct.fields) {
+    const path = prefix + endpointPath(resolver, f);
     if (f.typeExpr.typeRef.kind === "reference" && scopedNamesEqual(f.typeExpr.typeRef.value, snHttpReq)) {
-      endpoints.push(getHttpEndpoint(resolver, f));
+      endpoints.push(getHttpEndpoint(resolver, f, path, qualifier + f.name));
+    } else {
+      // A field that is not an HttpReq is a nested api, mounted under this
+      // field's path. The rust HttpApi derive reads it the same way.
+      endpoints.push(...getEndpoints(resolver, ADL.makeATypeExpr(f.typeExpr), path, qualifier + f.name + "."));
     }
   }
   return endpoints;
 }
 
-function getHttpEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field): HttpEndpoint<I, O> {
+function getHttpEndpoint<I, O>(
+  resolver: ADL.DeclResolver,
+  field: AST.Field,
+  path: string,
+  name: string,
+): HttpEndpoint<I, O> {
   if (field.default.kind !== "just") {
     throw new Error("API endpoint must have a default value");
   }
@@ -440,8 +466,8 @@ function getHttpEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field): Ht
 
   const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
   return {
-    name: field.name,
-    path: httpReq.path,
+    name,
+    path,
     method: httpReq.method,
     docString,
     security: httpReq.security,

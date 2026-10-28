@@ -1,6 +1,7 @@
 module protoapp.apis.ui {
 
 import common.http.Unit;
+import common.http.HttpPath;
 import common.http.HttpReq;
 import common.time.Instant;
 import common.strings.EmailAddress;
@@ -14,17 +15,59 @@ import protoapp.db.MessageId;
 struct ApiRequests {
 
   /// AWS default compatible health check
+  @HttpPath "/"
   HttpReq<Void,Void> healthy = {
     "method": "get",
-    "path": "/",
     "security" : "public"
   };
+
+  /// Post a message to the noticeboard
+  HttpReq<NewMessageReq, MessageId> new_message = {
+    "security" : "token"
+  };
+
+  /// Get recent noticeboard messages
+  HttpReq<RecentMessagesReq, Paginated<Message> > recent_messages = {
+    "method": "get",
+    "security" : "token"
+  };
+
+  /// Gets info about the logged in user
+  // NOTE: Fails with 401 if the token is invalid or user does not exist
+  HttpReq<Void,UserWithId> who_am_i = {
+    "method": "get",
+    "security" : "token"
+  };
+
+  AdminApiRequests admin = {};
+};
+
+struct AdminApiRequests {
+  /// Create a new user
+  HttpReq<UserDetails, AppUserId> create_user = {
+    "security" : { "tokenWithRole": "admin" }
+  };
+
+  /// Update a user
+  HttpReq<WithId<AppUserId,UserDetails>, Unit> update_user = {
+    "security" : { "tokenWithRole": "admin" }
+  };
+
+  /// Query users
+  HttpReq<QueryUsersReq, Paginated<UserWithId>> query_users = {
+    "method": "get",
+    "security" : { "tokenWithRole": "admin" }
+  };
+};
+
+/// Endpoints that read or write browser cookies, and so are wired up by hand
+/// rather than through the generated handler trait.
+struct WebRequests {
 
   /// Login a user
   ///
   /// The response will set an httpOnly cookie containing the refresh token
   HttpReq<LoginReq, LoginResp> login = {
-    "path": "/login",
     "security" : "public"
   };
 
@@ -33,54 +76,12 @@ struct ApiRequests {
   /// If the refresh token is not provided in the request body, then it will
   /// be read from the refrestToken cookie in the request.
   HttpReq<RefreshReq, RefreshResp> refresh = {
-    "path": "/refresh",
     "security" : "public"
   };
 
   /// Clear the `refreshToken` cookie.
   HttpReq<Unit, Unit> logout = {
-    "path": "/logout",
     "security" : "public"
-  };
-
-  /// Post a message to the noticeboard
-  HttpReq<NewMessageReq, MessageId> new_message = {
-    "path": "/messages/new",
-    "security" : "token"
-  };
-
-  /// Get recent noticeboard messages
-  HttpReq<RecentMessagesReq, Paginated<Message> > recent_messages = {
-    "method": "get",
-    "path": "/messages/recent",
-    "security" : "token"
-  };
-
-  /// Gets info about the logged in user
-  // NOTE: Fails with 401 if the token is invalid or user does not exist
-  HttpReq<Void,UserWithId> who_am_i = {
-    "method": "get",
-    "path": "/whoami",
-    "security" : "token"
-  };
-
-  /// Create a new user
-  HttpReq<UserDetails, AppUserId> create_user = {
-    "path": "/users/create",
-    "security" : { "tokenWithRole": "admin" }
-  };
-
-  /// Update a user
-  HttpReq<WithId<AppUserId,UserDetails>, Unit> update_user = {
-    "path": "/users/update",
-    "security" : { "tokenWithRole": "admin" }
-  };
-
-  /// Query users
-  HttpReq<QueryUsersReq, Paginated<UserWithId>> query_users = {
-    "method": "get",
-    "path": "/users/query",
-    "security" : { "tokenWithRole": "admin" }
   };
 };
 

@@ -7,10 +7,18 @@ use sqlx::Executor;
 
 use adl::gen::common::http::{HttpMethod, HttpReq};
 use adl::gen::protoapp::apis;
-use adl::gen::protoapp::apis::ui::LoginReq;
+use adl::gen::protoapp::apis::ui::{ApiRequests, LoginReq};
 use adl::gen::protoapp::config::server::{DbConnectionConfig, ServerConfig};
 
 use crate::server::passwords::hash_password;
+
+/// The full path of an endpoint of the nested `AdminApiRequests` API.
+///
+/// Its own `PATH_` constants are relative to where it is mounted, which is the
+/// `admin` field of `ApiRequests`, so the two compose.
+pub fn admin_path(path: &str) -> String {
+    format!("{}{}", ApiRequests::PATH_ADMIN, path)
+}
 
 pub struct DbTestEnv {
     pub pool: sqlx::PgPool,
@@ -83,26 +91,35 @@ impl DbTestEnv {
     }
 }
 
+// The endpoint's path is passed alongside its HttpReq because HttpReq no
+// longer carries one: it is derived from the ADL field name, and reaches the
+// Rust side as the PATH_ constants that #[derive(HttpApi)] emits. Passing the
+// constant rather than a literal is what keeps these tests hitting the same
+// paths the server mounts.
+
 pub async fn server_public_req<I: Serialize, O: DeserializeOwned>(
+    path: &str,
     endpoint: HttpReq<I, O>,
     req: &I,
 ) -> O {
-    let resp = server_req(endpoint, None, req).await;
+    let resp = server_req(path, endpoint, None, req).await;
     assert_eq!(resp.status(), 200);
     resp.json().await.unwrap()
 }
 
 pub async fn server_auth_req<I: Serialize, O: DeserializeOwned>(
+    path: &str,
     endpoint: HttpReq<I, O>,
     jwt: &str,
     req: &I,
 ) -> O {
-    let resp = server_req(endpoint, Some(jwt), req).await;
+    let resp = server_req(path, endpoint, Some(jwt), req).await;
     assert_eq!(resp.status(), 200);
     resp.json().await.unwrap()
 }
 
 pub async fn server_req<I: Serialize, O: DeserializeOwned>(
+    path: &str,
     endpoint: HttpReq<I, O>,
     jwt: Option<&str>,
     req: &I,
@@ -120,7 +137,7 @@ pub async fn server_req<I: Serialize, O: DeserializeOwned>(
         HttpMethod::Get => client
             .get(format!(
                 "http://localhost:8181{}{}",
-                endpoint.path,
+                path,
                 encode_query_string(req)
             ))
             .headers(headers)
@@ -128,7 +145,7 @@ pub async fn server_req<I: Serialize, O: DeserializeOwned>(
             .await
             .unwrap(),
         HttpMethod::Post => client
-            .post(format!("http://localhost:8181{}", endpoint.path))
+            .post(format!("http://localhost:8181{}", path))
             .json(req)
             .headers(headers)
             .send()
@@ -190,7 +207,12 @@ pub async fn create_test_user(
 }
 
 pub async fn login_user(login_req: &LoginReq) -> String {
-    let resp = server_public_req(apis::ui::ApiRequests::def_login(), login_req).await;
+    let resp = server_public_req(
+        apis::ui::WebRequests::PATH_LOGIN,
+        apis::ui::WebRequests::def_login(),
+        login_req,
+    )
+    .await;
     match resp {
         apis::ui::LoginResp::Tokens(tokens) => tokens.access_jwt,
         apis::ui::LoginResp::InvalidCredentials => panic!("invalid credentials"),
