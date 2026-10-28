@@ -49,8 +49,9 @@ async function main() {
       adlModules: ["protoapp.apis.ui", "protoapp.db", "protoapp.config.server"],
       outputDir: outputDir,
       module: "gen",
-      runtimeModule: "rt",
-      includeRuntime: true,
+      // No runtimeModule: generated code then references the published adl_rt
+      // crate directly, rather than a module of this crate that we would have
+      // to populate with a copy of the runtime source.
       manifest: outputDir + "/.adl-manifest",
       generateTransitive: true,
     });

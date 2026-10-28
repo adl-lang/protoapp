@@ -16,6 +16,7 @@ name = "adl"
 version = "0.1.0"
 dependencies = [
  "adl-derive",
+ "adl_rt",
  "base64 0.21.7",
  "rand 0.8.5",
  "sea-query",
@@ -31,8 +32,26 @@ version = "0.1.0"
 dependencies = [
  "proc-macro2",
  "quote",
+ "serde_json",
  "syn 2.0.100",
 ]
+
+[[package]]
+name = "adl_rt"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b242b3acc72e3f5e4364c9ab22f4205071180f5c2df194e5f3b3210658778dbb"
+dependencies = [
+ "adl_rt_derive",
+ "base64 0.21.7",
+ "serde",
+]
+
+[[package]]
+name = "adl_rt_derive"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "46eef992418aedf48e759768aeaed4035452dc1aa028d3280211108a29d35e4f"
 
 [[package]]
 name = "adler2"

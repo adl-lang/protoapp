@@ -18,13 +18,3 @@ gen/protoapp/mod.rs
 gen/sys/annotations.rs
 gen/sys/mod.rs
 gen/sys/types.rs
-rt/custom/mod.rs
-rt/custom/sys/mod.rs
-rt/custom/sys/types/map.rs
-rt/custom/sys/types/mapentry.rs
-rt/custom/sys/types/maybe.rs
-rt/custom/sys/types/mod.rs
-rt/custom/sys/types/pair.rs
-rt/custom/sys/types/result.rs
-rt/custom/sys/types/set.rs
-rt/mod.rs

@@ -26,9 +26,10 @@ Files read: `adl/common/http.adl` and `rust/server/src/server/poem_adl_interop.r
   - `reqType: TypeToken<I>` and `respType: TypeToken<O>`, both defaulting to null
 
   An API is an ADL struct whose fields are `HttpReq<I,O>` values, with method and
-  security given as field defaults. The path is not among them: it is derived from the
-  field name by each backend, as described under "Path from the field name" below. The
-  TypeScript client and the API workbench also consume `security`.
+  security given as field defaults. The path is not among them: each backend derives it
+  from the field name, or from an `@HttpPath` annotation on the field, as described under
+  "Path from the field name" below. The TypeScript client and the API workbench also
+  consume `security`.
 - **Server framework:** poem, with sqlx and postgres.
 - **`poem_adl_interop.rs`:**
   - `DynRouteExt::adl_dyn_req(path, req: &HttpReq<I,O>, handler)` mounts the endpoint at
@@ -85,7 +86,8 @@ Files read: `adl/common/http.adl` and `rust/server/src/server/poem_adl_interop.r
 7. Smaller items:
    - Set an explicit request body size limit.
    - Move from `fn` pointer handlers to trait methods. This follows from item 1.
-   - Derive the path from the field name. **DONE** (see below).
+   - Derive the path from the field name, with an `@HttpPath` override. **DONE** (see
+     below).
 
 Items 1–5 can be done while staying on poem. Item 6 is the larger change.
 
@@ -161,50 +163,93 @@ backend:
   constant and passes it to `Mount::mount`, which gained a `path` parameter.
 - The TypeScript backend uses the ADL field name verbatim as the property name, so
   `ServiceBase` and the workbench both derive from it directly (`endpointPath`).
-  `mkReqFn`/`mkAuthReqFn` now take the api struct and a field name rather than an
-  `HttpReq` value, because a value detached from its field cannot know its own path.
+  `mkReqFn`/`mkAuthReqFn` take an `Endpoint` — a path paired with an `HttpReq` — from
+  `endpoints(resolver, texpr, value)`, rather than an `HttpReq` value, because a value
+  detached from its declaration cannot know its own path.
 
-`api::tests::paths_come_from_adl_field_names` pins the rule on the Rust side; the six
-server tests exercise it over real HTTP.
+`http_api::tests::paths_come_from_adl_field_names` pins the rule on the Rust side; the
+six server tests exercise it over real HTTP.
 
 Consequences, accepted deliberately:
 
-- **Paths moved.** `/whoami` is now `/who_am_i`, `/users/create` is `/create_user`, and
-  the health check is at `/healthy` rather than `/`. This was acceptable because protoapp
-  has no deployed external clients.
+- **Paths moved.** `/whoami` is now `/who_am_i` and `/users/create` is `/create_user`.
+  This was acceptable because protoapp has no deployed external clients. The health check
+  briefly moved to `/healthy` and is back at `/`, now by annotation.
 - **Renaming an ADL field is now a wire-breaking change.** On the Rust side a rename at
   least breaks the build wherever a `PATH_` constant is named; TypeScript just follows the
   new name silently.
-- **No override exists yet.** The intended one is an ADL annotation,
-  `newtype HttpPath = String;`, applied as `@HttpPath "/"` to a field. TypeScript can
-  honour it today — field annotations reach the TS AST — but Rust cannot: the Rust backend
-  reads field annotations only for `RustStorageModel` and emits no AST, so the annotation
-  never reaches the derive. Honouring it on one side only would 404, so neither side does.
+### The @HttpPath override. DONE, but on an unreleased adlc
 
-#### Getting the override: the adlc change
+`common.http.HttpPath` is a `String` annotation on an `HttpReq` field that replaces the
+derived path outright:
 
-A meta annotation on the annotation declaration tells the Rust backend to carry it
-through. This is reachable because `Annotations t = Map ScopedName (t, JSON.Value)`
-(`lib0/lib/ADL/Compiler/AST.hs:19`) and `resolveAnnotations` stores
-`RT_Named (sn, decl)` (`Processing.hs:495-500`), so every use site can reach the
-annotation's own declaration. Nothing reads that component today.
+```adl
+  /// AWS default compatible health check
+  @HttpPath "/"
+  HttpReq<Void,Void> healthy = { "method": "get", "security": "public" };
+```
 
-1. `adl/stdlib/adlc/config/rust.adl` — `type RustEmitAnnotation = Void;` (presence-only)
-2. regenerate `ADL/Adlc/Config/Rust.hs` via `adlc-bootstrap`
-3. `Rust/Internal.hs` — `snRustEmitAnnotation` plus a predicate over the resolved
-   annotation that checks the declaring decl
-4. `Rust.hs` — emit a per-struct inherent `field_annotations()` returning
-   `&'static [(field, annotation, json)]`, beside the two existing hardcoded field
-   attribute sites at `:164` and `:303`
-5. `adl/common/http.adl-rs` — `annotation HttpPath RustEmitAnnotation;`, keeping the
-   Rust-specific opt-in out of the backend-neutral module
-6. goldens
+The value is used verbatim, so it carries its own leading slash, and both backends reject
+one that does not. It is the only way to reach a path an ADL field name cannot spell — the
+root path, a kebab-cased one, or one with more than one segment — and the way to pin a
+path that something outside the application dictates. The health check is both: AWS health
+checks default to the empty path, so that is where it sits again.
 
-An inherent function rather than a `#[adl_annotation(...)]` attribute, because an
-attribute is only legal where a derive registers it as a helper, which couples adlc's
-output to a derive being present; a function is always legal Rust and readable by
-anything. The derive then prefers the override over the field name, and the `PATH_`
-constants start carrying it with no change at the call sites.
+TypeScript needed nothing from adlc: field annotations already reach the TS AST, so
+`endpointPath` reads it with `ADL.getAnnotation` off the resolved declaration.
+
+Rust needed a new adlc feature, because the Rust backend emits no AST and read field
+annotations only for `RustStorageModel`. `adlc.config.rust.RustEmitAnnotation` is a meta
+annotation, applied to an annotation's *declaration*, that carries every use of it
+through into the generated code:
+
+```adl
+// adl/common/http.adl-rs
+annotation HttpPath RustEmitAnnotation null;
+```
+
+```rust
+#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize,adl::HttpApi,adl_rt::AdlAnnotations)]
+pub struct ApiRequests {
+  #[serde(default="ApiRequests::def_healthy")]
+  #[adl_annotation(name="common.http.HttpPath", value="\"/\"")]
+  pub healthy: HttpReq<(), ()>,
+  // ...
+}
+```
+
+The value is the annotation's ADL json encoding, passed through uninterpreted, so the
+mechanism serves an annotation of any type rather than this one. This works because
+`Annotations t = Map ScopedName (t, JSON.Value)` and `resolveAnnotations` stores
+`RT_Named (sn, decl)`, so a use site can reach its own annotation's declaration and test
+it for the meta annotation.
+
+Rust only accepts an attribute that a derive on the same item has registered as a helper,
+so adlc adds `adl_rt::AdlAnnotations` to the derive list wherever it emits one. That
+derive expands to nothing; it exists to make the attribute legal and inert. Helper
+attributes are visible to every macro on the item, not only the one that declared them,
+which is how `#[derive(HttpApi)]` gets to read it.
+
+An attribute rather than the inherent `field_annotations()` function first sketched here:
+the `PATH_` constants have to be known when the derive expands, and a function body is
+not.
+
+`adl_rt` 0.1 is an ordinary crates.io dependency of the `adl` crate, and generated code
+names it directly. That is adlc 1.4.1's default: `genadl` passes no `--runtime-module`,
+so paths come out as `adl_rt::custom::sys::types::...` rather than `crate::<module>::...`.
+It replaces the copy of the runtime source that `--include-rt` used to drop into
+`adl/src/rt/`, so there is one copy of `Map`, `Set` and the rest in the build rather than
+two, and nothing to regenerate when the runtime changes.
+
+Two hand written files name the runtime too, and so refer to the crate as well:
+`adl/src/db/conversions.rs`, and `deno/gen-rs-seaquery-schema.ts`, which writes the
+import line of the schema it generates.
+
+`RustEmitAnnotation` arrived in adlc 1.4.1, which is what `.prototools` and
+`nix/adlc.nix` pin. On 1.4.0 or earlier, `deno task genadl` fails outright with
+`undefined type RustEmitAnnotation`; the TypeScript half is generated first and is
+unaffected, since annotations reach the TS AST without the compiler knowing anything
+about them, and only the Rust pass stops.
 
 ### Mixing example (axum host)
 

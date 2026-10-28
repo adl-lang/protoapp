@@ -6,6 +6,7 @@ description = "ADL generated code for the protoapp application"
 
 [dependencies]
 adl-derive = { workspace = true }
+adl_rt = { workspace = true }
 base64 = { workspace = true }
 rand = { workspace = true }
 serde = { workspace = true }

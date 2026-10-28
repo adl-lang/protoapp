@@ -1,8 +1,9 @@
 import { HttpFetch, HttpRequest } from "./http";
 
 import * as ADL from "@adllang/adl-runtime";
-import { HttpReq } from "@protoapp/adl/common/http";
-import { createJsonBinding, Json, JsonBinding } from "@adllang/adl-runtime";
+import { HttpReq, snHttpReq, texprHttpPath } from "@protoapp/adl/common/http";
+import * as AST from "@protoapp/adl/sys/adlast";
+import { createJsonBinding, Json, JsonBinding, scopedNamesEqual } from "@adllang/adl-runtime";
 
 export class ServiceBase {
   constructor(
@@ -11,36 +12,32 @@ export class ServiceBase {
     private readonly resolver: ADL.DeclResolver,
   ) {}
 
-  // The endpoint is named by its api struct and field, rather than passed as
-  // an HttpReq value, because HttpReq no longer carries a path: the path comes
-  // from the field name, which a value on its own has no way to know.
+  // An endpoint is passed in as a value from `endpoints()` below, rather than
+  // named by its api struct and field, because an HttpReq on its own carries
+  // neither its path nor any way to find it.
 
-  mkReqFn<A, K extends EndpointKey<A> & keyof A & string>(api: A, name: K): ReqFn<ReqOf<A[K]>, RespOf<A[K]>> {
-    const rtype = endpointOf(api, name);
-    const path = endpointPath(name);
-    const bb = createBiBinding(this.resolver, rtype);
+  mkReqFn<I, O>(endpoint: Endpoint<I, O>): ReqFn<I, O> {
+    const bb = createBiBinding(this.resolver, endpoint.req);
     return (req) => {
       const jsonArgs = bb.reqJB.toJson(req);
-      if (rtype.method === "get") {
+      if (endpoint.req.method === "get") {
         const queryString = encodeQueryString(jsonArgs);
-        return this.requestAdl("get", path, queryString, undefined, bb.respJB, undefined);
+        return this.requestAdl("get", endpoint.path, queryString, undefined, bb.respJB, undefined);
       } else {
-        return this.requestAdl("post", path, undefined, jsonArgs, bb.respJB, undefined);
+        return this.requestAdl("post", endpoint.path, undefined, jsonArgs, bb.respJB, undefined);
       }
     };
   }
 
-  mkAuthReqFn<A, K extends EndpointKey<A> & keyof A & string>(api: A, name: K): AuthReqFn<ReqOf<A[K]>, RespOf<A[K]>> {
-    const rtype = endpointOf(api, name);
-    const path = endpointPath(name);
-    const bb = createBiBinding(this.resolver, rtype);
+  mkAuthReqFn<I, O>(endpoint: Endpoint<I, O>): AuthReqFn<I, O> {
+    const bb = createBiBinding(this.resolver, endpoint.req);
     return (authToken: string, req) => {
       const jsonArgs = bb.reqJB.toJson(req);
-      if (rtype.method === "get") {
+      if (endpoint.req.method === "get") {
         const queryString = encodeQueryString(jsonArgs);
-        return this.requestAdl("get", path, queryString, undefined, bb.respJB, authToken);
+        return this.requestAdl("get", endpoint.path, queryString, undefined, bb.respJB, authToken);
       } else {
-        return this.requestAdl("post", path, undefined, jsonArgs, bb.respJB, authToken);
+        return this.requestAdl("post", endpoint.path, undefined, jsonArgs, bb.respJB, authToken);
       }
     };
   }
@@ -97,16 +94,66 @@ export function encodeQueryString(reqJson: Json) {
 export type ReqFn<I, O> = (req: I) => Promise<O>;
 export type AuthReqFn<I, O> = (authToken: string, req: I) => Promise<O>;
 
+/** An endpoint of an api struct: where it is mounted, and how to call it. */
+export interface Endpoint<I, O> {
+  path: string;
+  req: HttpReq<I, O>;
+}
+
+/** The endpoints of an api struct, keyed by their ADL field names. */
+export type Endpoints<A> = {
+  [K in EndpointKey<A> & keyof A]: Endpoint<ReqOf<A[K]>, RespOf<A[K]>>;
+};
+
 /**
- * The HTTP path of an endpoint, derived from its ADL field name.
+ * Pair every endpoint of an api struct with the path it is mounted at.
  *
- * HttpReq carries no path: each backend derives one from the field the
- * endpoint is declared under, and they must all derive it identically or
- * requests miss the server's routes. The TypeScript backend uses the ADL field
- * name verbatim as the property name, so the key here is already that name.
+ * `api` supplies each endpoint's method and security, which are runtime
+ * values; `texpr` supplies its declaration, which is where the path comes
+ * from, so both are needed.
  */
-export function endpointPath(name: string): string {
-  return "/" + name;
+export function endpoints<A>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<A>, api: A): Endpoints<A> {
+  if (texpr.value.typeRef.kind !== "reference" || texpr.value.parameters.length !== 0) {
+    throw new Error("an api must be a monomorphic declaration");
+  }
+  const decl = resolver(texpr.value.typeRef.value);
+  if (decl.decl.type_.kind !== "struct_") {
+    throw new Error(`an api must be a struct, but ${decl.moduleName}.${decl.decl.name} is not`);
+  }
+  const fields = api as Record<string, unknown>;
+  const result: Record<string, Endpoint<unknown, unknown>> = {};
+  for (const field of decl.decl.type_.value.fields) {
+    if (field.typeExpr.typeRef.kind === "reference" && scopedNamesEqual(field.typeExpr.typeRef.value, snHttpReq)) {
+      result[field.name] = {
+        path: endpointPath(resolver, field),
+        req: fields[field.name] as HttpReq<unknown, unknown>,
+      };
+    }
+  }
+  // This loop visits exactly the fields EndpointKey selects, both being the
+  // HttpReq ones, but the compiler cannot see that the two agree.
+  return result as Endpoints<A>;
+}
+
+/**
+ * The HTTP path of an endpoint: its `@HttpPath` annotation if the ADL field
+ * carries one, and otherwise "/" followed by the field name.
+ *
+ * HttpReq carries no path, so each backend derives one from the declaration,
+ * and they must all derive it identically or requests miss the server's
+ * routes. The rust server reads the same annotation at compile time, out of
+ * the `#[adl_annotation(...)]` attributes adlc emits beside the generated
+ * field; see rust/adl/derive.
+ */
+export function endpointPath(resolver: ADL.DeclResolver, field: AST.Field): string {
+  const path = ADL.getAnnotation(createJsonBinding(resolver, texprHttpPath()), field.annotations);
+  if (path === undefined) {
+    return "/" + field.name;
+  }
+  if (!path.startsWith("/")) {
+    throw new Error(`the HttpPath on ${field.name} is used verbatim, so it must start with "/", but is "${path}"`);
+  }
+  return path;
 }
 
 /** The request type of an `HttpReq` valued field. */
@@ -119,17 +166,6 @@ type RespOf<T> = T extends HttpReq<unknown, infer O> ? O : never;
 type EndpointKey<A> = {
   [K in keyof A]: A[K] extends HttpReq<unknown, unknown> ? K : never;
 }[keyof A];
-
-/**
- * The endpoint at `api[name]`.
- *
- * `EndpointKey` has already established that the field is an `HttpReq`, but
- * not in a form the compiler can relate back to `ReqOf`/`RespOf`, hence the
- * assertion.
- */
-function endpointOf<A, K extends EndpointKey<A> & keyof A>(api: A, name: K): HttpReq<ReqOf<A[K]>, RespOf<A[K]>> {
-  return api[name] as HttpReq<ReqOf<A[K]>, RespOf<A[K]>>;
-}
 
 interface BiTypeExpr<I, O> {
   reqType: ADL.ATypeExpr<I>;

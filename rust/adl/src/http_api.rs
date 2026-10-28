@@ -74,12 +74,20 @@ mod tests {
     /// here is a change to the wire protocol and should fail loudly.
     #[test]
     fn paths_come_from_adl_field_names() {
-        assert_eq!(ApiRequests::PATH_HEALTHY, "/healthy");
         assert_eq!(ApiRequests::PATH_NEW_MESSAGE, "/new_message");
         assert_eq!(ApiRequests::PATH_WHO_AM_I, "/who_am_i");
         assert_eq!(ApiRequests::PATH_QUERY_USERS, "/query_users");
         assert_eq!(WebRequests::PATH_LOGIN, "/login");
         assert_eq!(WebRequests::PATH_REFRESH, "/refresh");
         assert_eq!(WebRequests::PATH_LOGOUT, "/logout");
+    }
+
+    /// And that an `@HttpPath` annotation in the ADL overrides it. The
+    /// annotation reaches the derive as an `#[adl_annotation(..)]` attribute
+    /// on the generated field, so this covers the whole chain from the ADL
+    /// through adlc to the expansion.
+    #[test]
+    fn http_path_annotation_overrides_the_field_name() {
+        assert_eq!(ApiRequests::PATH_HEALTHY, "/");
     }
 }

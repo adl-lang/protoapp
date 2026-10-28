@@ -444,7 +444,7 @@ function getHttpEndpoint<I, O>(resolver: ADL.DeclResolver, field: AST.Field): Ht
   const docString = ADL.getAnnotation(JB_DOC, field.annotations) || "";
   return {
     name: field.name,
-    path: endpointPath(field.name),
+    path: endpointPath(resolver, field),
     method: httpReq.method,
     docString,
     security: httpReq.security,

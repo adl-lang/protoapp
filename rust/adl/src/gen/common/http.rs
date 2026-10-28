@@ -6,9 +6,10 @@ use serde::Serialize;
 /**
  * Request types
  * An API is a struct whose fields are HttpReq values. The HTTP path of each
- * endpoint is derived from its field name, as "/" ++ the field name, and must
- * be derived identically by every backend that consumes an API: the rust
- * server, the typescript client and the api workbench.
+ * endpoint is derived from its field name, as "/" ++ the field name, unless
+ * the field carries an HttpPath annotation. Every backend that consumes an
+ * API must agree on that path: the rust server, the typescript client and the
+ * api workbench.
  */
 #[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize)]
 pub struct HttpReq<I, O> {
@@ -69,6 +70,19 @@ pub enum HttpSecurity {
   #[serde(rename="tokenWithRole")]
   TokenWithRole(String),
 }
+
+/**
+ * Overrides the HTTP path of an endpoint, which otherwise derives from the
+ * field name as "/" ++ the field name.
+ * Annotate the HttpReq field, not its type:
+ *     @HttpPath "/"
+ *     HttpReq<Void,Void> healthy = {};
+ * The value is used verbatim, so it carries its own leading slash. This is
+ * the only way to reach a path an ADL field name cannot spell, such as the
+ * root path, a kebab cased one, or one with more than one segment, and the
+ * way to pin a path that something outside the application dictates.
+ */
+pub type HttpPath = String;
 
 /**
  * Empty Struct (Used mostly for Void RPC responses)

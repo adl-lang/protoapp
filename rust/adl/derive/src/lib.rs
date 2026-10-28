@@ -24,6 +24,15 @@
 //! identifier otherwise — never the identifier alone, which is snake cased and
 //! keyword escaped and so would disagree with the other backends.
 //!
+//! A field annotated `@HttpPath` in the ADL overrides that. adlc carries the
+//! annotation through as an `#[adl_annotation(...)]` attribute, which this
+//! derive reads at expansion time:
+//!
+//! ```ignore
+//! #[adl_annotation(name="common.http.HttpPath", value="\"/\"")]
+//! pub healthy: HttpReq<(), ()>,
+//! ```
+//!
 //! Each path is also emitted as a `PATH_<FIELD>` associated constant, so that
 //! hand written wiring and tests refer to an endpoint symbolically rather than
 //! repeating a literal that nothing would check.
@@ -40,7 +49,8 @@ use syn::{
 struct Endpoint {
     /// Field identifier, which becomes the trait method name.
     name: Ident,
-    /// The endpoint's HTTP path, derived from the ADL field name.
+    /// The endpoint's HTTP path: the `@HttpPath` annotation if the field
+    /// carries one, and otherwise `"/"` and the ADL field name.
     path: String,
     /// Identifier of the `PATH_<FIELD>` constant holding [`Endpoint::path`].
     path_const: Ident,
@@ -248,8 +258,12 @@ fn collect_endpoints(input: &DeriveInput) -> syn::Result<Vec<Endpoint>> {
         };
 
         let path_const = format_ident!("PATH_{}", unraw(&name).to_uppercase());
+        let path = match http_path(field)? {
+            Some(path) => path,
+            None => format!("/{}", adl_field_name(field, &name)),
+        };
         endpoints.push(Endpoint {
-            path: format!("/{}", adl_field_name(field, &name)),
+            path,
             path_const,
             name,
             req,
@@ -263,6 +277,101 @@ fn collect_endpoints(input: &DeriveInput) -> syn::Result<Vec<Endpoint>> {
         });
     }
     Ok(endpoints)
+}
+
+/// Scoped name of the ADL annotation that overrides an endpoint's path.
+const HTTP_PATH: &str = "common.http.HttpPath";
+
+/// The `@HttpPath` override on a field, if it has one.
+///
+/// adlc emits each ADL annotation marked `RustEmitAnnotation` as
+/// `#[adl_annotation(name = "<scoped name>", value = "<json>")]`, where the
+/// value is the annotation's ADL json encoding. `HttpPath` is a `String`, so
+/// its encoding is a json string.
+///
+/// Everything here is an error rather than a fallback to the field name: a
+/// path that silently reverts to the default would leave the generated server
+/// mounted somewhere the clients are not looking, which is exactly the class
+/// of bug the generation is meant to rule out.
+fn http_path(field: &syn::Field) -> syn::Result<Option<String>> {
+    let mut found: Option<(String, Span)> = None;
+    for annotation in adl_annotations(&field.attrs)? {
+        if annotation.name != HTTP_PATH {
+            continue;
+        }
+        if found.is_some() {
+            return Err(syn::Error::new(
+                annotation.span,
+                format!("duplicate {HTTP_PATH} annotation"),
+            ));
+        }
+        let path: String = serde_json::from_str(&annotation.value).map_err(|e| {
+            syn::Error::new(
+                annotation.span,
+                format!("{HTTP_PATH} must be a string, but its value is not: {e}"),
+            )
+        })?;
+        if !path.starts_with('/') {
+            return Err(syn::Error::new(
+                annotation.span,
+                format!("{HTTP_PATH} is used verbatim and so must start with `/`, got {path:?}"),
+            ));
+        }
+        found = Some((path, annotation.span));
+    }
+    Ok(found.map(|(path, _)| path))
+}
+
+/// One `#[adl_annotation(...)]` attribute, as adlc emits it.
+struct AdlAnnotation {
+    /// The annotation's ADL scoped name, eg `common.http.HttpPath`.
+    name: String,
+    /// The annotation's value in ADL's json encoding, still unparsed: the
+    /// attribute is shared by annotations of every type, so only the reader
+    /// of a particular one knows what shape to expect.
+    value: String,
+    span: Span,
+}
+
+/// The `#[adl_annotation(...)]` attributes among `attrs`.
+///
+/// Parsed strictly. The attribute is machine written, so anything unexpected
+/// in one means a disagreement between this derive and the version of adlc
+/// that generated the code, which is worth reporting rather than ignoring.
+fn adl_annotations(attrs: &[syn::Attribute]) -> syn::Result<Vec<AdlAnnotation>> {
+    let mut annotations = Vec::new();
+    for attr in attrs.iter().filter(|a| a.path().is_ident("adl_annotation")) {
+        let mut name: Option<String> = None;
+        let mut value: Option<String> = None;
+        attr.parse_nested_meta(|meta| {
+            let slot = if meta.path.is_ident("name") {
+                &mut name
+            } else if meta.path.is_ident("value") {
+                &mut value
+            } else {
+                return Err(meta.error("expected `name` or `value`"));
+            };
+            let lit: syn::LitStr = meta.value()?.parse()?;
+            if slot.replace(lit.value()).is_some() {
+                return Err(meta.error("given twice"));
+            }
+            Ok(())
+        })?;
+        match (name, value) {
+            (Some(name), Some(value)) => annotations.push(AdlAnnotation {
+                name,
+                value,
+                span: attr.span(),
+            }),
+            _ => {
+                return Err(syn::Error::new(
+                    attr.span(),
+                    "adl_annotation requires both `name` and `value`",
+                ))
+            }
+        }
+    }
+    Ok(annotations)
 }
 
 /// The field's name as written in the ADL, which is what the path is built
@@ -327,10 +436,4 @@ fn http_req_args(ty: &Type) -> Option<(Type, Type)> {
         [req, resp] => Some((req.clone(), resp.clone())),
         _ => None,
     }
-}
-
-// Keeps `Span` imported for future span-targeted diagnostics.
-#[allow(dead_code)]
-fn _span_anchor() -> Span {
-    Span::call_site()
 }

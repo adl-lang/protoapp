@@ -1,0 +1,11 @@
+module common.http
+{
+
+import adlc.config.rust.*;
+
+// Carry uses of HttpPath through into the generated rust, as
+// #[adl_annotation(..)] attributes, so that the HttpApi derive can read them
+// at expansion time. See rust/adl/derive.
+annotation HttpPath RustEmitAnnotation null;
+
+};

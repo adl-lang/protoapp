@@ -14,12 +14,13 @@ use crate::gen::protoapp::db::MessageId;
 use serde::Deserialize;
 use serde::Serialize;
 
-#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize,adl::HttpApi)]
+#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize,adl::HttpApi,adl_rt::AdlAnnotations)]
 pub struct ApiRequests {
   /**
    * AWS default compatible health check
    */
   #[serde(default="ApiRequests::def_healthy")]
+  #[adl_annotation(name="common.http.HttpPath", value="\"/\"")]
   pub healthy: HttpReq<(), ()>,
 
   /**

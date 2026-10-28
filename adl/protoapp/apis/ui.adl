@@ -1,6 +1,7 @@
 module protoapp.apis.ui {
 
 import common.http.Unit;
+import common.http.HttpPath;
 import common.http.HttpReq;
 import common.time.Instant;
 import common.strings.EmailAddress;
@@ -14,6 +15,7 @@ import protoapp.db.MessageId;
 struct ApiRequests {
 
   /// AWS default compatible health check
+  @HttpPath "/"
   HttpReq<Void,Void> healthy = {
     "method": "get",
     "security" : "public"

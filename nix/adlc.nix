@@ -10,7 +10,7 @@
   makeWrapper,
   glibc,
   gmp,
-  version ? "1.4.0",
+  version ? "1.4.1",
 }:
 
 let
@@ -18,11 +18,11 @@ let
   dists = {
     "aarch64-darwin" = {
       file = "macos-arm64";
-      sha256 = "sha256-zsB+pqGlvR10E+420yQWZh4U91RC7+HBv2oZRjH39jg=";
+      sha256 = "sha256-8zmfFhEkkJK9ddszGJYOW9TUy6A00ejpzGAXoF0ct4M=";
     };
     "x86_64-linux" = {
       file = "linux-x64";
-      sha256 = "sha256-ZjyV/XmPQbE/DHmKUnmqgfoEZbTNUziwaxJQkn7XMe0=";
+      sha256 = "sha256-LPgCw5kM9h0bVO5Gn7oC/S2y6NsOIXBxco5dKdvLQJY=";
     };
   };
 

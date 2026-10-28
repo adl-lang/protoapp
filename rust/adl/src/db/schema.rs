@@ -6,7 +6,7 @@ use sea_query::{Alias, DynIden, IntoIden};
 
 use crate::custom::common::db::DbKey;
 use crate::gen as adlgen;
-use crate::rt as adlrt;
+use adl_rt as adlrt;
 
 pub struct AppUser {}
 
