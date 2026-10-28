@@ -16,9 +16,11 @@ Rust HTTP RPC services implemented from ADL API definitions, where:
 
 ## What protoapp does today (verified by reading the source)
 
-Files read: `adl/common/http.adl` and `rust/server/src/server/poem_adl_interop.rs`.
-**Not yet read:** `rust/server/src/server/routing.rs` and the generated
-`rust/server/src/adl/gen/protoapp/apis/ui.rs`. Read these before making changes.
+This describes the poem interop as it stands, with the items marked **DONE** below
+already applied. The relevant files are `adl/common/http.adl`,
+`rust/server/src/server/{poem_adl_interop,routing,handlers}.rs`, the host-agnostic
+`rust/adl/src/http_api.rs`, the derive in `rust/adl/derive/src/lib.rs`, and the generated
+`rust/adl/src/gen/protoapp/apis/ui.rs`.
 
 - **Endpoint type** (`common/http.adl`): `struct HttpReq<I,O>` with:
   - `method: HttpMethod`, a union of `get` and `post`, defaulting to `post`
@@ -48,10 +50,11 @@ Files read: `adl/common/http.adl` and `rust/server/src/server/poem_adl_interop.r
 
 ## Identified improvements (rough priority)
 
-1. **Compile-time handler completeness.** Generate a per-API handler trait and a
-   `register` function, so that adding an endpoint in ADL fails compilation until it is
-   implemented. This needs confirming against `routing.rs`, which presumably registers
-   endpoints by hand with `adl_req`.
+1. **Compile-time handler completeness. DONE.** `#[derive(HttpApi)]` generates a per-API
+   handler trait and the registration that mounts every endpoint, so adding an endpoint in
+   ADL fails compilation until it is implemented. `routing.rs` previously registered each
+   endpoint by hand; it now makes one `adl_api_at` call per API. See the macro section
+   below.
 2. **Typed state and JWT checker.** Hold `Arc<S>` and `Arc<dyn JwtSecurityCheck>` in the
    router instead of `req.data().expect()`.
 3. **Fix the security-check order. DONE** (commit `15e0fc0`). Any `Authorization` header
@@ -85,11 +88,12 @@ Files read: `adl/common/http.adl` and `rust/server/src/server/poem_adl_interop.r
    hyper (see below). This enables testing with `ServiceExt::oneshot`, with no socket.
 7. Smaller items:
    - Set an explicit request body size limit.
-   - Move from `fn` pointer handlers to trait methods. This follows from item 1.
+   - Move from `fn` pointer handlers to trait methods. **DONE** with item 1.
    - Derive the path from the field name, with an `@HttpPath` override. **DONE** (see
      below).
 
-Items 1–5 can be done while staying on poem. Item 6 is the larger change.
+Items 2, 4 and 5 remain, and can be done while staying on poem. Item 6 is the larger
+change.
 
 ## Target architecture
 
@@ -133,23 +137,32 @@ Items 1–5 can be done while staying on poem. Item 6 is the larger change.
     HTTP status codes.
   - Domain errors are ADL types inside `O`, returned with a 200 status.
 
-### Macro: `#[derive(AdlApi)]` on the generated API struct
+### Macro: `#[derive(HttpApi)]` on the generated API struct. DONE
 
-The ADL compiler stays a pure type generator. It emits the API struct with serde derives
-plus `#[derive(AdlApi)]`. The derive proc macro (`syn` and `quote`) does the following:
+The ADL compiler stays a pure type generator. It emits the API struct with serde derives,
+plus whatever `RustExtraDeriveTraits` asks for — here `adl::HttpApi`. The derive proc
+macro (`syn` and `quote`) lives in `rust/adl/derive` and does the following:
 
 - Matches field types **syntactically** on the literal `HttpReq<I, O>`. Aliases are not
-  recognised, so this form must be documented. Non-matching fields should produce a
-  `syn::Error`.
-- Emits a `<Api>Handlers` trait with one method per field:
-  `fn name(&self, ctx, req: I) -> impl Future<Output = Result<O, RpcError>> + Send`.
-- Emits `impl <Api> { pub fn register<S: <Api>Handlers>(&self, r: &mut Router<S>) }`.
-  `register` takes `&self` because `method` and `security` are runtime ADL data on each
-  `HttpReq` value.
+  recognised, so this form has to be documented. Any other field is read as a nested API
+  (see below).
+- Emits a `<Api>Handlers` trait with one method per endpoint field:
+  `fn name(&self, ctx: Ctx, req: I) -> impl Future<Output = Result<O, Self::Error>> + Send`.
+- Emits `impl HttpApi<Ctx, M, H> for <Api>`, whose `register_at` mounts every endpoint.
+  It takes `&self` because `method` and `security` are runtime ADL data on each `HttpReq`
+  value.
 - Uses span-preserving errors that point at fields.
 - Macros only see tokens. Field default values (method, security) are not visible at
-  expansion time, so they must come from the struct value at runtime, or from emitted
-  attributes.
+  expansion time, so they come from the struct value at runtime. The path has to be known
+  at expansion time, so it comes from the field name or an emitted attribute.
+
+Two things changed from the sketch this section started as. The entry point is a trait
+impl rather than an inherent `register` function, so a host can write one mounting helper
+for every API. And it mounts into the host-agnostic `Mount` trait in
+`rust/adl/src/http_api.rs` rather than a `Router` of our own, which is what lets poem host
+the generated code today without item 6 being done first: `routing.rs` mounts
+`ApiRequests` with one `adl_api_at` call, and `handlers.rs` implements the generated
+traits.
 
 ### Path from the field name. DONE
 
@@ -178,7 +191,8 @@ Consequences, accepted deliberately:
 - **Renaming an ADL field is now a wire-breaking change.** On the Rust side a rename at
   least breaks the build wherever a `PATH_` constant is named; TypeScript just follows the
   new name silently.
-### The @HttpPath override. DONE, but on an unreleased adlc
+
+### The @HttpPath override. DONE
 
 `common.http.HttpPath` is a `String` annotation on an `HttpReq` field that replaces the
 derived path outright:
@@ -275,7 +289,8 @@ What each side does with that:
   was the whole path. `tests/helpers.rs` has an `admin_path` helper for exactly this.
 - `endpoints()` in TypeScript recurses, so `Endpoints<A>` nests too and the client reads
   `api.admin.create_user`. The workbench recurses separately and qualifies its endpoint
-  names, as `admin.create_user`.
+  names, as `admin.create_user`, though it labels them by path: now that an endpoint's
+  name no longer determines its path, the path is the more useful of the two on screen.
 
 Each nested API needs its own `RustExtraDeriveTraits ["adl::HttpApi"]` line in
 `ui.adl-rs`: the derive on the enclosing struct can require a handler trait but cannot
@@ -306,10 +321,20 @@ let app = axum::Router::new()
 - Versions as of Oct 2026: hyper 1.11.x, axum 0.8.9 (0.9 in progress on main, with
   breaking changes), poem 3.1.x, tower 0.x. Recheck before pinning.
 
-## Suggested first step
+## Remaining work
 
-Read `routing.rs` and the generated `ui.rs`. Then write a new interop module implementing
-improvements 1–5 against the real `HttpReq` and `HttpSecurity` types, with the
-`tower::Service` boundary in place, including GET query-string decoding that matches
-current behaviour. Port one API to it and keep the existing poem path working for
-comparison.
+Items 2, 4 and 5 are open and can all be done on poem. Item 6 is the larger change: an
+interop module with the `tower::Service` boundary in place, including GET query-string
+decoding that matches current behaviour, with one API ported to it and the existing poem
+path kept working for comparison.
+
+Rough edges in what is built, none of them urgent:
+
+- A field that is neither an `HttpReq` nor an API struct is still read as a nested API. It
+  fails as an unsatisfied `HttpApi` or handler-trait bound, which does not name the real
+  mistake.
+- Method names must not collide between an API and the APIs nested in it, since one
+  `Handlers` value implements every trait in the tree. Nothing in the ADL expresses that
+  constraint; a collision surfaces as an ambiguity error at the impl.
+- `ts/ui` and `ts/api-workbench` each carry a near-copy of `service-base.ts`.
+- Neither `adl_rt` nor `adl_rt_derive` declares an MSRV.
