@@ -100,9 +100,14 @@ export interface Endpoint<I, O> {
   req: HttpReq<I, O>;
 }
 
-/** The endpoints of an api struct, keyed by their ADL field names. */
+/**
+ * The endpoints of an api struct, keyed by their ADL field names.
+ *
+ * A field holding a nested api becomes a nested `Endpoints`, so an
+ * `AdminApiRequests` at field `admin` is reached as `api.admin.create_user`.
+ */
 export type Endpoints<A> = {
-  [K in EndpointKey<A> & keyof A]: Endpoint<ReqOf<A[K]>, RespOf<A[K]>>;
+  [K in keyof A]: A[K] extends HttpReq<unknown, unknown> ? Endpoint<ReqOf<A[K]>, RespOf<A[K]>> : Endpoints<A[K]>;
 };
 
 /**
@@ -111,8 +116,17 @@ export type Endpoints<A> = {
  * `api` supplies each endpoint's method and security, which are runtime
  * values; `texpr` supplies its declaration, which is where the path comes
  * from, so both are needed.
+ *
+ * A field that is not an `HttpReq` is taken to be a nested api, exactly as
+ * the rust `HttpApi` derive takes it, and its endpoints are mounted under
+ * that field's own path. The two must agree, or requests miss the server's
+ * routes.
  */
 export function endpoints<A>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<A>, api: A): Endpoints<A> {
+  return endpointsAt(resolver, texpr, api, "");
+}
+
+function endpointsAt<A>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<A>, api: A, prefix: string): Endpoints<A> {
   if (texpr.value.typeRef.kind !== "reference" || texpr.value.parameters.length !== 0) {
     throw new Error("an api must be a monomorphic declaration");
   }
@@ -121,23 +135,25 @@ export function endpoints<A>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<A>
     throw new Error(`an api must be a struct, but ${decl.moduleName}.${decl.decl.name} is not`);
   }
   const fields = api as Record<string, unknown>;
-  const result: Record<string, Endpoint<unknown, unknown>> = {};
+  const result: Record<string, unknown> = {};
   for (const field of decl.decl.type_.value.fields) {
+    const path = prefix + endpointPath(resolver, field);
     if (field.typeExpr.typeRef.kind === "reference" && scopedNamesEqual(field.typeExpr.typeRef.value, snHttpReq)) {
-      result[field.name] = {
-        path: endpointPath(resolver, field),
-        req: fields[field.name] as HttpReq<unknown, unknown>,
-      };
+      result[field.name] = { path, req: fields[field.name] as HttpReq<unknown, unknown> };
+    } else {
+      result[field.name] = endpointsAt(resolver, ADL.makeATypeExpr<unknown>(field.typeExpr), fields[field.name], path);
     }
   }
-  // This loop visits exactly the fields EndpointKey selects, both being the
-  // HttpReq ones, but the compiler cannot see that the two agree.
+  // This loop mirrors the mapped type exactly, taking the same branch on the
+  // same condition, but the compiler cannot see that the two agree.
   return result as Endpoints<A>;
 }
 
 /**
- * The HTTP path of an endpoint: its `@HttpPath` annotation if the ADL field
- * carries one, and otherwise "/" followed by the field name.
+ * The path of a field of an api struct, relative to where that struct is
+ * mounted: its `@HttpPath` annotation if it carries one, and otherwise "/"
+ * followed by the field name. For a nested api this is the prefix its own
+ * endpoints hang off.
  *
  * HttpReq carries no path, so each backend derives one from the declaration,
  * and they must all derive it identically or requests miss the server's
@@ -161,11 +177,6 @@ type ReqOf<T> = T extends HttpReq<infer I, unknown> ? I : never;
 
 /** The response type of an `HttpReq` valued field. */
 type RespOf<T> = T extends HttpReq<unknown, infer O> ? O : never;
-
-/** Those fields of an api struct that are endpoints. */
-type EndpointKey<A> = {
-  [K in keyof A]: A[K] extends HttpReq<unknown, unknown> ? K : never;
-}[keyof A];
 
 interface BiTypeExpr<I, O> {
   reqType: ADL.ATypeExpr<I>;

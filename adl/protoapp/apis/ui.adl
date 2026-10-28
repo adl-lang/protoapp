@@ -39,6 +39,10 @@ struct ApiRequests {
     "security" : "token"
   };
 
+  AdminApiRequests admin = {};
+};
+
+struct AdminApiRequests {
   /// Create a new user
   HttpReq<UserDetails, AppUserId> create_user = {
     "security" : { "tokenWithRole": "admin" }

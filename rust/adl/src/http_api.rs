@@ -34,9 +34,10 @@ pub trait Mount<Ctx>: Sized {
     /// policy; `handler` is the implementation, already erased to its wire
     /// types.
     ///
-    /// The path is passed separately because it is not part of `HttpReq`: it
-    /// is derived from the endpoint's ADL field name, which only the generated
-    /// code knows.
+    /// `path` is complete, including any prefix contributed by the APIs this
+    /// endpoint is nested under. It is passed separately because it is not
+    /// part of `HttpReq`: it is derived from the endpoint's ADL field name,
+    /// which only the generated code knows.
     fn mount<I, O>(
         self,
         path: &str,
@@ -61,13 +62,26 @@ pub trait HttpApi<Ctx, M, H>
 where
     M: Mount<Ctx>,
 {
-    /// Mount every endpoint of this API into `mount`.
-    fn register(&self, mount: M, handlers: std::sync::Arc<H>) -> M;
+    /// Mount every endpoint of this API into `mount`, under `prefix`.
+    ///
+    /// `prefix` is prepended to each endpoint's own path. An API nested in
+    /// another is registered with the parent's prefix and the field name it
+    /// is nested under, so an `AdminApiRequests` at field `admin` mounts its
+    /// `create_user` at `/admin/create_user`.
+    fn register_at(&self, prefix: &str, mount: M, handlers: std::sync::Arc<H>) -> M;
+
+    /// Mount every endpoint of this API into `mount`, at its own paths.
+    ///
+    /// The entry point for a top level API; [`HttpApi::register_at`] is what
+    /// nesting uses.
+    fn register(&self, mount: M, handlers: std::sync::Arc<H>) -> M {
+        self.register_at("", mount, handlers)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use crate::gen::protoapp::apis::ui::{ApiRequests, WebRequests};
+    use crate::gen::protoapp::apis::ui::{AdminApiRequests, ApiRequests, WebRequests};
 
     /// Pins the rule that `#[derive(HttpApi)]` builds a path from the ADL
     /// field name. Every backend has to derive paths identically, so a change
@@ -76,7 +90,6 @@ mod tests {
     fn paths_come_from_adl_field_names() {
         assert_eq!(ApiRequests::PATH_NEW_MESSAGE, "/new_message");
         assert_eq!(ApiRequests::PATH_WHO_AM_I, "/who_am_i");
-        assert_eq!(ApiRequests::PATH_QUERY_USERS, "/query_users");
         assert_eq!(WebRequests::PATH_LOGIN, "/login");
         assert_eq!(WebRequests::PATH_REFRESH, "/refresh");
         assert_eq!(WebRequests::PATH_LOGOUT, "/logout");
@@ -89,5 +102,23 @@ mod tests {
     #[test]
     fn http_path_annotation_overrides_the_field_name() {
         assert_eq!(ApiRequests::PATH_HEALTHY, "/");
+    }
+
+    /// A nested API's paths are relative to where it is mounted, and the
+    /// enclosing API contributes the prefix. Both halves are constants, so
+    /// hand written wiring composes them the same way the generated
+    /// registration does.
+    #[test]
+    fn nested_api_paths_are_relative_to_their_mount_point() {
+        assert_eq!(ApiRequests::PATH_ADMIN, "/admin");
+        assert_eq!(AdminApiRequests::PATH_CREATE_USER, "/create_user");
+        assert_eq!(
+            format!(
+                "{}{}",
+                ApiRequests::PATH_ADMIN,
+                AdminApiRequests::PATH_CREATE_USER
+            ),
+            "/admin/create_user"
+        );
     }
 }

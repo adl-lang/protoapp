@@ -5,9 +5,9 @@ use poem::web::Json;
 use adl::custom::common::db::DbKey;
 use adl::gen::common::http::Unit;
 use adl::gen::protoapp::apis::ui::{
-    ApiRequestsHandlers, LoginReq, LoginResp, LoginTokens, Message, Paginated, QueryUsersReq,
-    RecentMessagesReq, RefreshReq, RefreshResp, User, UserDetails, UserWithId, WebRequests,
-    WebRequestsHandlers, WithId,
+    AdminApiRequestsHandlers, ApiRequestsHandlers, LoginReq, LoginResp, LoginTokens, Message,
+    Paginated, QueryUsersReq, RecentMessagesReq, RefreshReq, RefreshResp, User, UserDetails,
+    UserWithId, WebRequests, WebRequestsHandlers, WithId,
 };
 use adl::gen::protoapp::config::server::ServerConfig;
 use adl::gen::protoapp::db::{AppUser, AppUserId};
@@ -26,7 +26,9 @@ type ReqContext = AdlReqContext<AppState>;
 /// method per endpoint declared in the ADL `ApiRequests` struct. Adding an
 /// endpoint there stops this impl compiling until it is implemented.
 ///
-/// The cookie endpoints are in the [`WebRequestsHandlers`] impl below. They
+/// The admin endpoints are in the [`AdminApiRequestsHandlers`] impl below,
+/// since the ADL nests them in their own struct. The cookie endpoints are in
+/// the [`WebRequestsHandlers`] impl after that. They
 /// belong to the ADL `WebRequests` struct and are mounted by hand, since they
 /// need poem's `CookieJar`, but implementing the generated trait keeps them
 /// checked against the ADL in the same way.
@@ -79,6 +81,18 @@ impl ApiRequestsHandlers<ReqContext> for Handlers {
             None => Err(forbidden()),
         }
     }
+}
+
+/// Implements the generated [`AdminApiRequestsHandlers`] trait, for the
+/// ADL `AdminApiRequests` struct nested at `ApiRequests.admin`. Its
+/// endpoints are mounted under that field name, so `create_user` is at
+/// `/admin/create_user`.
+///
+/// A nested API gets its own trait rather than contributing methods to the
+/// enclosing one, but the same `Handlers` value serves both: the generated
+/// registration requires every nested trait of the handler type it is given.
+impl AdminApiRequestsHandlers<ReqContext> for Handlers {
+    type Error = HandlerError;
 
     async fn create_user(
         &self,

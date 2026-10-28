@@ -251,6 +251,40 @@ import line of the schema it generates.
 unaffected, since annotations reach the TS AST without the compiler knowing anything
 about them, and only the Rust pass stops.
 
+### Nested APIs. DONE
+
+An API struct field that is not an `HttpReq` is another API struct, nested under it.
+`ApiRequests` nests `AdminApiRequests` at its `admin` field, and the three admin
+endpoints are served from `/admin/create_user` and so on — the field's path, composed
+with each endpoint's own.
+
+What each side does with that:
+
+- `#[derive(HttpApi)]` gives the nested struct its own handler trait, and the enclosing
+  API's generated `HttpApi` impl gains a `H: AdminApiRequestsHandlers<Ctx, Error = M::Error>`
+  bound. A supertrait would have been the obvious alternative, but it drags in
+  associated-type equality for `Error`; the impl bound keeps the generated traits
+  independent while still making an unimplemented nested endpoint a compile error. One
+  `Handlers` value implements the whole tree, and a single `Arc<H>` is passed down.
+- `HttpApi` grew `register_at(prefix, ..)`, with `register` as `register_at("")`. `Mount`
+  is unchanged, so no host implementation had to be touched.
+- `PATH_` constants became **relative to where their API is mounted**, and each nested
+  field contributes a prefix constant of its own. So `ApiRequests::PATH_ADMIN` is
+  `"/admin"` and `AdminApiRequests::PATH_CREATE_USER` is `"/create_user"`. This is the
+  real cost of prefixing: hand written wiring must compose them, where before a constant
+  was the whole path. `tests/helpers.rs` has an `admin_path` helper for exactly this.
+- `endpoints()` in TypeScript recurses, so `Endpoints<A>` nests too and the client reads
+  `api.admin.create_user`. The workbench recurses separately and qualifies its endpoint
+  names, as `admin.create_user`.
+
+Each nested API needs its own `RustExtraDeriveTraits ["adl::HttpApi"]` line in
+`ui.adl-rs`: the derive on the enclosing struct can require a handler trait but cannot
+generate one for a type it only sees by name. Forgetting it surfaces as an unsatisfied
+`AdminApiRequestsHandlers` bound on the parent.
+
+`http_api::tests::nested_api_paths_are_relative_to_their_mount_point` pins the
+composition rule, and the server tests exercise `/admin/*` over real HTTP.
+
 ### Mixing example (axum host)
 
 ```rust

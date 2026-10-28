@@ -41,23 +41,8 @@ pub struct ApiRequests {
   #[serde(default="ApiRequests::def_who_am_i")]
   pub who_am_i: HttpReq<(), UserWithId>,
 
-  /**
-   * Create a new user
-   */
-  #[serde(default="ApiRequests::def_create_user")]
-  pub create_user: HttpReq<UserDetails, AppUserId>,
-
-  /**
-   * Update a user
-   */
-  #[serde(default="ApiRequests::def_update_user")]
-  pub update_user: HttpReq<WithId<AppUserId, UserDetails>, Unit>,
-
-  /**
-   * Query users
-   */
-  #[serde(default="ApiRequests::def_query_users")]
-  pub query_users: HttpReq<QueryUsersReq, Paginated<UserWithId>>,
+  #[serde(default="ApiRequests::def_admin")]
+  pub admin: AdminApiRequests,
 }
 
 impl ApiRequests {
@@ -67,9 +52,7 @@ impl ApiRequests {
       new_message: ApiRequests::def_new_message(),
       recent_messages: ApiRequests::def_recent_messages(),
       who_am_i: ApiRequests::def_who_am_i(),
-      create_user: ApiRequests::def_create_user(),
-      update_user: ApiRequests::def_update_user(),
-      query_users: ApiRequests::def_query_users(),
+      admin: ApiRequests::def_admin(),
     }
   }
 
@@ -87,6 +70,41 @@ impl ApiRequests {
 
   pub fn def_who_am_i() -> HttpReq<(), UserWithId> {
     HttpReq::<(), UserWithId>{method : HttpMethod::Get, security : HttpSecurity::Token, req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}
+  }
+
+  pub fn def_admin() -> AdminApiRequests {
+    AdminApiRequests{create_user : HttpReq::<UserDetails, AppUserId>{method : HttpMethod::Post, security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}, update_user : HttpReq::<WithId<AppUserId, UserDetails>, Unit>{method : HttpMethod::Post, security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}, query_users : HttpReq::<QueryUsersReq, Paginated<UserWithId>>{method : HttpMethod::Get, security : HttpSecurity::TokenWithRole("admin".to_string()), req_type : std::marker::PhantomData, resp_type : std::marker::PhantomData}}
+  }
+}
+
+#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize,adl::HttpApi)]
+pub struct AdminApiRequests {
+  /**
+   * Create a new user
+   */
+  #[serde(default="AdminApiRequests::def_create_user")]
+  pub create_user: HttpReq<UserDetails, AppUserId>,
+
+  /**
+   * Update a user
+   */
+  #[serde(default="AdminApiRequests::def_update_user")]
+  pub update_user: HttpReq<WithId<AppUserId, UserDetails>, Unit>,
+
+  /**
+   * Query users
+   */
+  #[serde(default="AdminApiRequests::def_query_users")]
+  pub query_users: HttpReq<QueryUsersReq, Paginated<UserWithId>>,
+}
+
+impl AdminApiRequests {
+  pub fn new() -> AdminApiRequests {
+    AdminApiRequests {
+      create_user: AdminApiRequests::def_create_user(),
+      update_user: AdminApiRequests::def_update_user(),
+      query_users: AdminApiRequests::def_query_users(),
+    }
   }
 
   pub fn def_create_user() -> HttpReq<UserDetails, AppUserId> {

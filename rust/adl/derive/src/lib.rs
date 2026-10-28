@@ -16,6 +16,25 @@
 //! so that adding an endpoint to the ADL fails compilation until it is
 //! implemented, plus a `register` that mounts every endpoint into a host.
 //!
+//! # Nested APIs
+//!
+//! A field whose type is not an `HttpReq` is taken to be another API struct,
+//! nested under this one:
+//!
+//! ```ignore
+//! pub struct ApiRequests {
+//!     pub who_am_i: HttpReq<(), UserWithId>,
+//!     pub admin: AdminApiRequests,
+//! }
+//! ```
+//!
+//! The nested struct needs its own `#[derive(HttpApi)]`, which gives it its
+//! own handler trait; this derive can only require that trait, not generate
+//! it. The requirement lands on the generated `HttpApi` impl rather than as a
+//! supertrait, so the two traits stay independent and their associated `Error`
+//! types need not be equated — but one handler value still has to implement
+//! the whole tree, so no nested endpoint can be left unimplemented.
+//!
 //! # Paths
 //!
 //! An endpoint's path is not carried by `HttpReq`; it is derived as `"/"`
@@ -33,9 +52,17 @@
 //! pub healthy: HttpReq<(), ()>,
 //! ```
 //!
-//! Each path is also emitted as a `PATH_<FIELD>` associated constant, so that
-//! hand written wiring and tests refer to an endpoint symbolically rather than
-//! repeating a literal that nothing would check.
+//! Paths compose through nesting: a nested API's endpoints are mounted under
+//! the path of the field it is nested at, so `AdminApiRequests::create_user`
+//! at field `admin` is served from `/admin/create_user`.
+//!
+//! Each path is also emitted as a `PATH_<FIELD>` associated constant —
+//! including one per nested field, holding that API's prefix — so that hand
+//! written wiring and tests refer to an endpoint symbolically rather than
+//! repeating a literal that nothing would check. **These constants are
+//! relative to where their API is mounted.** For a top level API that is the
+//! whole path; for a nested one, the caller composes, as
+//! `ApiRequests::PATH_ADMIN` followed by `AdminApiRequests::PATH_CREATE_USER`.
 
 use proc_macro::TokenStream;
 use proc_macro2::Span;
@@ -62,6 +89,20 @@ struct Endpoint {
     docs: Vec<syn::Attribute>,
 }
 
+/// An API nested under a field of this one.
+struct Nested {
+    /// Field identifier, used to reach the nested API's value.
+    name: Ident,
+    /// The path segment this API's endpoints are mounted under, relative to
+    /// the enclosing API.
+    path: String,
+    /// Identifier of the `PATH_<FIELD>` constant holding [`Nested::path`].
+    path_const: Ident,
+    /// The nested API's generated handler trait, which the enclosing API's
+    /// handlers must also implement.
+    handlers: syn::Path,
+}
+
 #[proc_macro_derive(HttpApi, attributes(http_api))]
 pub fn derive_http_api(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);
@@ -82,8 +123,8 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         ));
     }
 
-    let endpoints = collect_endpoints(&input)?;
-    if endpoints.is_empty() {
+    let (endpoints, nested) = collect_fields(&input)?;
+    if endpoints.is_empty() && nested.is_empty() {
         return Err(syn::Error::new(
             input.span(),
             "HttpApi requires at least one `HttpReq<I, O>` field",
@@ -127,7 +168,7 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
             let mount = {
                 let handlers = handlers.clone();
                 mount.mount(
-                    Self::#path_const,
+                    &::std::format!("{}{}", prefix, Self::#path_const),
                     &self.#name,
                     ::std::boxed::Box::new(move |ctx, req| {
                         let handlers = handlers.clone();
@@ -136,6 +177,30 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
                 )
             };
         }
+    });
+
+    // Each nested API registers itself, under this API's prefix extended by
+    // the field it is nested at.
+    let nested_mounts = nested.iter().map(|n| {
+        let name = &n.name;
+        let path_const = &n.path_const;
+        quote! {
+            let mount = #runtime::HttpApi::<Ctx, M, H>::register_at(
+                &self.#name,
+                &::std::format!("{}{}", prefix, Self::#path_const),
+                mount,
+                handlers.clone(),
+            );
+        }
+    });
+
+    // The nested APIs' handler traits. Bounding `H` by them here, rather than
+    // making them supertraits of this API's trait, keeps each generated trait
+    // independent and avoids having to equate their associated Error types.
+    // One handler value still implements the whole tree.
+    let nested_bounds = nested.iter().map(|n| {
+        let handlers = &n.handlers;
+        quote! { H: #handlers<Ctx, Error = M::Error> }
     });
 
     // The paths as associated constants, so that hand written wiring and tests
@@ -147,7 +212,24 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
             name,
             ..
         } = e;
-        let doc = format!("HTTP path of the `{name}` endpoint.");
+        let doc =
+            format!("HTTP path of the `{name}` endpoint, relative to where this API is mounted.");
+        quote! {
+            #[doc = #doc]
+            pub const #path_const: &'static str = #path;
+        }
+    });
+
+    let nested_path_consts = nested.iter().map(|n| {
+        let Nested {
+            path,
+            path_const,
+            name,
+            ..
+        } = n;
+        let doc = format!(
+            "Path prefix of the nested `{name}` API, relative to where this API is mounted."
+        );
         quote! {
             #[doc = #doc]
             pub const #path_const: &'static str = #path;
@@ -165,6 +247,7 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
     Ok(quote! {
         impl #api {
             #(#path_consts)*
+            #(#nested_path_consts)*
         }
 
         #[doc = #doc]
@@ -180,10 +263,12 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
             Ctx: ::core::marker::Send + 'static,
             M: #runtime::Mount<Ctx>,
             H: #trait_name<Ctx, Error = M::Error>,
+            #(#nested_bounds,)*
         {
             #[doc = #register_doc]
-            fn register(&self, mount: M, handlers: ::std::sync::Arc<H>) -> M {
+            fn register_at(&self, prefix: &str, mount: M, handlers: ::std::sync::Arc<H>) -> M {
                 #(#mounts)*
+                #(#nested_mounts)*
                 mount
             }
         }
@@ -212,12 +297,14 @@ fn runtime_path(input: &DeriveInput) -> syn::Result<syn::Path> {
     }
 }
 
-/// Pull the `HttpReq<I, O>` fields out of the struct, in declaration order.
+/// Split the struct's fields into endpoints and nested APIs, in declaration
+/// order.
 ///
-/// Matching is syntactic: the field type must spell `HttpReq<_, _>` as its last
-/// path segment. An alias for it is not recognised, which is why the ADL Rust
-/// backend's un-aliased output is relied on here.
-fn collect_endpoints(input: &DeriveInput) -> syn::Result<Vec<Endpoint>> {
+/// Matching is syntactic: a field whose type spells `HttpReq<_, _>` as its last
+/// path segment is an endpoint. An alias for it is not recognised, which is why
+/// the ADL Rust backend's un-aliased output is relied on here. Every other
+/// field is taken to be another API struct, nested under this one.
+fn collect_fields(input: &DeriveInput) -> syn::Result<(Vec<Endpoint>, Vec<Nested>)> {
     let data = match &input.data {
         Data::Struct(d) => d,
         _ => {
@@ -238,45 +325,70 @@ fn collect_endpoints(input: &DeriveInput) -> syn::Result<Vec<Endpoint>> {
     };
 
     let mut endpoints = Vec::new();
+    let mut nested = Vec::new();
     for field in fields {
         let name = field
             .ident
             .clone()
             .ok_or_else(|| syn::Error::new(field.span(), "endpoint field must be named"))?;
 
-        let Some((req, resp)) = http_req_args(&field.ty) else {
-            // Not an endpoint. Non-HttpReq fields are rejected rather than
-            // skipped, so a field that was meant to be an endpoint but whose
-            // type is misspelled does not silently vanish from the trait.
-            return Err(syn::Error::new(
-                field.ty.span(),
-                format!(
-                    "field `{name}` is not an endpoint: HttpApi requires every field to be \
-                     spelled `HttpReq<I, O>` (an alias for it is not recognised)"
-                ),
-            ));
-        };
-
         let path_const = format_ident!("PATH_{}", unraw(&name).to_uppercase());
         let path = match http_path(field)? {
             Some(path) => path,
             None => format!("/{}", adl_field_name(field, &name)),
         };
-        endpoints.push(Endpoint {
-            path,
-            path_const,
-            name,
-            req,
-            resp,
-            docs: field
-                .attrs
-                .iter()
-                .filter(|a| a.path().is_ident("doc"))
-                .cloned()
-                .collect(),
-        });
+
+        match http_req_args(&field.ty) {
+            Some((req, resp)) => endpoints.push(Endpoint {
+                path,
+                path_const,
+                name,
+                req,
+                resp,
+                docs: field
+                    .attrs
+                    .iter()
+                    .filter(|a| a.path().is_ident("doc"))
+                    .cloned()
+                    .collect(),
+            }),
+            None => nested.push(Nested {
+                handlers: handlers_trait(&field.ty)?,
+                path,
+                path_const,
+                name,
+            }),
+        }
     }
-    Ok(endpoints)
+    Ok((endpoints, nested))
+}
+
+/// The handler trait that `#[derive(HttpApi)]` generates for an API type.
+///
+/// Named by convention rather than looked up: the derive on the nested struct
+/// builds it from that struct's own name, so the enclosing API can name it
+/// without seeing the nested definition. Resolved in the same scope the field
+/// type is written in, which is where the derive put it.
+fn handlers_trait(ty: &Type) -> syn::Result<syn::Path> {
+    let Type::Path(tp) = ty else {
+        return Err(syn::Error::new(
+            ty.span(),
+            "a nested API must be a named struct implementing HttpApi",
+        ));
+    };
+    let mut path = tp.path.clone();
+    let last = path
+        .segments
+        .last_mut()
+        .ok_or_else(|| syn::Error::new(ty.span(), "a nested API must be a named struct"))?;
+    if !last.arguments.is_none() {
+        return Err(syn::Error::new(
+            ty.span(),
+            "a nested API cannot be generic: an API must be monomorphic",
+        ));
+    }
+    last.ident = format_ident!("{}Handlers", last.ident);
+    Ok(path)
 }
 
 /// Scoped name of the ADL annotation that overrides an endpoint's path.

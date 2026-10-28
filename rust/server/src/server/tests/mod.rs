@@ -5,7 +5,7 @@ use adl::gen::protoapp::apis::ui::{
 };
 
 use crate::server::tests::helpers::{
-    create_test_user, login_user, server_auth_req, server_public_req, server_req,
+    admin_path, create_test_user, login_user, server_auth_req, server_public_req, server_req,
     test_server_config, DbTestEnv,
 };
 use crate::server::{AppState, OServer};
@@ -195,8 +195,8 @@ async fn server_user_crud() {
     // u1 is not an admin, so shouldn't be allowed to create new users
     {
         let http_resp = server_req(
-            apis::ui::ApiRequests::PATH_CREATE_USER,
-            apis::ui::ApiRequests::def_create_user(),
+            &admin_path(apis::ui::AdminApiRequests::PATH_CREATE_USER),
+            apis::ui::AdminApiRequests::def_create_user(),
             Some(&u1_jwt),
             &apis::ui::UserDetails {
                 fullname: "Austin".to_owned(),
@@ -212,8 +212,8 @@ async fn server_user_crud() {
     // u2 is an admin, so can create new users
     {
         let http_resp = server_req(
-            apis::ui::ApiRequests::PATH_CREATE_USER,
-            apis::ui::ApiRequests::def_create_user(),
+            &admin_path(apis::ui::AdminApiRequests::PATH_CREATE_USER),
+            apis::ui::AdminApiRequests::def_create_user(),
             Some(&u2_jwt),
             &apis::ui::UserDetails {
                 fullname: "Austin".to_owned(),
@@ -229,8 +229,8 @@ async fn server_user_crud() {
     // and can query existing users
     {
         let resp = server_auth_req(
-            apis::ui::ApiRequests::PATH_QUERY_USERS,
-            apis::ui::ApiRequests::def_query_users(),
+            &admin_path(apis::ui::AdminApiRequests::PATH_QUERY_USERS),
+            apis::ui::AdminApiRequests::def_query_users(),
             &u2_jwt,
             &apis::ui::QueryUsersReq {
                 page: PageReq {
@@ -320,8 +320,8 @@ async fn server_security_policy() {
     {
         // A role restricted endpoint rejects absent credentials as 401, not 403
         let resp = server_req(
-            apis::ui::ApiRequests::PATH_QUERY_USERS,
-            apis::ui::ApiRequests::def_query_users(),
+            &admin_path(apis::ui::AdminApiRequests::PATH_QUERY_USERS),
+            apis::ui::AdminApiRequests::def_query_users(),
             None,
             &apis::ui::QueryUsersReq {
                 page: PageReq {
@@ -364,8 +364,8 @@ async fn server_security_policy() {
         // the 401s above for absent or unusable credentials.
         let jwt = login_user(&u1).await;
         let resp = server_req(
-            apis::ui::ApiRequests::PATH_CREATE_USER,
-            apis::ui::ApiRequests::def_create_user(),
+            &admin_path(apis::ui::AdminApiRequests::PATH_CREATE_USER),
+            apis::ui::AdminApiRequests::def_create_user(),
             Some(&jwt),
             &apis::ui::UserDetails {
                 fullname: "Austin".to_owned(),
