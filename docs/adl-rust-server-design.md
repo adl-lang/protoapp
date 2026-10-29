@@ -270,16 +270,37 @@ about them, and only the Rust pass stops.
 An API struct field that is not an `HttpReq` is another API struct, nested under it.
 `Api` nests `AdminApi` at its `admin` field, and the three admin
 endpoints are served from `/admin/create_user` and so on — the field's path, composed
-with each endpoint's own.
+with each endpoint's own. The same API type may be nested at more than one field, each
+mount point served by its own handlers; protoapp does not do this, but the derive
+supports it, and getting it wrong is how the first implementation failed.
 
 What each side does with that:
 
 - `#[derive(HttpApi)]` gives the nested struct its own handler trait, and the enclosing
-  API's generated `HttpApi` impl gains a `H: AdminApiHandlers<Ctx, Error = M::Error>`
-  bound. A supertrait would have been the obvious alternative, but it drags in
-  associated-type equality for `Error`; the impl bound keeps the generated traits
-  independent while still making an unimplemented nested endpoint a compile error. One
-  `Handlers` value implements the whole tree, and a single `Arc<H>` is passed down.
+  API's handler trait gains, per nested field, an associated type bounded by that trait
+  and an accessor yielding it:
+
+  ```rust
+  type Admin: AdminApiHandlers<Ctx, Error = Self::Error>;
+  fn admin(&self) -> Arc<Self::Admin>;
+  ```
+
+  The mount point is identified by the **field**, not by the type. Two fields of the
+  same API type therefore get an associated type each, and can be served by different
+  handler types — a dry run API alongside the real one, say, implemented by a type that
+  holds no database pool and so cannot write. Leaving any of them out is a compile
+  error, so no nested endpoint goes unimplemented and none silently inherits another's
+  handlers.
+
+  This replaced a flat `H: AdminApiHandlers<Ctx, Error = M::Error>` bound on the
+  generated impl, under which one `Handlers` value implemented the whole tree and a
+  single `Arc<H>` was passed down. That was simpler to implement — no associated-type
+  equality for `Error` to propagate — but it keyed nesting on the type, so two fields of
+  the same API type produced the *same* bound twice and were both satisfied by one impl.
+  The duplicate mount point then silently served the first one's handlers, which for a
+  dry run API is precisely the wrong failure. The `Error = Self::Error` bound sits in
+  the trait declaration, so the equality chain propagates without any hand written
+  where clause.
 - `HttpApi` grew `register_at(prefix, ..)`, with `register` as `register_at("")`. `Mount`
   is unchanged, so no host implementation had to be touched.
 - `PATH_` constants became **relative to where their API is mounted**, and each nested
@@ -295,7 +316,7 @@ What each side does with that:
 Each nested API needs its own `RustExtraDeriveTraits ["adl::HttpApi"]` line in
 `ui.adl-rs`: the derive on the enclosing struct can require a handler trait but cannot
 generate one for a type it only sees by name. Forgetting it surfaces as an unsatisfied
-`AdminApiHandlers` bound on the parent.
+`AdminApiHandlers` bound on the parent's associated type.
 
 `http_api::tests::nested_api_paths_are_relative_to_their_mount_point` pins the
 composition rule, and the server tests exercise `/admin/*` over real HTTP.

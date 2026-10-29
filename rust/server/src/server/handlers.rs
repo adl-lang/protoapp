@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use poem::handler;
 use poem::web::cookie::{Cookie, CookieJar};
 use poem::web::Json;
@@ -26,16 +28,29 @@ type ReqContext = AdlReqContext<AppState>;
 /// endpoint declared in the ADL `Api` struct. Adding an endpoint there stops
 /// this impl compiling until it is implemented.
 ///
-/// The admin endpoints are in the [`AdminApiHandlers`] impl below, since the
-/// ADL nests them in their own struct. The cookie endpoints are in the
+/// The admin endpoints are on [`AdminApiHandlersImpl`] below, since the ADL
+/// nests them in their own struct; this impl names that type as its `Admin`
+/// associated type and yields it from `admin`, which is how the generated
+/// registration reaches it. The cookie endpoints are in the
 /// [`WebApiHandlers`] impl after that. They belong to the ADL `WebApi` struct
 /// and are mounted by hand, since they need poem's `CookieJar`, but
 /// implementing the generated trait keeps them checked against the ADL in the
 /// same way.
-pub struct Handlers;
+pub struct ApiHandlersImpl {}
 
-impl ApiHandlers<ReqContext> for Handlers {
+impl ApiHandlersImpl {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl ApiHandlers<ReqContext> for ApiHandlersImpl {
     type Error = HandlerError;
+
+    type Admin = AdminApiHandlersImpl;
+    fn admin(&self) -> Arc<AdminApiHandlersImpl> {
+        Arc::new(AdminApiHandlersImpl)
+    }
 
     async fn healthy(&self, _ctx: ReqContext, _req: ()) -> Result<(), Self::Error> {
         Ok(())
@@ -83,14 +98,18 @@ impl ApiHandlers<ReqContext> for Handlers {
     }
 }
 
+pub struct AdminApiHandlersImpl;
+
 /// Implements the generated [`AdminApiHandlers`] trait, for the ADL `AdminApi`
 /// struct nested at `Api.admin`. Its endpoints are mounted under that field
 /// name, so `create_user` is at `/admin/create_user`.
 ///
-/// A nested API gets its own trait rather than contributing methods to the
-/// enclosing one, but the same `Handlers` value serves both: the generated
-/// registration requires every nested trait of the handler type it is given.
-impl AdminApiHandlers<ReqContext> for Handlers {
+/// A nested API gets its own handler trait rather than contributing methods to
+/// the enclosing one, and its own handler type. The enclosing trait identifies
+/// a mount point by its ADL field rather than by its type, so the same API
+/// nested at two fields would be served by two implementations, chosen
+/// independently.
+impl AdminApiHandlers<ReqContext> for AdminApiHandlersImpl {
     type Error = HandlerError;
 
     async fn create_user(
@@ -141,7 +160,9 @@ impl AdminApiHandlers<ReqContext> for Handlers {
     }
 }
 
-impl WebApiHandlers<ReqContext> for Handlers {
+pub struct WebApiHandlersImpl;
+
+impl WebApiHandlers<ReqContext> for WebApiHandlersImpl {
     type Error = HandlerError;
 
     async fn login(&self, ctx: ReqContext, i: LoginReq) -> Result<LoginResp, Self::Error> {
@@ -198,7 +219,7 @@ pub async fn login_with_cookies(
     i: Json<LoginReq>,
 ) -> poem::Result<Json<LoginResp>> {
     let ctx = get_adl_request_context(req, &WebApi::def_login().security)?;
-    let eresp = Handlers.login(ctx, i.0).await;
+    let eresp = WebApiHandlersImpl.login(ctx, i.0).await;
     if let Ok(LoginResp::Tokens(tokens)) = &eresp {
         let mut cookie = Cookie::new_with_str(REFRESH_TOKEN, tokens.refresh_jwt.clone());
         cookie.set_http_only(true);
@@ -219,7 +240,9 @@ pub async fn refresh_with_cookies(
     // If there's no refresh token in the request, use the one from the cookie
     let refresh_token = i.0.refresh_token.or(token_from_cookie);
 
-    let eresp = Handlers.refresh(ctx, RefreshReq { refresh_token }).await;
+    let eresp = WebApiHandlersImpl
+        .refresh(ctx, RefreshReq { refresh_token })
+        .await;
     eresp.map(Json).map_err(poem::Error::from)
 }
 
@@ -231,7 +254,7 @@ pub async fn logout_with_cookies(
 ) -> poem::Result<Json<Unit>> {
     let ctx = get_adl_request_context(req, &WebApi::def_logout().security)?;
     cookies.remove(REFRESH_TOKEN);
-    let eresp = Handlers.logout(ctx, i.0).await;
+    let eresp = WebApiHandlersImpl.logout(ctx, i.0).await;
     eresp.map(Json).map_err(poem::Error::from)
 }
 
