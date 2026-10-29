@@ -65,9 +65,9 @@ where
     /// Mount every endpoint of this API into `mount`, under `prefix`.
     ///
     /// `prefix` is prepended to each endpoint's own path. An API nested in
-    /// another is registered with the parent's prefix and the field name it
-    /// is nested under, so an `AdminApiRequests` at field `admin` mounts its
-    /// `create_user` at `/admin/create_user`.
+    /// another is registered with the parent's prefix and the field name it is
+    /// nested under, so an `AdminApi` at field `admin` mounts its `create_user`
+    /// at `/admin/create_user`.
     fn register_at(&self, prefix: &str, mount: M, handlers: std::sync::Arc<H>) -> M;
 
     /// Mount every endpoint of this API into `mount`, at its own paths.
@@ -81,18 +81,18 @@ where
 
 #[cfg(test)]
 mod tests {
-    use crate::gen::protoapp::apis::ui::{AdminApiRequests, ApiRequests, WebRequests};
+    use crate::gen::protoapp::apis::ui::{AdminApi, Api, WebApi};
 
     /// Pins the rule that `#[derive(HttpApi)]` builds a path from the ADL
     /// field name. Every backend has to derive paths identically, so a change
     /// here is a change to the wire protocol and should fail loudly.
     #[test]
     fn paths_come_from_adl_field_names() {
-        assert_eq!(ApiRequests::PATH_NEW_MESSAGE, "/new_message");
-        assert_eq!(ApiRequests::PATH_WHO_AM_I, "/who_am_i");
-        assert_eq!(WebRequests::PATH_LOGIN, "/login");
-        assert_eq!(WebRequests::PATH_REFRESH, "/refresh");
-        assert_eq!(WebRequests::PATH_LOGOUT, "/logout");
+        assert_eq!(Api::PATH_NEW_MESSAGE, "/new_message");
+        assert_eq!(Api::PATH_WHO_AM_I, "/who_am_i");
+        assert_eq!(WebApi::PATH_LOGIN, "/login");
+        assert_eq!(WebApi::PATH_REFRESH, "/refresh");
+        assert_eq!(WebApi::PATH_LOGOUT, "/logout");
     }
 
     /// And that an `@HttpPath` annotation in the ADL overrides it. The
@@ -101,7 +101,7 @@ mod tests {
     /// through adlc to the expansion.
     #[test]
     fn http_path_annotation_overrides_the_field_name() {
-        assert_eq!(ApiRequests::PATH_HEALTHY, "/");
+        assert_eq!(Api::PATH_HEALTHY, "/");
     }
 
     /// A nested API's paths are relative to where it is mounted, and the
@@ -110,14 +110,10 @@ mod tests {
     /// registration does.
     #[test]
     fn nested_api_paths_are_relative_to_their_mount_point() {
-        assert_eq!(ApiRequests::PATH_ADMIN, "/admin");
-        assert_eq!(AdminApiRequests::PATH_CREATE_USER, "/create_user");
+        assert_eq!(Api::PATH_ADMIN, "/admin");
+        assert_eq!(AdminApi::PATH_CREATE_USER, "/create_user");
         assert_eq!(
-            format!(
-                "{}{}",
-                ApiRequests::PATH_ADMIN,
-                AdminApiRequests::PATH_CREATE_USER
-            ),
+            format!("{}{}", Api::PATH_ADMIN, AdminApi::PATH_CREATE_USER),
             "/admin/create_user"
         );
     }

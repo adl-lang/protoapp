@@ -6,7 +6,7 @@
 //! ```ignore
 //! #[derive(HttpApi)]
 //! #[http_api(runtime = "crate::http_api")]
-//! pub struct ApiRequests {
+//! pub struct Api {
 //!     pub healthy: HttpReq<(), ()>,
 //!     pub who_am_i: HttpReq<(), UserWithId>,
 //! }
@@ -22,9 +22,9 @@
 //! nested under this one:
 //!
 //! ```ignore
-//! pub struct ApiRequests {
+//! pub struct Api {
 //!     pub who_am_i: HttpReq<(), UserWithId>,
-//!     pub admin: AdminApiRequests,
+//!     pub admin: AdminApi,
 //! }
 //! ```
 //!
@@ -53,8 +53,8 @@
 //! ```
 //!
 //! Paths compose through nesting: a nested API's endpoints are mounted under
-//! the path of the field it is nested at, so `AdminApiRequests::create_user`
-//! at field `admin` is served from `/admin/create_user`.
+//! the path of the field it is nested at, so `AdminApi::create_user` at field
+//! `admin` is served from `/admin/create_user`.
 //!
 //! Each path is also emitted as a `PATH_<FIELD>` associated constant —
 //! including one per nested field, holding that API's prefix — so that hand
@@ -62,7 +62,7 @@
 //! repeating a literal that nothing would check. **These constants are
 //! relative to where their API is mounted.** For a top level API that is the
 //! whole path; for a nested one, the caller composes, as
-//! `ApiRequests::PATH_ADMIN` followed by `AdminApiRequests::PATH_CREATE_USER`.
+//! `Api::PATH_ADMIN` followed by `AdminApi::PATH_CREATE_USER`.
 
 use proc_macro::TokenStream;
 use proc_macro2::Span;

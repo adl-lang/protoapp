@@ -12,7 +12,7 @@ import common.strings.StringML;
 import protoapp.db.AppUserId;
 import protoapp.db.MessageId;
 
-struct ApiRequests {
+struct Api {
 
   /// AWS default compatible health check
   @HttpPath "/"
@@ -39,10 +39,10 @@ struct ApiRequests {
     "security" : "token"
   };
 
-  AdminApiRequests admin = {};
+  AdminApi admin = {};
 };
 
-struct AdminApiRequests {
+struct AdminApi {
   /// Create a new user
   HttpReq<UserDetails, AppUserId> create_user = {
     "security" : { "tokenWithRole": "admin" }
@@ -62,7 +62,7 @@ struct AdminApiRequests {
 
 /// Endpoints that read or write browser cookies, and so are wired up by hand
 /// rather than through the generated handler trait.
-struct WebRequests {
+struct WebApi {
 
   /// Login a user
   ///

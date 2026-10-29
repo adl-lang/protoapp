@@ -4,8 +4,8 @@ import { endpoints, ServiceBase } from "./service-base";
 import * as API from "@protoapp/adl/protoapp/apis/ui";
 import { RESOLVER } from "@protoapp/adl/resolver";
 
-const api = endpoints(RESOLVER, API.texprApiRequests(), API.makeApiRequests({}));
-const web = endpoints(RESOLVER, API.texprWebRequests(), API.makeWebRequests({}));
+const api = endpoints(RESOLVER, API.texprApi(), API.makeApi({}));
+const web = endpoints(RESOLVER, API.texprWebApi(), API.makeWebApi({}));
 
 export class Service extends ServiceBase {
   constructor(http: HttpFetch, baseUrl: string) {

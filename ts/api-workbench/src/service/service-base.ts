@@ -103,7 +103,7 @@ export interface Endpoint<I, O> {
  * The endpoints of an api struct, keyed by their ADL field names.
  *
  * A field holding a nested api becomes a nested `Endpoints`, so an
- * `AdminApiRequests` at field `admin` is reached as `api.admin.create_user`.
+ * `AdminApi` at field `admin` is reached as `api.admin.create_user`.
  */
 export type Endpoints<A> = {
   [K in keyof A]: A[K] extends HttpReq<unknown, unknown> ? Endpoint<ReqOf<A[K]>, RespOf<A[K]>> : Endpoints<A[K]>;

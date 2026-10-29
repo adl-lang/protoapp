@@ -28,8 +28,8 @@ async fn server_login() {
     let tokens = {
         // Check that we can login as joe
         let resp = server_public_req(
-            apis::ui::WebRequests::PATH_LOGIN,
-            apis::ui::WebRequests::def_login(),
+            apis::ui::WebApi::PATH_LOGIN,
+            apis::ui::WebApi::def_login(),
             &u1,
         )
         .await;
@@ -40,8 +40,8 @@ async fn server_login() {
     {
         // Check that we can refresh using the refresh token
         let resp = server_public_req(
-            apis::ui::WebRequests::PATH_REFRESH,
-            apis::ui::WebRequests::def_refresh(),
+            apis::ui::WebApi::PATH_REFRESH,
+            apis::ui::WebApi::def_refresh(),
             &RefreshReq {
                 refresh_token: Some(tokens.refresh_jwt),
             },
@@ -53,8 +53,8 @@ async fn server_login() {
     {
         // Check that we can't refresh using the access token
         let resp = server_public_req(
-            apis::ui::WebRequests::PATH_REFRESH,
-            apis::ui::WebRequests::def_refresh(),
+            apis::ui::WebApi::PATH_REFRESH,
+            apis::ui::WebApi::def_refresh(),
             &RefreshReq {
                 refresh_token: Some(tokens.access_jwt),
             },
@@ -66,8 +66,8 @@ async fn server_login() {
     {
         // Check that we can logout
         server_public_req(
-            apis::ui::WebRequests::PATH_LOGOUT,
-            apis::ui::WebRequests::def_logout(),
+            apis::ui::WebApi::PATH_LOGOUT,
+            apis::ui::WebApi::def_logout(),
             &Unit {},
         )
         .await;
@@ -76,8 +76,8 @@ async fn server_login() {
     {
         // Check that we can't login with the wrong password
         let resp = server_public_req(
-            apis::ui::WebRequests::PATH_LOGIN,
-            apis::ui::WebRequests::def_login(),
+            apis::ui::WebApi::PATH_LOGIN,
+            apis::ui::WebApi::def_login(),
             &apis::ui::LoginReq {
                 email: "joe@test.com".to_owned(),
                 password: "xxxxxx".to_owned(),
@@ -90,8 +90,8 @@ async fn server_login() {
     {
         // Check that we can't login with an invalid email
         let resp = server_public_req(
-            apis::ui::WebRequests::PATH_LOGIN,
-            apis::ui::WebRequests::def_login(),
+            apis::ui::WebApi::PATH_LOGIN,
+            apis::ui::WebApi::def_login(),
             &apis::ui::LoginReq {
                 email: "mike@test.com".to_owned(),
                 password: "abcde".to_owned(),
@@ -114,8 +114,8 @@ async fn server_user_profile() {
     let u1_jwt = login_user(&u1).await;
 
     let resp = server_auth_req(
-        apis::ui::ApiRequests::PATH_WHO_AM_I,
-        apis::ui::ApiRequests::def_who_am_i(),
+        apis::ui::Api::PATH_WHO_AM_I,
+        apis::ui::Api::def_who_am_i(),
         &u1_jwt,
         &(),
     )
@@ -173,8 +173,8 @@ async fn server_user_crud() {
 
     let u1_jwt = get_login_tokens(
         server_public_req(
-            apis::ui::WebRequests::PATH_LOGIN,
-            apis::ui::WebRequests::def_login(),
+            apis::ui::WebApi::PATH_LOGIN,
+            apis::ui::WebApi::def_login(),
             &u1,
         )
         .await,
@@ -183,8 +183,8 @@ async fn server_user_crud() {
     .access_jwt;
     let u2_jwt = get_login_tokens(
         server_public_req(
-            apis::ui::WebRequests::PATH_LOGIN,
-            apis::ui::WebRequests::def_login(),
+            apis::ui::WebApi::PATH_LOGIN,
+            apis::ui::WebApi::def_login(),
             &u2,
         )
         .await,
@@ -195,8 +195,8 @@ async fn server_user_crud() {
     // u1 is not an admin, so shouldn't be allowed to create new users
     {
         let http_resp = server_req(
-            &admin_path(apis::ui::AdminApiRequests::PATH_CREATE_USER),
-            apis::ui::AdminApiRequests::def_create_user(),
+            &admin_path(apis::ui::AdminApi::PATH_CREATE_USER),
+            apis::ui::AdminApi::def_create_user(),
             Some(&u1_jwt),
             &apis::ui::UserDetails {
                 fullname: "Austin".to_owned(),
@@ -212,8 +212,8 @@ async fn server_user_crud() {
     // u2 is an admin, so can create new users
     {
         let http_resp = server_req(
-            &admin_path(apis::ui::AdminApiRequests::PATH_CREATE_USER),
-            apis::ui::AdminApiRequests::def_create_user(),
+            &admin_path(apis::ui::AdminApi::PATH_CREATE_USER),
+            apis::ui::AdminApi::def_create_user(),
             Some(&u2_jwt),
             &apis::ui::UserDetails {
                 fullname: "Austin".to_owned(),
@@ -229,8 +229,8 @@ async fn server_user_crud() {
     // and can query existing users
     {
         let resp = server_auth_req(
-            &admin_path(apis::ui::AdminApiRequests::PATH_QUERY_USERS),
-            apis::ui::AdminApiRequests::def_query_users(),
+            &admin_path(apis::ui::AdminApi::PATH_QUERY_USERS),
+            apis::ui::AdminApi::def_query_users(),
             &u2_jwt,
             &apis::ui::QueryUsersReq {
                 page: PageReq {
@@ -257,8 +257,8 @@ async fn server_security_policy() {
     {
         // A public endpoint works with no credentials at all
         let resp = server_req(
-            apis::ui::ApiRequests::PATH_HEALTHY,
-            apis::ui::ApiRequests::def_healthy(),
+            apis::ui::Api::PATH_HEALTHY,
+            apis::ui::Api::def_healthy(),
             None,
             &(),
         )
@@ -270,8 +270,8 @@ async fn server_security_policy() {
         // An unusable token must not fail a public endpoint: it is ignored,
         // rather than rejected, so a stale token can't lock a client out.
         let resp = server_req(
-            apis::ui::ApiRequests::PATH_HEALTHY,
-            apis::ui::ApiRequests::def_healthy(),
+            apis::ui::Api::PATH_HEALTHY,
+            apis::ui::Api::def_healthy(),
             Some("garbage"),
             &(),
         )
@@ -282,8 +282,8 @@ async fn server_security_policy() {
     {
         // ... in particular, login still works while carrying a stale token
         let resp = server_req(
-            apis::ui::WebRequests::PATH_LOGIN,
-            apis::ui::WebRequests::def_login(),
+            apis::ui::WebApi::PATH_LOGIN,
+            apis::ui::WebApi::def_login(),
             Some("garbage"),
             &u1,
         )
@@ -296,8 +296,8 @@ async fn server_security_policy() {
         // reaches the handler as claims, which public handlers may come to use)
         let jwt = login_user(&u1).await;
         let resp = server_req(
-            apis::ui::ApiRequests::PATH_HEALTHY,
-            apis::ui::ApiRequests::def_healthy(),
+            apis::ui::Api::PATH_HEALTHY,
+            apis::ui::Api::def_healthy(),
             Some(&jwt),
             &(),
         )
@@ -308,8 +308,8 @@ async fn server_security_policy() {
     {
         // A token endpoint rejects a request with no credentials
         let resp = server_req(
-            apis::ui::ApiRequests::PATH_WHO_AM_I,
-            apis::ui::ApiRequests::def_who_am_i(),
+            apis::ui::Api::PATH_WHO_AM_I,
+            apis::ui::Api::def_who_am_i(),
             None,
             &(),
         )
@@ -320,8 +320,8 @@ async fn server_security_policy() {
     {
         // A role restricted endpoint rejects absent credentials as 401, not 403
         let resp = server_req(
-            &admin_path(apis::ui::AdminApiRequests::PATH_QUERY_USERS),
-            apis::ui::AdminApiRequests::def_query_users(),
+            &admin_path(apis::ui::AdminApi::PATH_QUERY_USERS),
+            apis::ui::AdminApi::def_query_users(),
             None,
             &apis::ui::QueryUsersReq {
                 page: PageReq {
@@ -337,8 +337,8 @@ async fn server_security_policy() {
     {
         // ... and one with an unusable token
         let resp = server_req(
-            apis::ui::ApiRequests::PATH_WHO_AM_I,
-            apis::ui::ApiRequests::def_who_am_i(),
+            apis::ui::Api::PATH_WHO_AM_I,
+            apis::ui::Api::def_who_am_i(),
             Some("garbage"),
             &(),
         )
@@ -350,8 +350,8 @@ async fn server_security_policy() {
         // ... but accepts a valid one
         let jwt = login_user(&u1).await;
         let resp = server_req(
-            apis::ui::ApiRequests::PATH_WHO_AM_I,
-            apis::ui::ApiRequests::def_who_am_i(),
+            apis::ui::Api::PATH_WHO_AM_I,
+            apis::ui::Api::def_who_am_i(),
             Some(&jwt),
             &(),
         )
@@ -364,8 +364,8 @@ async fn server_security_policy() {
         // the 401s above for absent or unusable credentials.
         let jwt = login_user(&u1).await;
         let resp = server_req(
-            &admin_path(apis::ui::AdminApiRequests::PATH_CREATE_USER),
-            apis::ui::AdminApiRequests::def_create_user(),
+            &admin_path(apis::ui::AdminApi::PATH_CREATE_USER),
+            apis::ui::AdminApi::def_create_user(),
             Some(&jwt),
             &apis::ui::UserDetails {
                 fullname: "Austin".to_owned(),
@@ -384,8 +384,8 @@ async fn server_security_policy() {
 
 async fn send_message(jwt: &str, message: &str) {
     let _ = server_auth_req(
-        apis::ui::ApiRequests::PATH_NEW_MESSAGE,
-        apis::ui::ApiRequests::def_new_message(),
+        apis::ui::Api::PATH_NEW_MESSAGE,
+        apis::ui::Api::def_new_message(),
         jwt,
         &apis::ui::NewMessageReq {
             message: message.to_owned(),
@@ -396,8 +396,8 @@ async fn send_message(jwt: &str, message: &str) {
 
 async fn recent_messages(jwt: &str, offset: u64, limit: u64) -> Paginated<Message> {
     server_auth_req(
-        apis::ui::ApiRequests::PATH_RECENT_MESSAGES,
-        apis::ui::ApiRequests::def_recent_messages(),
+        apis::ui::Api::PATH_RECENT_MESSAGES,
+        apis::ui::Api::def_recent_messages(),
         jwt,
         &apis::ui::RecentMessagesReq {
             page: PageReq { offset, limit },

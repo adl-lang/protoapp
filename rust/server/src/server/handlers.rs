@@ -5,9 +5,9 @@ use poem::web::Json;
 use adl::custom::common::db::DbKey;
 use adl::gen::common::http::Unit;
 use adl::gen::protoapp::apis::ui::{
-    AdminApiRequestsHandlers, ApiRequestsHandlers, LoginReq, LoginResp, LoginTokens, Message,
-    Paginated, QueryUsersReq, RecentMessagesReq, RefreshReq, RefreshResp, User, UserDetails,
-    UserWithId, WebRequests, WebRequestsHandlers, WithId,
+    AdminApiHandlers, ApiHandlers, LoginReq, LoginResp, LoginTokens, Message, Paginated,
+    QueryUsersReq, RecentMessagesReq, RefreshReq, RefreshResp, User, UserDetails, UserWithId,
+    WebApi, WebApiHandlers, WithId,
 };
 use adl::gen::protoapp::config::server::ServerConfig;
 use adl::gen::protoapp::db::{AppUser, AppUserId};
@@ -22,19 +22,19 @@ use crate::server::{db, jwt, AppState};
 
 type ReqContext = AdlReqContext<AppState>;
 
-/// Implements the generated [`ApiRequestsHandlers`] trait, which carries one
-/// method per endpoint declared in the ADL `ApiRequests` struct. Adding an
-/// endpoint there stops this impl compiling until it is implemented.
+/// Implements the generated [`ApiHandlers`] trait, which carries one method per
+/// endpoint declared in the ADL `Api` struct. Adding an endpoint there stops
+/// this impl compiling until it is implemented.
 ///
-/// The admin endpoints are in the [`AdminApiRequestsHandlers`] impl below,
-/// since the ADL nests them in their own struct. The cookie endpoints are in
-/// the [`WebRequestsHandlers`] impl after that. They
-/// belong to the ADL `WebRequests` struct and are mounted by hand, since they
-/// need poem's `CookieJar`, but implementing the generated trait keeps them
-/// checked against the ADL in the same way.
+/// The admin endpoints are in the [`AdminApiHandlers`] impl below, since the
+/// ADL nests them in their own struct. The cookie endpoints are in the
+/// [`WebApiHandlers`] impl after that. They belong to the ADL `WebApi` struct
+/// and are mounted by hand, since they need poem's `CookieJar`, but
+/// implementing the generated trait keeps them checked against the ADL in the
+/// same way.
 pub struct Handlers;
 
-impl ApiRequestsHandlers<ReqContext> for Handlers {
+impl ApiHandlers<ReqContext> for Handlers {
     type Error = HandlerError;
 
     async fn healthy(&self, _ctx: ReqContext, _req: ()) -> Result<(), Self::Error> {
@@ -83,15 +83,14 @@ impl ApiRequestsHandlers<ReqContext> for Handlers {
     }
 }
 
-/// Implements the generated [`AdminApiRequestsHandlers`] trait, for the
-/// ADL `AdminApiRequests` struct nested at `ApiRequests.admin`. Its
-/// endpoints are mounted under that field name, so `create_user` is at
-/// `/admin/create_user`.
+/// Implements the generated [`AdminApiHandlers`] trait, for the ADL `AdminApi`
+/// struct nested at `Api.admin`. Its endpoints are mounted under that field
+/// name, so `create_user` is at `/admin/create_user`.
 ///
 /// A nested API gets its own trait rather than contributing methods to the
 /// enclosing one, but the same `Handlers` value serves both: the generated
 /// registration requires every nested trait of the handler type it is given.
-impl AdminApiRequestsHandlers<ReqContext> for Handlers {
+impl AdminApiHandlers<ReqContext> for Handlers {
     type Error = HandlerError;
 
     async fn create_user(
@@ -142,7 +141,7 @@ impl AdminApiRequestsHandlers<ReqContext> for Handlers {
     }
 }
 
-impl WebRequestsHandlers<ReqContext> for Handlers {
+impl WebApiHandlers<ReqContext> for Handlers {
     type Error = HandlerError;
 
     async fn login(&self, ctx: ReqContext, i: LoginReq) -> Result<LoginResp, Self::Error> {
@@ -198,7 +197,7 @@ pub async fn login_with_cookies(
     cookies: &CookieJar,
     i: Json<LoginReq>,
 ) -> poem::Result<Json<LoginResp>> {
-    let ctx = get_adl_request_context(req, &WebRequests::def_login().security)?;
+    let ctx = get_adl_request_context(req, &WebApi::def_login().security)?;
     let eresp = Handlers.login(ctx, i.0).await;
     if let Ok(LoginResp::Tokens(tokens)) = &eresp {
         let mut cookie = Cookie::new_with_str(REFRESH_TOKEN, tokens.refresh_jwt.clone());
@@ -214,7 +213,7 @@ pub async fn refresh_with_cookies(
     cookies: &CookieJar,
     mut i: Json<RefreshReq>,
 ) -> poem::Result<Json<RefreshResp>> {
-    let ctx = get_adl_request_context(req, &WebRequests::def_refresh().security)?;
+    let ctx = get_adl_request_context(req, &WebApi::def_refresh().security)?;
     let token_from_cookie = cookies.get(REFRESH_TOKEN).map(|c| c.value_str().to_owned());
 
     // If there's no refresh token in the request, use the one from the cookie
@@ -230,7 +229,7 @@ pub async fn logout_with_cookies(
     cookies: &CookieJar,
     mut i: Json<Unit>,
 ) -> poem::Result<Json<Unit>> {
-    let ctx = get_adl_request_context(req, &WebRequests::def_logout().security)?;
+    let ctx = get_adl_request_context(req, &WebApi::def_logout().security)?;
     cookies.remove(REFRESH_TOKEN);
     let eresp = Handlers.logout(ctx, i.0).await;
     eresp.map(Json).map_err(poem::Error::from)

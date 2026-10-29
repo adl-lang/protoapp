@@ -6,7 +6,7 @@ import * as common_strings from './../../common/strings';
 import * as common_time from './../../common/time';
 import * as protoapp_db from './../db';
 
-export interface ApiRequests {
+export interface Api {
   /**
    * AWS default compatible health check
    */
@@ -23,18 +23,18 @@ export interface ApiRequests {
    * Gets info about the logged in user
    */
   who_am_i: common_http.HttpReq<null, UserWithId>;
-  admin: AdminApiRequests;
+  admin: AdminApi;
 }
 
-export function makeApiRequests(
+export function makeApi(
   input: {
     healthy?: common_http.HttpReq<null, null>,
     new_message?: common_http.HttpReq<NewMessageReq, protoapp_db.MessageId>,
     recent_messages?: common_http.HttpReq<RecentMessagesReq, Paginated<Message>>,
     who_am_i?: common_http.HttpReq<null, UserWithId>,
-    admin?: AdminApiRequests,
+    admin?: AdminApi,
   }
-): ApiRequests {
+): Api {
   return {
     healthy: input.healthy === undefined ? {method : "get", security : {kind : "public"}, reqType : ADL.texprVoid(), respType : ADL.texprVoid()} : input.healthy,
     new_message: input.new_message === undefined ? {method : "post", security : {kind : "token"}, reqType : texprNewMessageReq(), respType : protoapp_db.texprMessageId()} : input.new_message,
@@ -44,16 +44,16 @@ export function makeApiRequests(
   };
 }
 
-const ApiRequests_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"ApiRequests","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"common.http","name":"HttpPath"},"value":"/"},{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"AWS default compatible health check\n"}],"default":{"kind":"just","value":{"method":"get","security":"public"}},"name":"healthy","serializedName":"healthy","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}},{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Post a message to the noticeboard\n"}],"default":{"kind":"just","value":{"security":"token"}},"name":"new_message","serializedName":"new_message","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"NewMessageReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.db","name":"MessageId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Get recent noticeboard messages\n"}],"default":{"kind":"just","value":{"method":"get","security":"token"}},"name":"recent_messages","serializedName":"recent_messages","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RecentMessagesReq"}}},{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"Message"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"Paginated"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Gets info about the logged in user\n"}],"default":{"kind":"just","value":{"method":"get","security":"token"}},"name":"who_am_i","serializedName":"who_am_i","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserWithId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[],"default":{"kind":"just","value":{}},"name":"admin","serializedName":"admin","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"AdminApiRequests"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.ui"};
+const Api_AST : ADL.ScopedDecl =
+  {"decl":{"annotations":[],"name":"Api","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"common.http","name":"HttpPath"},"value":"/"},{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"AWS default compatible health check\n"}],"default":{"kind":"just","value":{"method":"get","security":"public"}},"name":"healthy","serializedName":"healthy","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}},{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Post a message to the noticeboard\n"}],"default":{"kind":"just","value":{"security":"token"}},"name":"new_message","serializedName":"new_message","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"NewMessageReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.db","name":"MessageId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Get recent noticeboard messages\n"}],"default":{"kind":"just","value":{"method":"get","security":"token"}},"name":"recent_messages","serializedName":"recent_messages","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RecentMessagesReq"}}},{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"Message"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"Paginated"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Gets info about the logged in user\n"}],"default":{"kind":"just","value":{"method":"get","security":"token"}},"name":"who_am_i","serializedName":"who_am_i","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"primitive","value":"Void"}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserWithId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[],"default":{"kind":"just","value":{}},"name":"admin","serializedName":"admin","typeExpr":{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"AdminApi"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.ui"};
 
-export const snApiRequests: ADL.ScopedName = {moduleName:"protoapp.apis.ui", name:"ApiRequests"};
+export const snApi: ADL.ScopedName = {moduleName:"protoapp.apis.ui", name:"Api"};
 
-export function texprApiRequests(): ADL.ATypeExpr<ApiRequests> {
-  return {value : {typeRef : {kind: "reference", value : snApiRequests}, parameters : []}};
+export function texprApi(): ADL.ATypeExpr<Api> {
+  return {value : {typeRef : {kind: "reference", value : snApi}, parameters : []}};
 }
 
-export interface AdminApiRequests {
+export interface AdminApi {
   /**
    * Create a new user
    */
@@ -68,13 +68,13 @@ export interface AdminApiRequests {
   query_users: common_http.HttpReq<QueryUsersReq, Paginated<UserWithId>>;
 }
 
-export function makeAdminApiRequests(
+export function makeAdminApi(
   input: {
     create_user?: common_http.HttpReq<UserDetails, protoapp_db.AppUserId>,
     update_user?: common_http.HttpReq<WithId<protoapp_db.AppUserId, UserDetails>, common_http.Unit>,
     query_users?: common_http.HttpReq<QueryUsersReq, Paginated<UserWithId>>,
   }
-): AdminApiRequests {
+): AdminApi {
   return {
     create_user: input.create_user === undefined ? {method : "post", security : {kind : "tokenWithRole", value : "admin"}, reqType : texprUserDetails(), respType : protoapp_db.texprAppUserId()} : input.create_user,
     update_user: input.update_user === undefined ? {method : "post", security : {kind : "tokenWithRole", value : "admin"}, reqType : texprWithId(protoapp_db.texprAppUserId(), texprUserDetails()), respType : common_http.texprUnit()} : input.update_user,
@@ -82,20 +82,20 @@ export function makeAdminApiRequests(
   };
 }
 
-const AdminApiRequests_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[],"name":"AdminApiRequests","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Create a new user\n"}],"default":{"kind":"just","value":{"security":{"tokenWithRole":"admin"}}},"name":"create_user","serializedName":"create_user","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserDetails"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.db","name":"AppUserId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Update a user\n"}],"default":{"kind":"just","value":{"security":{"tokenWithRole":"admin"}}},"name":"update_user","serializedName":"update_user","typeExpr":{"parameters":[{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.db","name":"AppUserId"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserDetails"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"WithId"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Query users\n"}],"default":{"kind":"just","value":{"method":"get","security":{"tokenWithRole":"admin"}}},"name":"query_users","serializedName":"query_users","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"QueryUsersReq"}}},{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserWithId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"Paginated"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.ui"};
+const AdminApi_AST : ADL.ScopedDecl =
+  {"decl":{"annotations":[],"name":"AdminApi","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Create a new user\n"}],"default":{"kind":"just","value":{"security":{"tokenWithRole":"admin"}}},"name":"create_user","serializedName":"create_user","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserDetails"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.db","name":"AppUserId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Update a user\n"}],"default":{"kind":"just","value":{"security":{"tokenWithRole":"admin"}}},"name":"update_user","serializedName":"update_user","typeExpr":{"parameters":[{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.db","name":"AppUserId"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserDetails"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"WithId"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Query users\n"}],"default":{"kind":"just","value":{"method":"get","security":{"tokenWithRole":"admin"}}},"name":"query_users","serializedName":"query_users","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"QueryUsersReq"}}},{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"UserWithId"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"Paginated"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.ui"};
 
-export const snAdminApiRequests: ADL.ScopedName = {moduleName:"protoapp.apis.ui", name:"AdminApiRequests"};
+export const snAdminApi: ADL.ScopedName = {moduleName:"protoapp.apis.ui", name:"AdminApi"};
 
-export function texprAdminApiRequests(): ADL.ATypeExpr<AdminApiRequests> {
-  return {value : {typeRef : {kind: "reference", value : snAdminApiRequests}, parameters : []}};
+export function texprAdminApi(): ADL.ATypeExpr<AdminApi> {
+  return {value : {typeRef : {kind: "reference", value : snAdminApi}, parameters : []}};
 }
 
 /**
  * Endpoints that read or write browser cookies, and so are wired up by hand
  * rather than through the generated handler trait.
  */
-export interface WebRequests {
+export interface WebApi {
   /**
    * Login a user
    * The response will set an httpOnly cookie containing the refresh token
@@ -113,13 +113,13 @@ export interface WebRequests {
   logout: common_http.HttpReq<common_http.Unit, common_http.Unit>;
 }
 
-export function makeWebRequests(
+export function makeWebApi(
   input: {
     login?: common_http.HttpReq<LoginReq, LoginResp>,
     refresh?: common_http.HttpReq<RefreshReq, RefreshResp>,
     logout?: common_http.HttpReq<common_http.Unit, common_http.Unit>,
   }
-): WebRequests {
+): WebApi {
   return {
     login: input.login === undefined ? {method : "post", security : {kind : "public"}, reqType : texprLoginReq(), respType : texprLoginResp()} : input.login,
     refresh: input.refresh === undefined ? {method : "post", security : {kind : "public"}, reqType : texprRefreshReq(), respType : texprRefreshResp()} : input.refresh,
@@ -127,13 +127,13 @@ export function makeWebRequests(
   };
 }
 
-const WebRequests_AST : ADL.ScopedDecl =
-  {"decl":{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Endpoints that read or write browser cookies, and so are wired up by hand\nrather than through the generated handler trait.\n"}],"name":"WebRequests","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Login a user\n\nThe response will set an httpOnly cookie containing the refresh token\n"}],"default":{"kind":"just","value":{"security":"public"}},"name":"login","serializedName":"login","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"LoginReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"LoginResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Get a refreshed access token\n\nIf the refresh token is not provided in the request body, then it will\nbe read from the refrestToken cookie in the request.\n"}],"default":{"kind":"just","value":{"security":"public"}},"name":"refresh","serializedName":"refresh","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RefreshReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RefreshResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Clear the `refreshToken` cookie.\n"}],"default":{"kind":"just","value":{"security":"public"}},"name":"logout","serializedName":"logout","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.ui"};
+const WebApi_AST : ADL.ScopedDecl =
+  {"decl":{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Endpoints that read or write browser cookies, and so are wired up by hand\nrather than through the generated handler trait.\n"}],"name":"WebApi","type_":{"kind":"struct_","value":{"fields":[{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Login a user\n\nThe response will set an httpOnly cookie containing the refresh token\n"}],"default":{"kind":"just","value":{"security":"public"}},"name":"login","serializedName":"login","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"LoginReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"LoginResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Get a refreshed access token\n\nIf the refresh token is not provided in the request body, then it will\nbe read from the refrestToken cookie in the request.\n"}],"default":{"kind":"just","value":{"security":"public"}},"name":"refresh","serializedName":"refresh","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RefreshReq"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"protoapp.apis.ui","name":"RefreshResp"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}},{"annotations":[{"key":{"moduleName":"sys.annotations","name":"Doc"},"value":"Clear the `refreshToken` cookie.\n"}],"default":{"kind":"just","value":{"security":"public"}},"name":"logout","serializedName":"logout","typeExpr":{"parameters":[{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}},{"parameters":[],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"Unit"}}}],"typeRef":{"kind":"reference","value":{"moduleName":"common.http","name":"HttpReq"}}}}],"typeParams":[]}},"version":{"kind":"nothing"}},"moduleName":"protoapp.apis.ui"};
 
-export const snWebRequests: ADL.ScopedName = {moduleName:"protoapp.apis.ui", name:"WebRequests"};
+export const snWebApi: ADL.ScopedName = {moduleName:"protoapp.apis.ui", name:"WebApi"};
 
-export function texprWebRequests(): ADL.ATypeExpr<WebRequests> {
-  return {value : {typeRef : {kind: "reference", value : snWebRequests}, parameters : []}};
+export function texprWebApi(): ADL.ATypeExpr<WebApi> {
+  return {value : {typeRef : {kind: "reference", value : snWebApi}, parameters : []}};
 }
 
 export interface LoginReq {
@@ -530,9 +530,9 @@ export function texprWithId<I, T>(texprI : ADL.ATypeExpr<I>, texprT : ADL.ATypeE
 }
 
 export const _AST_MAP: { [key: string]: ADL.ScopedDecl } = {
-  "protoapp.apis.ui.ApiRequests" : ApiRequests_AST,
-  "protoapp.apis.ui.AdminApiRequests" : AdminApiRequests_AST,
-  "protoapp.apis.ui.WebRequests" : WebRequests_AST,
+  "protoapp.apis.ui.Api" : Api_AST,
+  "protoapp.apis.ui.AdminApi" : AdminApi_AST,
+  "protoapp.apis.ui.WebApi" : WebApi_AST,
   "protoapp.apis.ui.LoginReq" : LoginReq_AST,
   "protoapp.apis.ui.LoginResp" : LoginResp_AST,
   "protoapp.apis.ui.RefreshReq" : RefreshReq_AST,

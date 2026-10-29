@@ -7,17 +7,17 @@ use sqlx::Executor;
 
 use adl::gen::common::http::{HttpMethod, HttpReq};
 use adl::gen::protoapp::apis;
-use adl::gen::protoapp::apis::ui::{ApiRequests, LoginReq};
+use adl::gen::protoapp::apis::ui::{Api, LoginReq};
 use adl::gen::protoapp::config::server::{DbConnectionConfig, ServerConfig};
 
 use crate::server::passwords::hash_password;
 
-/// The full path of an endpoint of the nested `AdminApiRequests` API.
+/// The full path of an endpoint of the nested `AdminApi` API.
 ///
 /// Its own `PATH_` constants are relative to where it is mounted, which is the
-/// `admin` field of `ApiRequests`, so the two compose.
+/// `admin` field of `Api`, so the two compose.
 pub fn admin_path(path: &str) -> String {
-    format!("{}{}", ApiRequests::PATH_ADMIN, path)
+    format!("{}{}", Api::PATH_ADMIN, path)
 }
 
 pub struct DbTestEnv {
@@ -208,8 +208,8 @@ pub async fn create_test_user(
 
 pub async fn login_user(login_req: &LoginReq) -> String {
     let resp = server_public_req(
-        apis::ui::WebRequests::PATH_LOGIN,
-        apis::ui::WebRequests::def_login(),
+        apis::ui::WebApi::PATH_LOGIN,
+        apis::ui::WebApi::def_login(),
         login_req,
     )
     .await;
