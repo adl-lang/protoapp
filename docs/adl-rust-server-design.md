@@ -56,13 +56,17 @@ already applied. The relevant files are `adl/common/http.adl`,
    endpoint by hand; it now makes one `adl_api_at` call per API. See the macro section
    below.
 2. **Typed state and JWT checker.** Hold `Arc<S>` and `Arc<dyn JwtSecurityCheck>` in the
-   router instead of `req.data().expect()`.
+   router instead of `req.data().expect()`. Half done in passing: `AdlReqContext` now
+   holds nothing but the state, since the caller's identity became a separate handler
+   argument, so the remaining step is to collapse the wrapper and stop reaching through
+   poem's extension map.
 3. **Fix the security-check order. DONE** (commit `15e0fc0`). Any `Authorization` header
    was decoded with `?` before the endpoint policy was consulted, so an expired or
    malformed token gave a 401 even on `public` endpoints such as login or refresh, making
    the `HttpSecurity::Public` arm dead code whenever a header was present. A bad token is
-   now only fatal where a token is required; on a public endpoint it is anonymous. A valid
-   token on a public endpoint still reaches the handler as claims.
+   now only fatal where a token is required; on a public endpoint it is anonymous. A
+   credential on a public request is now ignored outright, since such a handler takes no
+   identity at all — see the security section below.
 
    Two notes on the defect, since they bear on how urgently the rest of this list matters.
    It was fail-closed — a bad token never yielded claims, so there was no bypass, only
@@ -320,6 +324,51 @@ generate one for a type it only sees by name. Forgetting it surfaces as an unsat
 
 `http_api::tests::nested_api_paths_are_relative_to_their_mount_point` pins the
 composition rule, and the server tests exercise `/admin/*` over real HTTP.
+
+### Security enforced by the registration. DONE
+
+The ADL has always declared each endpoint's policy, and `check_security` has always run
+before the handler. What was missing is that the *type* said nothing about it: the
+handler received `claims: Option<AccessClaims>` and decided for itself. Two consequences.
+`new_message` and `who_am_i` called a local `user_from_claims`, which re-checked a
+guarantee the framework had already made, and additionally required
+`role == ROLE_USER || role == ROLE_ADMIN` — a condition the ADL does not express, so the
+effective policy was split between two files and only one of them is what the clients and
+the workbench read.
+
+Now the policy decides the handler's signature, which the derive can do because
+`@HttpSecurity` is an annotation and so available at expansion time. This is the whole
+reason the method and security moved out of `HttpReq`.
+
+- A `public` endpoint's handler takes `(ctx, req)`. Every other one takes
+  `(ctx, identity, req)`, where `Identity` is an associated type of both the generated
+  handler trait and `Mount`, equated by the generated impl the same way `Error` is. There
+  is no `Option`: a handler of that shape cannot be reached without one.
+- `Mount::mount` split into `mount_public` and `mount_secured`. `mount_public` has no way
+  to supply an identity; `mount_secured` can only call its handler by producing a
+  `Self::Identity`, and the only thing that produces one is the policy check. So neither
+  the handler nor the host can skip it — the host would have to fabricate an identity, and
+  it has nothing to fabricate one from.
+- `JwtSecurityCheck::check_security` returns `HandlerResult<AccessClaims>` rather than
+  `HandlerResult<Option<AccessClaims>>`, because every policy it is now called for
+  requires a credential. A public endpoint does not call it, so the `HttpSecurity::Public`
+  arm is unreachable and logs an error rather than granting access.
+- `AdlReqContext` lost its `claims` field, and `user_from_claims` is gone. A handler that
+  does not care who called takes `_identity`, which is visibly "not interested" rather
+  than "forgot to check".
+
+One deliberate widening: a `token` endpoint now accepts any role, where `user_from_claims`
+restricted it to `user` or `admin`. With only those two roles defined that is the same
+set, but the policy is now entirely in the ADL — to restrict an endpoint to a role, say
+so with `tokenWithRole` and every backend sees it.
+
+`server_security_policy` pins nine policy/credential combinations, and all nine assert on
+the response status alone. Every one of them should still hold: absent and unusable
+credentials are still 401 on a secured endpoint, the wrong role is still 403, and a
+public endpoint still answers 200 with no credential, a stale one or a valid one. Only
+one comment in that test needed changing, where it said a valid token on a public
+endpoint reaches the handler as claims. The suite needs `DB_CONNECTION_URL` and has not
+been run against this change.
 
 ### Mixing example (axum host)
 

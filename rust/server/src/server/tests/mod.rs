@@ -307,8 +307,9 @@ async fn server_security_policy() {
     }
 
     {
-        // A valid token on a public endpoint is still accepted (and still
-        // reaches the handler as claims, which public handlers may come to use)
+        // A valid token on a public endpoint is still accepted. It is not
+        // looked at: a public endpoint's handler takes no identity, so the
+        // credential is ignored whether it is good or bad.
         let jwt = login_user(&u1).await;
         let resp = server_req(
             apis::ui::Api::PATH_HEALTHY,

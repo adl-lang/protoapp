@@ -18,10 +18,18 @@ pub use crate::gen::common::http::{HttpMethod, HttpSecurity};
 /// A boxed future, as returned by an erased handler.
 pub type BoxFuture<T> = Pin<Box<dyn Future<Output = T> + Send + 'static>>;
 
-/// An erased endpoint handler: takes the request context and the decoded
-/// request body, and resolves to the response or an error.
+/// An erased handler for a `public` endpoint: takes the request context and
+/// the decoded request body, and resolves to the response or an error.
 pub type Handler<Ctx, I, O, E> =
     Box<dyn Fn(Ctx, I) -> BoxFuture<Result<O, E>> + Send + Sync + 'static>;
+
+/// An erased handler for an endpoint whose policy requires a credential.
+///
+/// Takes the caller's identity in addition, which the host has authenticated
+/// against the endpoint's policy before calling. There is no `Option`: a
+/// handler of this shape cannot be reached without one.
+pub type SecuredHandler<Ctx, Id, I, O, E> =
+    Box<dyn Fn(Ctx, Id, I) -> BoxFuture<Result<O, E>> + Send + Sync + 'static>;
 
 /// A host that ADL endpoints can be mounted into.
 ///
@@ -32,20 +40,48 @@ pub trait Mount<Ctx>: Sized {
     /// Error the host maps to an HTTP response.
     type Error;
 
-    /// Mount one endpoint at `path`, with `method` and `security` as the ADL
-    /// declares them. `handler` is the implementation, already erased to its
-    /// wire types.
+    /// The caller's identity, as this host authenticates it. A verified JWT's
+    /// claims, a session record, whatever the host deals in.
     ///
-    /// All three come from the declaration rather than from a value: the path
-    /// from the endpoint's ADL field name or its `@HttpPath`, the other two
-    /// from `@HttpMethod` and `@HttpSecurity`. Only the generated code has
-    /// them, which is why they are passed rather than read off an `HttpReq`.
-    fn mount<I, O>(
+    /// `Send + 'static` because it is handed to a handler across an await, in
+    /// a future the host may move between threads.
+    type Identity: Send + 'static;
+
+    /// Mount a `public` endpoint at `path`, with `method` as the ADL declares
+    /// it.
+    ///
+    /// Both come from the declaration rather than from a value: the path from
+    /// the endpoint's ADL field name or its `@HttpPath`, the method from
+    /// `@HttpMethod`. Only the generated code has them, which is why they are
+    /// passed rather than read off an `HttpReq`.
+    ///
+    /// The handler takes no identity, and this signature gives the host no
+    /// way to supply one. A credential on a public request is ignored, which
+    /// is what lets a client holding a stale token still reach login.
+    fn mount_public<I, O>(
+        self,
+        path: &str,
+        method: HttpMethod,
+        handler: Handler<Ctx, I, O, Self::Error>,
+    ) -> Self
+    where
+        I: DeserializeOwned + Send + Sync + 'static,
+        O: Serialize + Send + Sync + 'static;
+
+    /// Mount an endpoint whose `security` requires a credential.
+    ///
+    /// The implementation must authenticate the request against `security`
+    /// and reject it if it does not pass, because the only way to call
+    /// `handler` is to produce a [`Mount::Identity`]. Enforcement therefore
+    /// cannot be left to the handler, nor forgotten by it: a handler that
+    /// ignores its identity argument is merely not interested in who called,
+    /// never unguarded.
+    fn mount_secured<I, O>(
         self,
         path: &str,
         method: HttpMethod,
         security: &HttpSecurity,
-        handler: Handler<Ctx, I, O, Self::Error>,
+        handler: SecuredHandler<Ctx, Self::Identity, I, O, Self::Error>,
     ) -> Self
     where
         I: DeserializeOwned + Send + Sync + 'static,

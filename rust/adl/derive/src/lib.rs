@@ -41,6 +41,14 @@
 //! `security_<field>`, the latter a function because `tokenWithRole` carries
 //! a `String`.
 //!
+//! The policy also decides the handler's signature. A `public` endpoint's
+//! method takes `(ctx, req)`; every other one takes `(ctx, identity, req)`,
+//! where `Identity` is an associated type the host supplies and has already
+//! checked against the policy. There is no `Option` to unwrap and no check to
+//! forget, and the registration mounts the two through `Mount::mount_public`
+//! and `Mount::mount_secured` respectively — the latter being callable only
+//! by producing an identity.
+//!
 //! # Nested APIs
 //!
 //! A field whose type is not an `HttpReq` is taken to be another API struct,
@@ -222,13 +230,23 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
             req,
             resp,
             docs,
+            security,
             ..
         } = e;
+        // A public endpoint's handler takes no identity; every other one
+        // takes a verified identity rather than an optional credential, so a
+        // handler cannot be written that forgets to check, or reached without
+        // the host having checked.
+        let identity = match security {
+            Security::Public => quote! {},
+            _ => quote! { identity: Self::Identity, },
+        };
         quote! {
             #(#docs)*
             fn #name(
                 &self,
                 ctx: Ctx,
+                #identity
                 req: #req,
             ) -> impl ::core::future::Future<Output = ::core::result::Result<#resp, Self::Error>> + ::core::marker::Send;
         }
@@ -255,7 +273,7 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         );
         quote! {
             #[doc = #assoc_doc]
-            type #assoc: #handlers<Ctx, Error = Self::Error>;
+            type #assoc: #handlers<Ctx, Error = Self::Error, Identity = Self::Identity>;
 
             #[doc = #fn_doc]
             fn #name(&self) -> ::std::sync::Arc<Self::#assoc>;
@@ -274,19 +292,38 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         let name = &e.name;
         let path_const = &e.path_const;
         let method = method_expr(&e.method, &runtime);
-        let security = security_expr(&e.security, &runtime);
-        quote! {
-            let mount = {
-                let handlers = handlers.clone();
-                mount.mount(
+        let call = match &e.security {
+            Security::Public => quote! {
+                mount.mount_public(
                     &::std::format!("{}{}", prefix, Self::#path_const),
                     #method,
-                    &#security,
                     ::std::boxed::Box::new(move |ctx, req| {
                         let handlers = handlers.clone();
                         ::std::boxed::Box::pin(async move { handlers.#name(ctx, req).await })
                     }),
                 )
+            },
+            security => {
+                let security = security_expr(security, &runtime);
+                quote! {
+                    mount.mount_secured(
+                        &::std::format!("{}{}", prefix, Self::#path_const),
+                        #method,
+                        &#security,
+                        ::std::boxed::Box::new(move |ctx, identity, req| {
+                            let handlers = handlers.clone();
+                            ::std::boxed::Box::pin(async move {
+                                handlers.#name(ctx, identity, req).await
+                            })
+                        }),
+                    )
+                }
+            }
+        };
+        quote! {
+            let mount = {
+                let handlers = handlers.clone();
+                #call
             };
         }
     });
@@ -401,6 +438,11 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
             /// Error returned by every handler; mapped to a response by the host.
             type Error;
 
+            /// The caller's identity, as the host authenticates it. Passed to
+            /// every endpoint whose `@HttpSecurity` is not `public`, already
+            /// checked against that policy.
+            type Identity;
+
             #(#methods)*
             #(#nested_items)*
         }
@@ -409,7 +451,7 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         where
             Ctx: ::core::marker::Send + 'static,
             M: #runtime::Mount<Ctx>,
-            H: #trait_name<Ctx, Error = M::Error>,
+            H: #trait_name<Ctx, Error = M::Error, Identity = M::Identity>,
         {
             #[doc = #register_doc]
             fn register_at(&self, prefix: &str, mount: M, handlers: ::std::sync::Arc<H>) -> M {
