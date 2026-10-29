@@ -365,10 +365,10 @@ so with `tokenWithRole` and every backend sees it.
 `server_security_policy` pins nine policy/credential combinations, and all nine assert on
 the response status alone. Every one of them should still hold: absent and unusable
 credentials are still 401 on a secured endpoint, the wrong role is still 403, and a
-public endpoint still answers 200 with no credential, a stale one or a valid one. Only
-one comment in that test needed changing, where it said a valid token on a public
-endpoint reaches the handler as claims. The suite needs `DB_CONNECTION_URL` and has not
-been run against this change.
+public endpoint still answers 200 with no credential, a stale one or a valid one. All
+nine do still hold: the suite was run against this change and passes. Only one comment in
+that test needed changing, where it said a valid token on a public endpoint reaches the
+handler as claims.
 
 ### Mixing example (axum host)
 
