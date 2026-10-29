@@ -3,9 +3,16 @@ module common.http
 
 import adlc.config.rust.*;
 
-// Carry uses of HttpPath through into the generated rust, as
+// Carry uses of these annotations through into the generated rust, as
 // #[adl_annotation(..)] attributes, so that the HttpApi derive can read them
 // at expansion time. See rust/adl/derive.
 annotation HttpPath RustEmitAnnotation null;
+annotation HttpMethod RustEmitAnnotation null;
+annotation HttpSecurity RustEmitAnnotation null;
+
+// Both appear in log messages and in test assertions, so they want Debug on
+// top of adlc's default derives.
+annotation HttpMethod RustExtraDeriveTraits ["Debug"];
+annotation HttpSecurity RustExtraDeriveTraits ["Debug"];
 
 };

@@ -11,7 +11,9 @@ use std::pin::Pin;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 
-use crate::gen::common::http::HttpReq;
+// Re-exported so that generated code can name them through the one runtime
+// path it is given, rather than having to know where adlc put the module.
+pub use crate::gen::common::http::{HttpMethod, HttpSecurity};
 
 /// A boxed future, as returned by an erased handler.
 pub type BoxFuture<T> = Pin<Box<dyn Future<Output = T> + Send + 'static>>;
@@ -30,18 +32,19 @@ pub trait Mount<Ctx>: Sized {
     /// Error the host maps to an HTTP response.
     type Error;
 
-    /// Mount one endpoint at `path`. `req` carries the method and security
-    /// policy; `handler` is the implementation, already erased to its wire
-    /// types.
+    /// Mount one endpoint at `path`, with `method` and `security` as the ADL
+    /// declares them. `handler` is the implementation, already erased to its
+    /// wire types.
     ///
-    /// `path` is complete, including any prefix contributed by the APIs this
-    /// endpoint is nested under. It is passed separately because it is not
-    /// part of `HttpReq`: it is derived from the endpoint's ADL field name,
-    /// which only the generated code knows.
+    /// All three come from the declaration rather than from a value: the path
+    /// from the endpoint's ADL field name or its `@HttpPath`, the other two
+    /// from `@HttpMethod` and `@HttpSecurity`. Only the generated code has
+    /// them, which is why they are passed rather than read off an `HttpReq`.
     fn mount<I, O>(
         self,
         path: &str,
-        req: &HttpReq<I, O>,
+        method: HttpMethod,
+        security: &HttpSecurity,
         handler: Handler<Ctx, I, O, Self::Error>,
     ) -> Self
     where
@@ -102,6 +105,34 @@ mod tests {
     #[test]
     fn http_path_annotation_overrides_the_field_name() {
         assert_eq!(Api::PATH_HEALTHY, "/");
+    }
+
+    /// The `@HttpMethod` and `@HttpSecurity` annotations reach the derive the
+    /// same way `@HttpPath` does, and become a constant and a function on the
+    /// API struct. Pinned here because every backend reads these two from the
+    /// ADL, so a change is a change to the wire protocol.
+    #[test]
+    fn method_and_security_come_from_annotations() {
+        use crate::gen::common::http::{HttpMethod, HttpSecurity};
+
+        assert_eq!(Api::METHOD_NEW_MESSAGE, HttpMethod::Post);
+        assert_eq!(Api::METHOD_WHO_AM_I, HttpMethod::Get);
+        // `new_message` and `who_am_i` take their policy from the `Api`
+        // struct's own annotation; `healthy` overrides it at the field. That
+        // the two resolve differently is the whole point of allowing a
+        // default, so pin both.
+        assert_eq!(Api::security_new_message(), HttpSecurity::Token);
+        assert_eq!(Api::security_who_am_i(), HttpSecurity::Token);
+        assert_eq!(Api::security_healthy(), HttpSecurity::Public);
+
+        // Every `AdminApi` endpoint inherits the role, which the ADL names
+        // once on the struct.
+        let admin = HttpSecurity::TokenWithRole("admin".to_owned());
+        assert_eq!(AdminApi::security_create_user(), admin);
+        assert_eq!(AdminApi::security_update_user(), admin);
+        assert_eq!(AdminApi::security_query_users(), admin);
+
+        assert_eq!(WebApi::security_login(), HttpSecurity::Public);
     }
 
     /// A nested API's paths are relative to where it is mounted, and the

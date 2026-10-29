@@ -1,7 +1,15 @@
 import { HttpFetch, HttpRequest } from "./http";
 
 import * as ADL from "@adllang/adl-runtime";
-import { HttpReq, snHttpReq, texprHttpPath } from "@protoapp/adl/common/http";
+import {
+  HttpMethod,
+  HttpReq,
+  HttpSecurity,
+  snHttpReq,
+  texprHttpMethod,
+  texprHttpPath,
+  texprHttpSecurity,
+} from "@protoapp/adl/common/http";
 import * as AST from "@protoapp/adl/sys/adlast";
 import { createJsonBinding, Json, JsonBinding, scopedNamesEqual } from "@adllang/adl-runtime";
 
@@ -20,7 +28,7 @@ export class ServiceBase {
     const bb = createBiBinding(this.resolver, endpoint.req);
     return (req) => {
       const jsonArgs = bb.reqJB.toJson(req);
-      if (endpoint.req.method === "get") {
+      if (endpoint.method === "get") {
         const queryString = encodeQueryString(jsonArgs);
         return this.requestAdl("get", endpoint.path, queryString, undefined, bb.respJB, undefined);
       } else {
@@ -33,7 +41,7 @@ export class ServiceBase {
     const bb = createBiBinding(this.resolver, endpoint.req);
     return (authToken: string, req) => {
       const jsonArgs = bb.reqJB.toJson(req);
-      if (endpoint.req.method === "get") {
+      if (endpoint.method === "get") {
         const queryString = encodeQueryString(jsonArgs);
         return this.requestAdl("get", endpoint.path, queryString, undefined, bb.respJB, authToken);
       } else {
@@ -97,6 +105,14 @@ export type AuthReqFn<I, O> = (authToken: string, req: I) => Promise<O>;
 /** An endpoint of an api struct: where it is mounted, and how to call it. */
 export interface Endpoint<I, O> {
   path: string;
+  method: HttpMethod;
+  security: HttpSecurity;
+
+  /**
+   * Carries no data of its own: an `HttpReq` is two type tokens, since the
+   * path, method and security all live in the declaration. It is kept for the
+   * `reqType`/`respType` the json bindings are built from.
+   */
   req: HttpReq<I, O>;
 }
 
@@ -111,11 +127,11 @@ export type Endpoints<A> = {
 };
 
 /**
- * Pair every endpoint of an api struct with the path it is mounted at.
+ * Pair every endpoint of an api struct with the declaration facts needed to
+ * call it: its path, method and security policy.
  *
- * `api` supplies each endpoint's method and security, which are runtime
- * values; `texpr` supplies its declaration, which is where the path comes
- * from, so both are needed.
+ * `texpr` supplies the declaration, which all three come from; `api` supplies
+ * the `HttpReq` values, which are what the json bindings are built from.
  *
  * A field that is not an `HttpReq` is taken to be a nested api, exactly as
  * the rust `HttpApi` derive takes it, and its endpoints are mounted under
@@ -139,7 +155,12 @@ function endpointsAt<A>(resolver: ADL.DeclResolver, texpr: ADL.ATypeExpr<A>, api
   for (const field of decl.decl.type_.value.fields) {
     const path = prefix + endpointPath(resolver, field);
     if (field.typeExpr.typeRef.kind === "reference" && scopedNamesEqual(field.typeExpr.typeRef.value, snHttpReq)) {
-      result[field.name] = { path, req: fields[field.name] as HttpReq<unknown, unknown> };
+      result[field.name] = {
+        path,
+        method: endpointMethod(resolver, field, decl.decl.annotations),
+        security: endpointSecurity(resolver, field, decl.decl.annotations),
+        req: fields[field.name] as HttpReq<unknown, unknown>,
+      };
     } else {
       result[field.name] = endpointsAt(resolver, ADL.makeATypeExpr<unknown>(field.typeExpr), fields[field.name], path);
     }
@@ -170,6 +191,48 @@ export function endpointPath(resolver: ADL.DeclResolver, field: AST.Field): stri
     throw new Error(`the HttpPath on ${field.name} is used verbatim, so it must start with "/", but is "${path}"`);
   }
   return path;
+}
+
+/**
+ * The http method of an endpoint: its own `@HttpMethod` annotation, else the
+ * one on its api struct, else post.
+ *
+ * Unlike the security policy, a wrong default here is harmless: the endpoint
+ * is merely uncacheable.
+ */
+export function endpointMethod(
+  resolver: ADL.DeclResolver,
+  field: AST.Field,
+  apiAnnotations: AST.Annotations,
+): HttpMethod {
+  const jb = createJsonBinding(resolver, texprHttpMethod());
+  return ADL.getAnnotation(jb, field.annotations) ?? ADL.getAnnotation(jb, apiAnnotations) ?? "post";
+}
+
+/**
+ * The security policy of an endpoint: its own `@HttpSecurity` annotation, else
+ * the one on its api struct.
+ *
+ * There is no fallback beyond that. An endpoint whose policy defaulted to
+ * public would be open with nothing in the ADL saying so, and the ADL is what
+ * every backend reads. The rust derive refuses to compile such a declaration;
+ * here it throws when the endpoints are walked, which is at startup.
+ *
+ * `apiAnnotations` are those of the struct the field belongs to, and not of
+ * any struct it is nested in: a nested api may be mounted at more than one
+ * field, so its policy belongs to its own declaration.
+ */
+export function endpointSecurity(
+  resolver: ADL.DeclResolver,
+  field: AST.Field,
+  apiAnnotations: AST.Annotations,
+): HttpSecurity {
+  const jb = createJsonBinding(resolver, texprHttpSecurity());
+  const security = ADL.getAnnotation(jb, field.annotations) ?? ADL.getAnnotation(jb, apiAnnotations);
+  if (security === undefined) {
+    throw new Error(`the endpoint ${field.name} resolves to no HttpSecurity: annotate the field, or its api struct`);
+  }
+  return security;
 }
 
 /** The request type of an `HttpReq` valued field. */

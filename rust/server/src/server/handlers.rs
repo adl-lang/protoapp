@@ -218,7 +218,7 @@ pub async fn login_with_cookies(
     cookies: &CookieJar,
     i: Json<LoginReq>,
 ) -> poem::Result<Json<LoginResp>> {
-    let ctx = get_adl_request_context(req, &WebApi::def_login().security)?;
+    let ctx = get_adl_request_context(req, &WebApi::security_login())?;
     let eresp = WebApiHandlersImpl.login(ctx, i.0).await;
     if let Ok(LoginResp::Tokens(tokens)) = &eresp {
         let mut cookie = Cookie::new_with_str(REFRESH_TOKEN, tokens.refresh_jwt.clone());
@@ -234,7 +234,7 @@ pub async fn refresh_with_cookies(
     cookies: &CookieJar,
     mut i: Json<RefreshReq>,
 ) -> poem::Result<Json<RefreshResp>> {
-    let ctx = get_adl_request_context(req, &WebApi::def_refresh().security)?;
+    let ctx = get_adl_request_context(req, &WebApi::security_refresh())?;
     let token_from_cookie = cookies.get(REFRESH_TOKEN).map(|c| c.value_str().to_owned());
 
     // If there's no refresh token in the request, use the one from the cookie
@@ -252,7 +252,7 @@ pub async fn logout_with_cookies(
     cookies: &CookieJar,
     mut i: Json<Unit>,
 ) -> poem::Result<Json<Unit>> {
-    let ctx = get_adl_request_context(req, &WebApi::def_logout().security)?;
+    let ctx = get_adl_request_context(req, &WebApi::security_logout())?;
     cookies.remove(REFRESH_TOKEN);
     let eresp = WebApiHandlersImpl.logout(ctx, i.0).await;
     eresp.map(Json).map_err(poem::Error::from)

@@ -99,27 +99,37 @@ impl DbTestEnv {
 
 pub async fn server_public_req<I: Serialize, O: DeserializeOwned>(
     path: &str,
+    method: HttpMethod,
     endpoint: HttpReq<I, O>,
     req: &I,
 ) -> O {
-    let resp = server_req(path, endpoint, None, req).await;
+    let resp = server_req(path, method, endpoint, None, req).await;
     assert_eq!(resp.status(), 200);
     resp.json().await.unwrap()
 }
 
 pub async fn server_auth_req<I: Serialize, O: DeserializeOwned>(
     path: &str,
+    method: HttpMethod,
     endpoint: HttpReq<I, O>,
     jwt: &str,
     req: &I,
 ) -> O {
-    let resp = server_req(path, endpoint, Some(jwt), req).await;
+    let resp = server_req(path, method, endpoint, Some(jwt), req).await;
     assert_eq!(resp.status(), 200);
     resp.json().await.unwrap()
 }
 
+/// Issue one request against the running test server.
+///
+/// `endpoint` carries no data any more: an `HttpReq` is two `PhantomData`
+/// fields, since the method, security and path all live in the ADL
+/// declaration. It stays in the signature purely to fix `I` and `O`, so that
+/// a call site can write `WebApi::def_login()` and have the response type
+/// inferred rather than annotated.
 pub async fn server_req<I: Serialize, O: DeserializeOwned>(
     path: &str,
+    method: HttpMethod,
     endpoint: HttpReq<I, O>,
     jwt: Option<&str>,
     req: &I,
@@ -133,7 +143,8 @@ pub async fn server_req<I: Serialize, O: DeserializeOwned>(
         );
     }
 
-    match endpoint.method {
+    let _ = endpoint;
+    match method {
         HttpMethod::Get => client
             .get(format!(
                 "http://localhost:8181{}{}",
@@ -209,6 +220,7 @@ pub async fn create_test_user(
 pub async fn login_user(login_req: &LoginReq) -> String {
     let resp = server_public_req(
         apis::ui::WebApi::PATH_LOGIN,
+        apis::ui::WebApi::METHOD_LOGIN,
         apis::ui::WebApi::def_login(),
         login_req,
     )

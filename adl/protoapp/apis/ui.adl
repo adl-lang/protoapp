@@ -1,8 +1,10 @@
 module protoapp.apis.ui {
 
 import common.http.Unit;
+import common.http.HttpMethod;
 import common.http.HttpPath;
 import common.http.HttpReq;
+import common.http.HttpSecurity;
 import common.time.Instant;
 import common.strings.EmailAddress;
 import common.strings.Password;
@@ -12,77 +14,60 @@ import common.strings.StringML;
 import protoapp.db.AppUserId;
 import protoapp.db.MessageId;
 
+@HttpMethod "get"
+@HttpSecurity "token"
 struct Api {
 
   /// AWS default compatible health check
   @HttpPath "/"
-  HttpReq<Void,Void> healthy = {
-    "method": "get",
-    "security" : "public"
-  };
+  @HttpSecurity "public"
+  HttpReq<Void,Void> healthy = {};
 
   /// Post a message to the noticeboard
-  HttpReq<NewMessageReq, MessageId> new_message = {
-    "security" : "token"
-  };
+  @HttpMethod "post"
+  HttpReq<NewMessageReq, MessageId> new_message = {};
 
   /// Get recent noticeboard messages
-  HttpReq<RecentMessagesReq, Paginated<Message> > recent_messages = {
-    "method": "get",
-    "security" : "token"
-  };
+  HttpReq<RecentMessagesReq, Paginated<Message> > recent_messages = {};
 
   /// Gets info about the logged in user
   // NOTE: Fails with 401 if the token is invalid or user does not exist
-  HttpReq<Void,UserWithId> who_am_i = {
-    "method": "get",
-    "security" : "token"
-  };
+  HttpReq<Void,UserWithId> who_am_i = {};
 
   AdminApi admin = {};
 };
 
+@HttpSecurity { "tokenWithRole": "admin" }
 struct AdminApi {
   /// Create a new user
-  HttpReq<UserDetails, AppUserId> create_user = {
-    "security" : { "tokenWithRole": "admin" }
-  };
+  HttpReq<UserDetails, AppUserId> create_user = {};
 
   /// Update a user
-  HttpReq<WithId<AppUserId,UserDetails>, Unit> update_user = {
-    "security" : { "tokenWithRole": "admin" }
-  };
+  HttpReq<WithId<AppUserId,UserDetails>, Unit> update_user = {};
 
   /// Query users
-  HttpReq<QueryUsersReq, Paginated<UserWithId>> query_users = {
-    "method": "get",
-    "security" : { "tokenWithRole": "admin" }
-  };
+  @HttpMethod "get"
+  HttpReq<QueryUsersReq, Paginated<UserWithId>> query_users = {};
 };
 
 /// Endpoints that read or write browser cookies, and so are wired up by hand
 /// rather than through the generated handler trait.
+@HttpSecurity "public"
 struct WebApi {
 
   /// Login a user
   ///
   /// The response will set an httpOnly cookie containing the refresh token
-  HttpReq<LoginReq, LoginResp> login = {
-    "security" : "public"
-  };
+  HttpReq<LoginReq, LoginResp> login = {};
 
   /// Get a refreshed access token
   ///
   /// If the refresh token is not provided in the request body, then it will
   /// be read from the refrestToken cookie in the request.
-  HttpReq<RefreshReq, RefreshResp> refresh = {
-    "security" : "public"
-  };
+  HttpReq<RefreshReq, RefreshResp> refresh = {};
 
   /// Clear the `refreshToken` cookie.
-  HttpReq<Unit, Unit> logout = {
-    "security" : "public"
-  };
+  HttpReq<Unit, Unit> logout = {};
 };
 
 struct LoginReq {

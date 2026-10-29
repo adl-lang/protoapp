@@ -16,6 +16,31 @@
 //! so that adding an endpoint to the ADL fails compilation until it is
 //! implemented, plus a `register` that mounts every endpoint into a host.
 //!
+//! # Method and security
+//!
+//! Both come from annotations, read here at expansion time. Either may sit on
+//! the api struct instead of the field, where it sets the default for that
+//! struct's own endpoints:
+//!
+//! ```ignore
+//! #[adl_annotation(name="common.http.HttpSecurity", value="{\"tokenWithRole\":\"admin\"}")]
+//! pub struct AdminApi {
+//!     pub create_user: HttpReq<UserDetails, AppUserId>,   // inherits the role
+//! }
+//! ```
+//!
+//! A struct default does not reach a nested api: that is a separate
+//! declaration, and one that may be nested at more than one field, so its
+//! policy belongs to its own declaration rather than to a mount point. The
+//! annotation on a nested field is an error for the same reason.
+//!
+//! The method falls back to post. The security policy does not fall back at
+//! all: an endpoint that resolves to no policy fails to compile, because one
+//! that quietly became public would be open with nothing in the ADL saying
+//! so. Each resolved value is emitted as `METHOD_<FIELD>` and
+//! `security_<field>`, the latter a function because `tokenWithRole` carries
+//! a `String`.
+//!
 //! # Nested APIs
 //!
 //! A field whose type is not an `HttpReq` is taken to be another API struct,
@@ -100,12 +125,42 @@ struct Endpoint {
     path: String,
     /// Identifier of the `PATH_<FIELD>` constant holding [`Endpoint::path`].
     path_const: Ident,
+    /// The endpoint's http method, from its `@HttpMethod` annotation.
+    method: Method,
+    /// Identifier of the `METHOD_<FIELD>` constant holding [`Endpoint::method`].
+    method_const: Ident,
+    /// The endpoint's security policy, from its `@HttpSecurity` annotation.
+    security: Security,
+    /// Identifier of the `security_<field>` function returning
+    /// [`Endpoint::security`]. A function rather than a constant because
+    /// `tokenWithRole` carries a `String`, which no constant can hold.
+    security_fn: Ident,
     /// Request type: the `I` of `HttpReq<I, O>`.
     req: Type,
     /// Response type: the `O` of `HttpReq<I, O>`.
     resp: Type,
     /// Doc comments on the field, carried onto the trait method.
     docs: Vec<syn::Attribute>,
+}
+
+/// An endpoint's http method. Post when `@HttpMethod` is absent, which is the
+/// default the ADL documents.
+#[derive(Clone)]
+enum Method {
+    Get,
+    Post,
+}
+
+/// An endpoint's security policy, from its `@HttpSecurity` annotation. There
+/// is no default; see [`http_security`].
+///
+/// A local copy of the ADL union rather than the generated type, because the
+/// generated code lives in the crate that depends on this one.
+#[derive(Clone)]
+enum Security {
+    Public,
+    Token,
+    TokenWithRole(String),
 }
 
 /// An API nested under a field of this one.
@@ -218,12 +273,15 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
     let mounts = endpoints.iter().map(|e| {
         let name = &e.name;
         let path_const = &e.path_const;
+        let method = method_expr(&e.method, &runtime);
+        let security = security_expr(&e.security, &runtime);
         quote! {
             let mount = {
                 let handlers = handlers.clone();
                 mount.mount(
                     &::std::format!("{}{}", prefix, Self::#path_const),
-                    &self.#name,
+                    #method,
+                    &#security,
                     ::std::boxed::Box::new(move |ctx, req| {
                         let handlers = handlers.clone();
                         ::std::boxed::Box::pin(async move { handlers.#name(ctx, req).await })
@@ -273,6 +331,39 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         }
     });
 
+    // The method as a constant, and the policy as a function, so that hand
+    // written wiring reads the declaration rather than restating it. The
+    // policy cannot be a constant: `tokenWithRole` carries a `String`.
+    let method_consts = endpoints.iter().map(|e| {
+        let Endpoint {
+            method,
+            method_const,
+            name,
+            ..
+        } = e;
+        let method = method_expr(method, &runtime);
+        let doc = format!("HTTP method of the `{name}` endpoint.");
+        quote! {
+            #[doc = #doc]
+            pub const #method_const: #runtime::HttpMethod = #method;
+        }
+    });
+
+    let security_fns = endpoints.iter().map(|e| {
+        let Endpoint {
+            security,
+            security_fn,
+            name,
+            ..
+        } = e;
+        let security = security_expr(security, &runtime);
+        let doc = format!("Security policy of the `{name}` endpoint.");
+        quote! {
+            #[doc = #doc]
+            pub fn #security_fn() -> #runtime::HttpSecurity { #security }
+        }
+    });
+
     let nested_path_consts = nested.iter().map(|n| {
         let Nested {
             path,
@@ -301,6 +392,8 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         impl #api {
             #(#path_consts)*
             #(#nested_path_consts)*
+            #(#method_consts)*
+            #(#security_fns)*
         }
 
         #[doc = #doc]
@@ -358,6 +451,14 @@ fn runtime_path(input: &DeriveInput) -> syn::Result<syn::Path> {
 /// the ADL Rust backend's un-aliased output is relied on here. Every other
 /// field is taken to be another API struct, nested under this one.
 fn collect_fields(input: &DeriveInput) -> syn::Result<(Vec<Endpoint>, Vec<Nested>)> {
+    // Defaults for this struct's own endpoints, which a field annotation
+    // overrides. They do not reach a nested API: that is a separate
+    // declaration, and one that may be nested at more than one field, so its
+    // policy has to belong to its own declaration rather than to wherever it
+    // happens to be mounted.
+    let api_method = http_method(&input.attrs)?;
+    let api_security = http_security(&input.attrs)?;
+
     let data = match &input.data {
         Data::Struct(d) => d,
         _ => {
@@ -393,6 +494,26 @@ fn collect_fields(input: &DeriveInput) -> syn::Result<(Vec<Endpoint>, Vec<Nested
 
         match http_req_args(&field.ty) {
             Some((req, resp)) => endpoints.push(Endpoint {
+                method: http_method(&field.attrs)?
+                    .or_else(|| api_method.clone())
+                    .unwrap_or(Method::Post),
+                method_const: format_ident!("METHOD_{}", unraw(&name).to_uppercase()),
+                security: match http_security(&field.attrs)?.or_else(|| api_security.clone()) {
+                    Some(security) => security,
+                    None => {
+                        return Err(syn::Error::new(
+                            field.span(),
+                            format!(
+                                "endpoint `{name}` resolves to no {HTTP_SECURITY}: annotate \
+                                 the field, or the api struct to set a default for all of \
+                                 its endpoints. There is no language level default, \
+                                 because an endpoint whose policy fell back to public \
+                                 would be open with nothing in the ADL saying so"
+                            ),
+                        ))
+                    }
+                },
+                security_fn: format_ident!("security_{}", unraw(&name)),
                 path,
                 path_const,
                 name,
@@ -406,6 +527,19 @@ fn collect_fields(input: &DeriveInput) -> syn::Result<(Vec<Endpoint>, Vec<Nested
                     .collect(),
             }),
             None => {
+                for forbidden in [HTTP_METHOD, HTTP_SECURITY] {
+                    if let Some(annotation) = sole_annotation(&field.attrs, forbidden)? {
+                        return Err(syn::Error::new(
+                            annotation.span,
+                            format!(
+                                "{forbidden} on `{name}` would apply to a nested api at \
+                                 one of its mount points. Annotate the nested struct, or \
+                                 its endpoints, so that it means the same wherever it is \
+                                 mounted"
+                            ),
+                        ));
+                    }
+                }
                 let assoc = Ident::new(&pascal_case(&unraw(&name)), name.span());
                 if assoc == "Error" {
                     return Err(syn::Error::new(
@@ -459,6 +593,122 @@ fn handlers_trait(ty: &Type) -> syn::Result<syn::Path> {
 /// Scoped name of the ADL annotation that overrides an endpoint's path.
 const HTTP_PATH: &str = "common.http.HttpPath";
 
+/// Scoped name of the ADL annotation giving an endpoint's http method.
+const HTTP_METHOD: &str = "common.http.HttpMethod";
+
+/// Scoped name of the ADL annotation giving an endpoint's security policy.
+const HTTP_SECURITY: &str = "common.http.HttpSecurity";
+
+/// The single annotation named `name` in `attrs`, if there is one.
+///
+/// Takes the attribute list rather than the field, because `@HttpMethod` and
+/// `@HttpSecurity` may also annotate the API struct itself, where they set a
+/// default for its endpoints.
+///
+/// More than one is an error rather than a last-wins, since the duplicates
+/// would have to disagree to be noticeable at all.
+fn sole_annotation(attrs: &[syn::Attribute], name: &str) -> syn::Result<Option<AdlAnnotation>> {
+    let mut found: Option<AdlAnnotation> = None;
+    for annotation in adl_annotations(attrs)? {
+        if annotation.name != name {
+            continue;
+        }
+        if found.is_some() {
+            return Err(syn::Error::new(
+                annotation.span,
+                format!("duplicate {name} annotation"),
+            ));
+        }
+        found = Some(annotation);
+    }
+    Ok(found)
+}
+
+/// The `@HttpMethod` in `attrs`, if there is one.
+///
+/// Returns `None` when absent so that an endpoint can fall back to its API
+/// struct's annotation, and that to post.
+fn http_method(attrs: &[syn::Attribute]) -> syn::Result<Option<Method>> {
+    let Some(annotation) = sole_annotation(attrs, HTTP_METHOD)? else {
+        return Ok(None);
+    };
+    let branch: String = serde_json::from_str(&annotation.value).map_err(|e| {
+        syn::Error::new(
+            annotation.span,
+            format!("{HTTP_METHOD} must be a string, but its value is not: {e}"),
+        )
+    })?;
+    match branch.as_str() {
+        "get" => Ok(Some(Method::Get)),
+        "post" => Ok(Some(Method::Post)),
+        other => Err(syn::Error::new(
+            annotation.span,
+            format!("{HTTP_METHOD} must be \"get\" or \"post\", got {other:?}"),
+        )),
+    }
+}
+
+/// The `@HttpSecurity` in `attrs`, if there is one.
+///
+/// Returns `None` when absent; there is no language level default, and
+/// [`collect_fields`] turns an endpoint that resolves to nothing into an
+/// error. A policy that defaulted to public would leave an endpoint open with
+/// nothing in the ADL saying so, and the ADL is what the clients and the api
+/// workbench read.
+fn http_security(attrs: &[syn::Attribute]) -> syn::Result<Option<Security>> {
+    let Some(annotation) = sole_annotation(attrs, HTTP_SECURITY)? else {
+        return Ok(None);
+    };
+    let value: serde_json::Value = serde_json::from_str(&annotation.value).map_err(|e| {
+        syn::Error::new(
+            annotation.span,
+            format!("{HTTP_SECURITY} value is not valid json: {e}"),
+        )
+    })?;
+    let bad = |detail: &str| {
+        syn::Error::new(
+            annotation.span,
+            format!(
+                "{HTTP_SECURITY} must be \"public\", \"token\" or \
+                 {{\"tokenWithRole\": \"<role>\"}}: {detail}"
+            ),
+        )
+    };
+    match &value {
+        serde_json::Value::String(branch) => match branch.as_str() {
+            "public" => Ok(Some(Security::Public)),
+            "token" => Ok(Some(Security::Token)),
+            other => Err(bad(&format!("unknown branch {other:?}"))),
+        },
+        serde_json::Value::Object(fields) if fields.len() == 1 => {
+            match fields.get("tokenWithRole").and_then(|r| r.as_str()) {
+                Some(role) => Ok(Some(Security::TokenWithRole(role.to_owned()))),
+                None => Err(bad("the only branch taking a value is tokenWithRole")),
+            }
+        }
+        _ => Err(bad("expected a string or a single field object")),
+    }
+}
+
+/// The method as an expression of the generated `HttpMethod` type.
+fn method_expr(method: &Method, runtime: &syn::Path) -> proc_macro2::TokenStream {
+    match method {
+        Method::Get => quote! { #runtime::HttpMethod::Get },
+        Method::Post => quote! { #runtime::HttpMethod::Post },
+    }
+}
+
+/// The policy as an expression of the generated `HttpSecurity` type.
+fn security_expr(security: &Security, runtime: &syn::Path) -> proc_macro2::TokenStream {
+    match security {
+        Security::Public => quote! { #runtime::HttpSecurity::Public },
+        Security::Token => quote! { #runtime::HttpSecurity::Token },
+        Security::TokenWithRole(role) => {
+            quote! { #runtime::HttpSecurity::TokenWithRole(#role.to_owned()) }
+        }
+    }
+}
+
 /// The `@HttpPath` override on a field, if it has one.
 ///
 /// adlc emits each ADL annotation marked `RustEmitAnnotation` as
@@ -471,32 +721,22 @@ const HTTP_PATH: &str = "common.http.HttpPath";
 /// mounted somewhere the clients are not looking, which is exactly the class
 /// of bug the generation is meant to rule out.
 fn http_path(field: &syn::Field) -> syn::Result<Option<String>> {
-    let mut found: Option<(String, Span)> = None;
-    for annotation in adl_annotations(&field.attrs)? {
-        if annotation.name != HTTP_PATH {
-            continue;
-        }
-        if found.is_some() {
-            return Err(syn::Error::new(
-                annotation.span,
-                format!("duplicate {HTTP_PATH} annotation"),
-            ));
-        }
-        let path: String = serde_json::from_str(&annotation.value).map_err(|e| {
-            syn::Error::new(
-                annotation.span,
-                format!("{HTTP_PATH} must be a string, but its value is not: {e}"),
-            )
-        })?;
-        if !path.starts_with('/') {
-            return Err(syn::Error::new(
-                annotation.span,
-                format!("{HTTP_PATH} is used verbatim and so must start with `/`, got {path:?}"),
-            ));
-        }
-        found = Some((path, annotation.span));
+    let Some(annotation) = sole_annotation(&field.attrs, HTTP_PATH)? else {
+        return Ok(None);
+    };
+    let path: String = serde_json::from_str(&annotation.value).map_err(|e| {
+        syn::Error::new(
+            annotation.span,
+            format!("{HTTP_PATH} must be a string, but its value is not: {e}"),
+        )
+    })?;
+    if !path.starts_with('/') {
+        return Err(syn::Error::new(
+            annotation.span,
+            format!("{HTTP_PATH} is used verbatim and so must start with `/`, got {path:?}"),
+        ));
     }
-    Ok(found.map(|(path, _)| path))
+    Ok(Some(path))
 }
 
 /// One `#[adl_annotation(...)]` attribute, as adlc emits it.

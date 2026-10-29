@@ -11,7 +11,7 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use adl::gen::common::http::{HttpMethod, HttpReq, HttpSecurity};
+use adl::gen::common::http::{HttpMethod, HttpSecurity};
 use adl::http_api::{Handler, HttpApi, Mount};
 
 use super::jwt;
@@ -44,7 +44,8 @@ pub trait DynRouteExt {
     fn adl_dyn_req<S, I, O>(
         self,
         path: &str,
-        req: &HttpReq<I, O>,
+        method: HttpMethod,
+        security: &HttpSecurity,
         handler: adl::http_api::Handler<AdlReqContext<S>, I, O, HandlerError>,
     ) -> Self
     where
@@ -57,7 +58,8 @@ impl DynRouteExt for Route {
     fn adl_dyn_req<S, I, O>(
         self,
         path: &str,
-        req: &HttpReq<I, O>,
+        method: HttpMethod,
+        security: &HttpSecurity,
         handler: adl::http_api::Handler<AdlReqContext<S>, I, O, HandlerError>,
     ) -> Self
     where
@@ -68,11 +70,8 @@ impl DynRouteExt for Route {
         self.at(
             path,
             AdlDynReq {
-                // Only the method and security are needed at call time, and
-                // copying them avoids requiring `I: Clone, O: Clone`, which
-                // HttpReq's derived Clone would otherwise demand.
-                method: req.method.clone(),
-                security: req.security.clone(),
+                method,
+                security: security.clone(),
                 handler,
             },
         )
@@ -338,13 +337,14 @@ impl Mount<AdlReqContext<AppState>> for PoemRoutes<Route> {
     fn mount<I, O>(
         self,
         path: &str,
-        req: &HttpReq<I, O>,
+        method: HttpMethod,
+        security: &HttpSecurity,
         handler: Handler<AdlReqContext<AppState>, I, O, Self::Error>,
     ) -> Self
     where
         I: serde::de::DeserializeOwned + Send + Sync + 'static,
         O: serde::Serialize + Send + Sync + 'static,
     {
-        PoemRoutes(self.0.adl_dyn_req(path, req, handler))
+        PoemRoutes(self.0.adl_dyn_req(path, method, security, handler))
     }
 }
