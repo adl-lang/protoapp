@@ -1,23 +1,129 @@
 use rand::Rng;
-use reqwest::header::{HeaderMap, HeaderValue};
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use sqlx::postgres::PgPoolOptions;
 use sqlx::Executor;
 
-use adl::gen::common::http::{HttpMethod, HttpReq};
-use adl::gen::protoapp::apis;
-use adl::gen::protoapp::apis::ui::{Api, LoginReq};
+use adl::gen::common::http::HttpMethod;
+use adl::gen::protoapp::apis::ui::{Api, ApiClient, LoginReq, WebApiClient};
 use adl::gen::protoapp::config::server::{DbConnectionConfig, ServerConfig};
+use adl::http_api::Invoke;
 
 use crate::server::passwords::hash_password;
 
+/// Where the test server listens.
+const BASE_URL: &str = "http://localhost:8181";
+
 /// The full path of an endpoint of the nested `AdminApi` API.
 ///
-/// Its own `PATH_` constants are relative to where it is mounted, which is the
-/// `admin` field of `Api`, so the two compose.
+/// Only [`server_req`] needs this: the generated client composes the prefix
+/// itself, which is the point of its `admin()` accessor. Its own `PATH_`
+/// constants are relative to where it is mounted, which is the `admin` field
+/// of `Api`, so the two compose.
 pub fn admin_path(path: &str) -> String {
     format!("{}{}", Api::PATH_ADMIN, path)
+}
+
+/// A transport for the generated clients, over reqwest.
+///
+/// Its `Error` is just the status, which is all the tests assert on; a
+/// transport level failure panics, as the raw helper below also does, because
+/// a test server that cannot be reached is a broken test rather than a case
+/// to handle.
+pub struct ReqwestTransport {
+    client: reqwest::Client,
+    base_url: String,
+}
+
+impl ReqwestTransport {
+    pub fn new(base_url: &str) -> Self {
+        ReqwestTransport {
+            client: reqwest::Client::new(),
+            base_url: base_url.to_owned(),
+        }
+    }
+
+    async fn send<I: Serialize, O: DeserializeOwned>(
+        &self,
+        path: &str,
+        method: HttpMethod,
+        jwt: Option<&str>,
+        req: &I,
+    ) -> Result<O, reqwest::StatusCode> {
+        let url = format!("{}{}", self.base_url, path);
+        let builder = match method {
+            HttpMethod::Get => self
+                .client
+                .get(format!("{}{}", url, encode_query_string(req))),
+            HttpMethod::Post => self.client.post(url).json(req),
+        };
+        let builder = match jwt {
+            Some(jwt) => builder.bearer_auth(jwt),
+            None => builder,
+        };
+        let resp = builder.send().await.expect("the test server to respond");
+        let status = resp.status();
+        if !status.is_success() {
+            return Err(status);
+        }
+        Ok(resp.json().await.expect("a decodable response body"))
+    }
+}
+
+impl Invoke for ReqwestTransport {
+    type Error = reqwest::StatusCode;
+
+    /// A bearer token, unsized so that a call site passes `&jwt` rather than
+    /// cloning one per request.
+    type Identity = str;
+
+    async fn invoke_public<I, O>(
+        &self,
+        path: &str,
+        method: HttpMethod,
+        req: &I,
+    ) -> Result<O, Self::Error>
+    where
+        I: Serialize + Send + Sync,
+        O: DeserializeOwned + Send,
+    {
+        self.send(path, method, None, req).await
+    }
+
+    async fn invoke_secured<I, O>(
+        &self,
+        path: &str,
+        method: HttpMethod,
+        identity: &str,
+        req: &I,
+    ) -> Result<O, Self::Error>
+    where
+        I: Serialize + Send + Sync,
+        O: DeserializeOwned + Send,
+    {
+        self.send(path, method, Some(identity), req).await
+    }
+}
+
+/// The status a rejected client call failed with.
+///
+/// A free function rather than `Result::unwrap_err`, which would want `Debug`
+/// on every response type; the ADL types do not derive it.
+pub fn rejected_with<O>(result: Result<O, reqwest::StatusCode>) -> reqwest::StatusCode {
+    result.err().expect("the request to be rejected")
+}
+
+/// A client for the main API against the test server.
+pub fn client() -> ApiClient<ReqwestTransport> {
+    ApiClient::new(ReqwestTransport::new(BASE_URL))
+}
+
+/// A client for the cookie endpoints against the test server.
+///
+/// The cookies themselves are not followed: these tests read the tokens out
+/// of the response body, which is what a non-browser client does.
+pub fn web_client() -> WebApiClient<ReqwestTransport> {
+    WebApiClient::new(ReqwestTransport::new(BASE_URL))
 }
 
 pub struct DbTestEnv {
@@ -91,78 +197,32 @@ impl DbTestEnv {
     }
 }
 
-// The endpoint's path is passed alongside its HttpReq because HttpReq no
-// longer carries one: it is derived from the ADL field name, and reaches the
-// Rust side as the PATH_ constants that #[derive(HttpApi)] emits. Passing the
-// constant rather than a literal is what keeps these tests hitting the same
-// paths the server mounts.
-
-pub async fn server_public_req<I: Serialize, O: DeserializeOwned>(
-    path: &str,
-    method: HttpMethod,
-    endpoint: HttpReq<I, O>,
-    req: &I,
-) -> O {
-    let resp = server_req(path, method, endpoint, None, req).await;
-    assert_eq!(resp.status(), 200);
-    resp.json().await.unwrap()
-}
-
-pub async fn server_auth_req<I: Serialize, O: DeserializeOwned>(
-    path: &str,
-    method: HttpMethod,
-    endpoint: HttpReq<I, O>,
-    jwt: &str,
-    req: &I,
-) -> O {
-    let resp = server_req(path, method, endpoint, Some(jwt), req).await;
-    assert_eq!(resp.status(), 200);
-    resp.json().await.unwrap()
-}
-
-/// Issue one request against the running test server.
+/// Issue one request against the running test server, bypassing the generated
+/// client.
 ///
-/// `endpoint` carries no data any more: an `HttpReq` is two `PhantomData`
-/// fields, since the method, security and path all live in the ADL
-/// declaration. It stays in the signature purely to fix `I` and `O`, so that
-/// a call site can write `WebApi::def_login()` and have the response type
-/// inferred rather than annotated.
-pub async fn server_req<I: Serialize, O: DeserializeOwned>(
+/// Only for requests the client's types rule out: a credential on an endpoint
+/// the ADL declares `public`, or none on an endpoint that requires one.
+/// Those cases exist to check what the *server* does with a non-conforming
+/// client, so they cannot go through a conforming one.
+///
+/// Returns the response rather than a decoded body, because every such test
+/// is asserting on the status.
+pub async fn server_req<I: Serialize>(
     path: &str,
     method: HttpMethod,
-    endpoint: HttpReq<I, O>,
     jwt: Option<&str>,
     req: &I,
 ) -> reqwest::Response {
     let client = reqwest::Client::new();
-    let mut headers = HeaderMap::new();
-    if let Some(jwt) = jwt {
-        headers.insert(
-            "Authorization",
-            HeaderValue::from_str(&format!("Bearer {}", jwt)).unwrap(),
-        );
-    }
-
-    let _ = endpoint;
-    match method {
-        HttpMethod::Get => client
-            .get(format!(
-                "http://localhost:8181{}{}",
-                path,
-                encode_query_string(req)
-            ))
-            .headers(headers)
-            .send()
-            .await
-            .unwrap(),
-        HttpMethod::Post => client
-            .post(format!("http://localhost:8181{}", path))
-            .json(req)
-            .headers(headers)
-            .send()
-            .await
-            .unwrap(),
-    }
+    let builder = match method {
+        HttpMethod::Get => client.get(format!("{}{}{}", BASE_URL, path, encode_query_string(req))),
+        HttpMethod::Post => client.post(format!("{}{}", BASE_URL, path)).json(req),
+    };
+    let builder = match jwt {
+        Some(jwt) => builder.bearer_auth(jwt),
+        None => builder,
+    };
+    builder.send().await.expect("the test server to respond")
 }
 
 pub fn encode_query_string<I: Serialize>(i: &I) -> String {
@@ -218,15 +278,10 @@ pub async fn create_test_user(
 }
 
 pub async fn login_user(login_req: &LoginReq) -> String {
-    let resp = server_public_req(
-        apis::ui::WebApi::PATH_LOGIN,
-        apis::ui::WebApi::METHOD_LOGIN,
-        apis::ui::WebApi::def_login(),
-        login_req,
-    )
-    .await;
-    match resp {
-        apis::ui::LoginResp::Tokens(tokens) => tokens.access_jwt,
-        apis::ui::LoginResp::InvalidCredentials => panic!("invalid credentials"),
+    use adl::gen::protoapp::apis::ui::LoginResp;
+
+    match web_client().login(login_req).await.unwrap() {
+        LoginResp::Tokens(tokens) => tokens.access_jwt,
+        LoginResp::InvalidCredentials => panic!("invalid credentials"),
     }
 }

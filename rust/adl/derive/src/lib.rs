@@ -14,7 +14,8 @@
 //!
 //! From that this derive emits an endpoint trait with one method per endpoint,
 //! so that adding an endpoint to the ADL fails compilation until it is
-//! implemented, plus a `register` that mounts every endpoint into a host.
+//! implemented, a `register` that mounts every endpoint into a host, and a
+//! client that calls them.
 //!
 //! # Method and security
 //!
@@ -86,6 +87,32 @@
 //! different handler types — a dry run implementation holding no database
 //! pool, say. Leaving either out is a compile error, so no nested endpoint
 //! can go unimplemented, and none can silently inherit another's handlers.
+//!
+//! # Clients
+//!
+//! Alongside the trait, each API gets an `<Api>Client` generic over an
+//! `Invoke` transport, with one method per endpoint and one accessor per
+//! nested API:
+//!
+//! ```ignore
+//! let client = ApiClient::new(transport);
+//! client.admin().query_users(&jwt, req).await?;
+//! ```
+//!
+//! The transport lives in the client, so a call site passes only what the
+//! endpoint itself takes. A nested accessor hands back a client carrying the
+//! composed prefix, so a caller never has to know where an API is mounted.
+//!
+//! The client does **not** implement the endpoint trait, though it could. The
+//! trait is a completeness check on a hand written implementation; a generated
+//! one has nothing to check, and the `Ctx` the trait carries for the server's
+//! per-request state would be a parameter with no referent at every client
+//! call site.
+//!
+//! The split also follows the security policy, as the registration does. A
+//! public endpoint's client method takes no credential, because the server
+//! would ignore one; every other method requires one, so a call that has
+//! nothing to present does not compile.
 //!
 //! # Paths
 //!
@@ -190,6 +217,9 @@ struct Nested {
     /// The nested API's generated endpoint trait, which bounds the type this
     /// mount point is served by.
     endpoints: syn::Path,
+    /// The nested API's generated client struct, which this API's client
+    /// hands back from its accessor for this mount point.
+    client: syn::Path,
 }
 
 #[proc_macro_derive(HttpApi, attributes(http_api))]
@@ -221,6 +251,7 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
     }
 
     let trait_name = format_ident!("{}Endpoints", api);
+    let client_name = format_ident!("{}Client", api);
 
     // One trait method per endpoint. `Ctx` and `Error` are left to the
     // implementor so that the generated trait names no framework types.
@@ -417,6 +448,109 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         }
     });
 
+    // One client method per endpoint, mirroring the endpoint trait's method
+    // but with no `Ctx`: the transport is the client's own, so a call site
+    // passes only what the endpoint itself needs.
+    let client_methods = endpoints.iter().map(|e| {
+        let Endpoint {
+            name,
+            req,
+            resp,
+            docs,
+            security,
+            path_const,
+            method_const,
+            ..
+        } = e;
+        // The public/secured split is the same one the registration makes,
+        // from the same annotation. A public endpoint's method takes no
+        // identity and reaches `invoke_public`, which has nowhere to put one.
+        let (identity_arg, call) = match security {
+            Security::Public => (
+                quote! {},
+                quote! {
+                    #runtime::Invoke::invoke_public(
+                        &*self.transport,
+                        &self.path(#api::#path_const),
+                        #api::#method_const,
+                        req,
+                    )
+                },
+            ),
+            _ => (
+                quote! { identity: &<T as #runtime::Invoke>::Identity, },
+                quote! {
+                    #runtime::Invoke::invoke_secured(
+                        &*self.transport,
+                        &self.path(#api::#path_const),
+                        #api::#method_const,
+                        identity,
+                        req,
+                    )
+                },
+            ),
+        };
+        quote! {
+            #(#docs)*
+            pub async fn #name(
+                &self,
+                #identity_arg
+                req: &#req,
+            ) -> ::core::result::Result<#resp, <T as #runtime::Invoke>::Error> {
+                #call.await
+            }
+        }
+    });
+
+    // One accessor per nested API, yielding a client for it over the same
+    // transport. Giving the nested client the composed prefix is what keeps
+    // mount points out of a caller's hands: it never has to know that
+    // `query_users` is served from `/admin/query_users`, and an API nested at
+    // two fields yields two clients that each address their own.
+    let client_nested = nested.iter().map(|n| {
+        let Nested {
+            name,
+            client,
+            path_const,
+            ..
+        } = n;
+        let doc = format!(
+            "A client for the nested `{name}` API, over this client's transport.\n\n\
+             Built on each call rather than held, which is cheap: it clones an \
+             `Arc` and the composed path prefix."
+        );
+        quote! {
+            #[doc = #doc]
+            pub fn #name(&self) -> #client<T> {
+                #client::at(
+                    ::core::clone::Clone::clone(&self.transport),
+                    self.path(#api::#path_const),
+                )
+            }
+        }
+    });
+
+    let client_doc = format!(
+        "A client for [`{api}`], over any `Invoke` transport.\n\n\
+         Generated by `#[derive(HttpApi)]`, so it cannot disagree with the \
+         server about a path, a method or whether an endpoint takes a \
+         credential. Deliberately *not* an implementation of \
+         [`{trait_name}`]: that trait exists to make a hand written \
+         implementation prove it is complete, and this one is generated."
+    );
+
+    let new_doc = format!(
+        "A client for [`{api}`] at the root of `transport`.\n\n\
+         The transport knows the base url, so this is the whole constructor."
+    );
+
+    let at_doc = format!(
+        "A client for [`{api}`] mounted under `prefix`.\n\n\
+         The counterpart of `HttpApi::register_at`, and what an enclosing \
+         API's accessor calls. A top level client has an \
+         empty prefix, which is what [`{client_name}::new`] gives it."
+    );
+
     let register_doc = format!(
         "Mount every endpoint of [`{api}`] into `mount`.\n\n\
          Generated by `#[derive(HttpApi)]`, so no endpoint can be left unwired. \
@@ -444,6 +578,50 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
 
             #(#methods)*
             #(#nested_items)*
+        }
+
+        #[doc = #client_doc]
+        pub struct #client_name<T> {
+            transport: ::std::sync::Arc<T>,
+            prefix: ::std::string::String,
+        }
+
+        // Hand written rather than derived, because a derive would demand
+        // `T: Clone` for a struct that only ever clones an `Arc<T>`.
+        impl<T> ::core::clone::Clone for #client_name<T> {
+            fn clone(&self) -> Self {
+                Self {
+                    transport: ::core::clone::Clone::clone(&self.transport),
+                    prefix: ::core::clone::Clone::clone(&self.prefix),
+                }
+            }
+        }
+
+        impl<T: #runtime::Invoke> #client_name<T> {
+            #[doc = #new_doc]
+            pub fn new(transport: T) -> Self {
+                Self::at(
+                    ::std::sync::Arc::new(transport),
+                    ::std::string::String::new(),
+                )
+            }
+
+            #[doc = #at_doc]
+            pub fn at(
+                transport: ::std::sync::Arc<T>,
+                prefix: ::std::string::String,
+            ) -> Self {
+                Self { transport, prefix }
+            }
+
+            /// An endpoint's full path: this client's prefix, and the path the
+            /// API declares relative to where it is mounted.
+            fn path(&self, path: &str) -> ::std::string::String {
+                ::std::format!("{}{}", self.prefix, path)
+            }
+
+            #(#client_nested)*
+            #(#client_methods)*
         }
 
         impl<Ctx, M, H> #runtime::HttpApi<Ctx, M, H> for #api
@@ -591,7 +769,8 @@ fn collect_fields(input: &DeriveInput) -> syn::Result<(Vec<Endpoint>, Vec<Nested
                     ));
                 }
                 nested.push(Nested {
-                    endpoints: endpoints_trait(&field.ty)?,
+                    endpoints: derived_item(&field.ty, "Endpoints")?,
+                    client: derived_item(&field.ty, "Client")?,
                     path,
                     path_const,
                     assoc,
@@ -603,13 +782,15 @@ fn collect_fields(input: &DeriveInput) -> syn::Result<(Vec<Endpoint>, Vec<Nested
     Ok((endpoints, nested))
 }
 
-/// The endpoint trait that `#[derive(HttpApi)]` generates for an API type.
+/// One of the items `#[derive(HttpApi)]` generates for an API type, named as
+/// that type's name followed by `suffix`.
 ///
 /// Named by convention rather than looked up: the derive on the nested struct
-/// builds it from that struct's own name, so the enclosing API can name it
-/// without seeing the nested definition. Resolved in the same scope the field
-/// type is written in, which is where the derive put it.
-fn endpoints_trait(ty: &Type) -> syn::Result<syn::Path> {
+/// builds its endpoint trait and its client from that struct's own name, so
+/// the enclosing API can name either without seeing the nested definition.
+/// Resolved in the same scope the field type is written in, which is where
+/// the derive put them.
+fn derived_item(ty: &Type, suffix: &str) -> syn::Result<syn::Path> {
     let Type::Path(tp) = ty else {
         return Err(syn::Error::new(
             ty.span(),
@@ -627,7 +808,7 @@ fn endpoints_trait(ty: &Type) -> syn::Result<syn::Path> {
             "a nested API cannot be generic: an API must be monomorphic",
         ));
     }
-    last.ident = format_ident!("{}Endpoints", last.ident);
+    last.ident = format_ident!("{}{}", last.ident, suffix);
     Ok(path)
 }
 

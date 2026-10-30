@@ -370,6 +370,52 @@ nine do still hold: the suite was run against this change and passes. Only one c
 that test needed changing, where it said a valid token on a public endpoint reaches the
 handler as claims.
 
+### A generated client. DONE
+
+The derive also emits an `<Api>Client` per API struct, generic over an `Invoke` transport,
+which is the client side counterpart of `Mount`. `Invoke` names no http library and holds
+no base url — a transport already knows where it points — so construction is just
+`ApiClient::new(transport)`.
+
+```rust
+let client = ApiClient::new(transport);
+client.admin().query_users(&jwt, &req).await?;
+```
+
+The client is deliberately **not** an implementation of `ApiEndpoints`, which was the
+first thing tried. The trait's job is to make a *hand written* implementation prove it is
+complete; a generated one has nothing to prove, so sharing the trait buys only the ability
+to write code generic over client-and-server, which nothing here does. It charges for that
+at every call site: the trait carries a `Ctx` for the server's per-request state, and once
+the transport lives in the client there is nothing for a client to pass but `&()`. If that
+generic code ever appears, the derive can add a forwarding `impl ApiEndpoints<()>` beside
+the inherent methods, which the call sites would not notice.
+
+What the client does share with the registration is every fact it reads out of the ADL,
+and this is the whole point of generating it:
+
+- Paths compose through the nested accessor, so a caller never names a mount point. An API
+  nested at two fields yields two clients addressing their own prefixes, matching the
+  per-mount-point associated types on the server side.
+- The `public`/secured split follows `@HttpSecurity`, as the mounting does. A public
+  endpoint's method takes no credential, because the server would ignore one; every other
+  method requires one, so a call with nothing to present does not compile.
+- `Invoke::Identity` is `?Sized`, so a transport whose credential is a string names it
+  `str` and call sites pass `&jwt` without cloning per call. Note that this is the
+  *opposite* direction from `Mount::Identity`, which is what the server has
+  authenticated — the same slot in a signature, pointing the other way.
+- `invoke_secured` is not passed the `HttpSecurity`. `token` and `tokenWithRole` are
+  presented identically, and the role is the server's to check, so the policy would
+  allocate a `String` per call to say nothing the public/secured split has not said. The
+  server mounts once at startup and can afford it.
+
+The server test suite now issues its requests through the client, including the 403 for a
+valid credential carrying the wrong role. Four requests in `server_security_policy` stay
+on a raw reqwest helper, and which four is the interesting part: they are the ones that
+send a credential to a `public` endpoint, or none to an endpoint that requires one. Those
+exist to check what the server does with a *non-conforming* client, so by construction a
+conforming one cannot express them.
+
 ### Mixing example (axum host)
 
 ```rust
@@ -403,8 +449,9 @@ Rough edges in what is built, none of them urgent:
 - A field that is neither an `HttpReq` nor an API struct is still read as a nested API. It
   fails as an unsatisfied `HttpApi` or handler-trait bound, which does not name the real
   mistake.
-- Method names must not collide between an API and the APIs nested in it, since one
-  `Handlers` value implements every trait in the tree. Nothing in the ADL expresses that
-  constraint; a collision surfaces as an ambiguity error at the impl.
+- Method names may collide between an API and the APIs nested in it, if one type is used
+  to implement several of the endpoint traits in a tree. Nesting no longer forces that —
+  each mount point has its own associated type — but nothing in the ADL expresses the
+  constraint either, and a collision surfaces as an ambiguity error at the impl.
 - `ts/ui` and `ts/api-workbench` each carry a near-copy of `service-base.ts`.
 - Neither `adl_rt` nor `adl_rt_derive` declares an MSRV.
