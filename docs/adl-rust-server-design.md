@@ -51,7 +51,7 @@ already applied. The relevant files are `adl/common/http.adl`,
 ## Identified improvements (rough priority)
 
 1. **Compile-time handler completeness. DONE.** `#[derive(HttpApi)]` generates a per-API
-   handler trait and the registration that mounts every endpoint, so adding an endpoint in
+   endpoint trait and the registration that mounts every endpoint, so adding an endpoint in
    ADL fails compilation until it is implemented. `routing.rs` previously registered each
    endpoint by hand; it now makes one `adl_api_at` call per API. See the macro section
    below.
@@ -280,12 +280,12 @@ supports it, and getting it wrong is how the first implementation failed.
 
 What each side does with that:
 
-- `#[derive(HttpApi)]` gives the nested struct its own handler trait, and the enclosing
-  API's handler trait gains, per nested field, an associated type bounded by that trait
+- `#[derive(HttpApi)]` gives the nested struct its own endpoint trait, and the enclosing
+  API's endpoint trait gains, per nested field, an associated type bounded by that trait
   and an accessor yielding it:
 
   ```rust
-  type Admin: AdminApiHandlers<Ctx, Error = Self::Error>;
+  type Admin: AdminApiEndpoints<Ctx, Error = Self::Error>;
   fn admin(&self) -> Arc<Self::Admin>;
   ```
 
@@ -296,7 +296,7 @@ What each side does with that:
   error, so no nested endpoint goes unimplemented and none silently inherits another's
   handlers.
 
-  This replaced a flat `H: AdminApiHandlers<Ctx, Error = M::Error>` bound on the
+  This replaced a flat `H: AdminApiEndpoints<Ctx, Error = M::Error>` bound on the
   generated impl, under which one `Handlers` value implemented the whole tree and a
   single `Arc<H>` was passed down. That was simpler to implement — no associated-type
   equality for `Error` to propagate — but it keyed nesting on the type, so two fields of
@@ -320,7 +320,7 @@ What each side does with that:
 Each nested API needs its own `RustExtraDeriveTraits ["adl::HttpApi"]` line in
 `ui.adl-rs`: the derive on the enclosing struct can require a handler trait but cannot
 generate one for a type it only sees by name. Forgetting it surfaces as an unsatisfied
-`AdminApiHandlers` bound on the parent's associated type.
+`AdminApiEndpoints` bound on the parent's associated type.
 
 `http_api::tests::nested_api_paths_are_relative_to_their_mount_point` pins the
 composition rule, and the server tests exercise `/admin/*` over real HTTP.
