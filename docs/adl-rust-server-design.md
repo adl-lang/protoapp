@@ -416,6 +416,11 @@ send a credential to a `public` endpoint, or none to an endpoint that requires o
 exist to check what the server does with a *non-conforming* client, so by construction a
 conforming one cannot express them.
 
+The suite was run against the port and passes, so the generated client reaches the same
+paths with the same methods and credentials as the hand written requests it replaced.
+That is the one thing worth checking here: the client and the registration read the same
+annotations, but nothing would have caught them reading them differently.
+
 ### Mixing example (axum host)
 
 ```rust
