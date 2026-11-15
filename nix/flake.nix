@@ -4,13 +4,16 @@
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
     flake-utils.url = "github:numtide/flake-utils";
+    # Not made to follow our nixpkgs: it builds adlc with the GHC from its own
+    # pinned package set.
+    adl.url = "github:adl-lang/adl";
     rust-overlay = {
       url = "github:oxalica/rust-overlay";
       inputs.nixpkgs.follows = "nixpkgs";
     };
   };
 
-  outputs = { self, nixpkgs, flake-utils, rust-overlay }:
+  outputs = { self, nixpkgs, flake-utils, rust-overlay, adl }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
@@ -22,11 +25,9 @@
           toolchainFile = ../rust/rust-toolchain.toml;
         };
 
-        # Upstream only publishes adlc for linux-x64 and macos-arm64. Elsewhere
-        # the shell is still useful for everything but code generation, so leave
-        # adlc out rather than failing to evaluate at all.
-        adlcAvailable = builtins.elem system [ "x86_64-linux" "aarch64-darwin" ];
-        adlc = pkgs.callPackage ./adlc.nix { };
+        # Keep the adl input in step with the `adlc` entry in ../.prototools,
+        # so that the nix and proto paths generate code with the same compiler.
+        adlc = adl.packages.${system}.adlc;
       in {
         devShells.default = pkgs.mkShell (rustEnv // {
           buildInputs = rustEnv.buildInputs ++ (with pkgs; [
@@ -46,7 +47,8 @@
             nodejs_24
             pnpm_10
             deno
-          ]) ++ pkgs.lib.optional adlcAvailable adlc;
+            adlc
+          ]);
         });
       });
 }

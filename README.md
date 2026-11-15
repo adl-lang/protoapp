@@ -118,8 +118,9 @@ nix develop ./nix
 ```
 
 or, with [direnv](https://direnv.net), by putting `use flake ./nix` in a local `.envrc`.
-This covers linux-x64 and macos-arm64, the platforms adlc is released for; on other
-systems the shell omits adlc and leaves code generation to proto.
+adlc comes from the [adl flake](https://github.com/adl-lang/adl) (the `adl` input in
+`nix/flake.nix`), which builds it from source, so it is available on every platform
+the flake supports. Keep that input in step with the `adlc` version in `.prototools`.
 
 # 3 Local development
 
