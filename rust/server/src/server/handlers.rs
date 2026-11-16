@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use poem::handler;
 use poem::web::cookie::{Cookie, CookieJar};
 use poem::web::Json;
@@ -5,9 +7,9 @@ use poem::web::Json;
 use adl::custom::common::db::DbKey;
 use adl::gen::common::http::Unit;
 use adl::gen::protoapp::apis::ui::{
-    AdminApiRequestsHandlers, ApiRequestsHandlers, LoginReq, LoginResp, LoginTokens, Message,
-    Paginated, QueryUsersReq, RecentMessagesReq, RefreshReq, RefreshResp, User, UserDetails,
-    UserWithId, WebRequests, WebRequestsHandlers, WithId,
+    AdminApiEndpoints, ApiEndpoints, LoginReq, LoginResp, LoginTokens, Message, Paginated,
+    QueryUsersReq, RecentMessagesReq, RefreshReq, RefreshResp, User, UserDetails, UserWithId,
+    WebApiEndpoints, WithId,
 };
 use adl::gen::protoapp::config::server::ServerConfig;
 use adl::gen::protoapp::db::{AppUser, AppUserId};
@@ -16,44 +18,64 @@ use adl::gen::protoapp::{apis::ui::NewMessageReq, db::MessageId};
 use crate::server::jwt::AccessClaims;
 use crate::server::passwords::{hash_password, verify_password};
 use crate::server::poem_adl_interop::{
-    forbidden, get_adl_request_context, AdlReqContext, HandlerError, HandlerResult,
+    forbidden, get_adl_request_context, AdlReqContext, HandlerError,
 };
 use crate::server::{db, jwt, AppState};
 
 type ReqContext = AdlReqContext<AppState>;
 
-/// Implements the generated [`ApiRequestsHandlers`] trait, which carries one
-/// method per endpoint declared in the ADL `ApiRequests` struct. Adding an
-/// endpoint there stops this impl compiling until it is implemented.
+/// Implements the generated [`ApiEndpoints`] trait, which carries one method per
+/// endpoint declared in the ADL `Api` struct. Adding an endpoint there stops
+/// this impl compiling until it is implemented.
 ///
-/// The admin endpoints are in the [`AdminApiRequestsHandlers`] impl below,
-/// since the ADL nests them in their own struct. The cookie endpoints are in
-/// the [`WebRequestsHandlers`] impl after that. They
-/// belong to the ADL `WebRequests` struct and are mounted by hand, since they
-/// need poem's `CookieJar`, but implementing the generated trait keeps them
-/// checked against the ADL in the same way.
-pub struct Handlers;
+/// The admin endpoints are on [`AdminApiHandlersImpl`] below, since the ADL
+/// nests them in their own struct; this impl names that type as its `Admin`
+/// associated type and yields it from `admin`, which is how the generated
+/// registration reaches it. The cookie endpoints are in the
+/// [`WebApiEndpoints`] impl after that. They belong to the ADL `WebApi` struct
+/// and are mounted by hand, since they need poem's `CookieJar`, but
+/// implementing the generated trait keeps them checked against the ADL in the
+/// same way.
+pub struct ApiHandlersImpl {}
 
-impl ApiRequestsHandlers<ReqContext> for Handlers {
+impl ApiHandlersImpl {
+    pub fn new() -> Self {
+        Self {}
+    }
+}
+
+impl ApiEndpoints<ReqContext> for ApiHandlersImpl {
     type Error = HandlerError;
 
-    async fn healthy(&self, _ctx: ReqContext, _req: ()) -> Result<(), Self::Error> {
+    /// Every endpoint whose ADL policy is not `public` is handed one of these,
+    /// already checked against that policy. There is nothing to verify here,
+    /// and no way to write a handler that forgets to.
+    type Identity = AccessClaims;
+
+    type Admin = AdminApiHandlersImpl;
+    fn admin(&self) -> Arc<AdminApiHandlersImpl> {
+        Arc::new(AdminApiHandlersImpl)
+    }
+
+    async fn healthy(&self, _ctx: &ReqContext, _req: ()) -> Result<(), Self::Error> {
         Ok(())
     }
 
     async fn new_message(
         &self,
-        ctx: ReqContext,
+        ctx: &ReqContext,
+        identity: AccessClaims,
         req: NewMessageReq,
     ) -> Result<MessageId, Self::Error> {
-        let user_id = user_from_claims(&ctx.claims)?;
+        let user_id: AppUserId = DbKey::from_string(identity.sub);
         let message_id = db::new_message(&ctx.state.db_pool, &user_id, &req.message).await?;
         Ok(message_id)
     }
 
     async fn recent_messages(
         &self,
-        ctx: ReqContext,
+        ctx: &ReqContext,
+        _identity: AccessClaims,
         req: RecentMessagesReq,
     ) -> Result<Paginated<Message>, Self::Error> {
         let messages =
@@ -66,8 +88,13 @@ impl ApiRequestsHandlers<ReqContext> for Handlers {
         })
     }
 
-    async fn who_am_i(&self, ctx: ReqContext, _req: ()) -> Result<UserWithId, Self::Error> {
-        let user_id = user_from_claims(&ctx.claims)?;
+    async fn who_am_i(
+        &self,
+        ctx: &ReqContext,
+        identity: AccessClaims,
+        _req: (),
+    ) -> Result<UserWithId, Self::Error> {
+        let user_id: AppUserId = DbKey::from_string(identity.sub);
         let user = db::get_user_with_id(&ctx.state.db_pool, &user_id).await?;
         match user {
             Some((user_id, user)) => Ok(UserWithId {
@@ -83,20 +110,25 @@ impl ApiRequestsHandlers<ReqContext> for Handlers {
     }
 }
 
-/// Implements the generated [`AdminApiRequestsHandlers`] trait, for the
-/// ADL `AdminApiRequests` struct nested at `ApiRequests.admin`. Its
-/// endpoints are mounted under that field name, so `create_user` is at
-/// `/admin/create_user`.
+pub struct AdminApiHandlersImpl;
+
+/// Implements the generated [`AdminApiEndpoints`] trait, for the ADL `AdminApi`
+/// struct nested at `Api.admin`. Its endpoints are mounted under that field
+/// name, so `create_user` is at `/admin/create_user`.
 ///
-/// A nested API gets its own trait rather than contributing methods to the
-/// enclosing one, but the same `Handlers` value serves both: the generated
-/// registration requires every nested trait of the handler type it is given.
-impl AdminApiRequestsHandlers<ReqContext> for Handlers {
+/// A nested API gets its own handler trait rather than contributing methods to
+/// the enclosing one, and its own handler type. The enclosing trait identifies
+/// a mount point by its ADL field rather than by its type, so the same API
+/// nested at two fields would be served by two implementations, chosen
+/// independently.
+impl AdminApiEndpoints<ReqContext> for AdminApiHandlersImpl {
     type Error = HandlerError;
+    type Identity = AccessClaims;
 
     async fn create_user(
         &self,
-        ctx: ReqContext,
+        ctx: &ReqContext,
+        _identity: AccessClaims,
         req: UserDetails,
     ) -> Result<AppUserId, Self::Error> {
         let hashed_password = hash_password(&req.password).expect("password can be hashed");
@@ -112,7 +144,8 @@ impl AdminApiRequestsHandlers<ReqContext> for Handlers {
 
     async fn update_user(
         &self,
-        ctx: ReqContext,
+        ctx: &ReqContext,
+        _identity: AccessClaims,
         req: WithId<AppUserId, UserDetails>,
     ) -> Result<Unit, Self::Error> {
         let hashed_password = hash_password(&req.value.password).expect("password can be hashed");
@@ -128,7 +161,8 @@ impl AdminApiRequestsHandlers<ReqContext> for Handlers {
 
     async fn query_users(
         &self,
-        ctx: ReqContext,
+        ctx: &ReqContext,
+        _identity: AccessClaims,
         req: QueryUsersReq,
     ) -> Result<Paginated<UserWithId>, Self::Error> {
         let users = db::query_users(&ctx.state.db_pool, req.page.offset, req.page.limit).await?;
@@ -142,10 +176,16 @@ impl AdminApiRequestsHandlers<ReqContext> for Handlers {
     }
 }
 
-impl WebRequestsHandlers<ReqContext> for Handlers {
+pub struct WebApiHandlersImpl;
+
+impl WebApiEndpoints<ReqContext> for WebApiHandlersImpl {
     type Error = HandlerError;
 
-    async fn login(&self, ctx: ReqContext, i: LoginReq) -> Result<LoginResp, Self::Error> {
+    /// Never used: every `WebApi` endpoint is `public`, so none of the methods
+    /// below takes an identity. The associated type still has to be named.
+    type Identity = AccessClaims;
+
+    async fn login(&self, ctx: &ReqContext, i: LoginReq) -> Result<LoginResp, Self::Error> {
         // Lookup the user details
         let user = db::get_user_with_email(&ctx.state.db_pool, &i.email).await?;
         match user {
@@ -166,7 +206,7 @@ impl WebRequestsHandlers<ReqContext> for Handlers {
         }
     }
 
-    async fn refresh(&self, ctx: ReqContext, i: RefreshReq) -> Result<RefreshResp, Self::Error> {
+    async fn refresh(&self, ctx: &ReqContext, i: RefreshReq) -> Result<RefreshResp, Self::Error> {
         match i.refresh_token {
             None => Ok(RefreshResp::InvalidRefreshToken),
             Some(refresh_jwt) => {
@@ -187,7 +227,7 @@ impl WebRequestsHandlers<ReqContext> for Handlers {
         }
     }
 
-    async fn logout(&self, _ctx: ReqContext, _i: Unit) -> Result<Unit, Self::Error> {
+    async fn logout(&self, _ctx: &ReqContext, _i: Unit) -> Result<Unit, Self::Error> {
         Ok(Unit {})
     }
 }
@@ -198,8 +238,8 @@ pub async fn login_with_cookies(
     cookies: &CookieJar,
     i: Json<LoginReq>,
 ) -> poem::Result<Json<LoginResp>> {
-    let ctx = get_adl_request_context(req, &WebRequests::def_login().security)?;
-    let eresp = Handlers.login(ctx, i.0).await;
+    let ctx = get_adl_request_context(req);
+    let eresp = WebApiHandlersImpl.login(&ctx, i.0).await;
     if let Ok(LoginResp::Tokens(tokens)) = &eresp {
         let mut cookie = Cookie::new_with_str(REFRESH_TOKEN, tokens.refresh_jwt.clone());
         cookie.set_http_only(true);
@@ -214,13 +254,15 @@ pub async fn refresh_with_cookies(
     cookies: &CookieJar,
     mut i: Json<RefreshReq>,
 ) -> poem::Result<Json<RefreshResp>> {
-    let ctx = get_adl_request_context(req, &WebRequests::def_refresh().security)?;
+    let ctx = get_adl_request_context(req);
     let token_from_cookie = cookies.get(REFRESH_TOKEN).map(|c| c.value_str().to_owned());
 
     // If there's no refresh token in the request, use the one from the cookie
     let refresh_token = i.0.refresh_token.or(token_from_cookie);
 
-    let eresp = Handlers.refresh(ctx, RefreshReq { refresh_token }).await;
+    let eresp = WebApiHandlersImpl
+        .refresh(&ctx, RefreshReq { refresh_token })
+        .await;
     eresp.map(Json).map_err(poem::Error::from)
 }
 
@@ -230,9 +272,9 @@ pub async fn logout_with_cookies(
     cookies: &CookieJar,
     mut i: Json<Unit>,
 ) -> poem::Result<Json<Unit>> {
-    let ctx = get_adl_request_context(req, &WebRequests::def_logout().security)?;
+    let ctx = get_adl_request_context(req);
     cookies.remove(REFRESH_TOKEN);
-    let eresp = Handlers.logout(ctx, i.0).await;
+    let eresp = WebApiHandlersImpl.logout(&ctx, i.0).await;
     eresp.map(Json).map_err(poem::Error::from)
 }
 
@@ -244,13 +286,4 @@ fn access_jwt_from_user(cfg: &ServerConfig, user_id: &AppUserId, user: &AppUser)
     } else {
         jwt::create_user_access(cfg, user_id.0.clone())
     }
-}
-
-fn user_from_claims(oclaims: &Option<AccessClaims>) -> HandlerResult<AppUserId> {
-    if let Some(claims) = oclaims {
-        if claims.role == jwt::ROLE_USER || claims.role == jwt::ROLE_ADMIN {
-            return Ok(DbKey::from_string(claims.sub.clone()));
-        }
-    }
-    Err(forbidden())
 }

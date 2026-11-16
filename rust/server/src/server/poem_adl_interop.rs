@@ -11,18 +11,23 @@ use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use std::sync::Arc;
 
-use adl::gen::common::http::{HttpMethod, HttpReq, HttpSecurity};
-use adl::http_api::{Handler, HttpApi, Mount};
+use adl::gen::common::http::{HttpMethod, HttpSecurity};
+use adl::http_api::{Handler, HttpApi, Mount, SecuredHandler};
 
 use super::jwt;
 use super::AppState;
 
 /**
  * Contextual information available to ADL request handlers
+ *
+ * The caller's identity used to live here, as `Option<AccessClaims>`, which
+ * left every handler to decide whether to check it. It is now a separate
+ * argument, present only on the endpoints whose policy requires one and
+ * already checked against that policy, so this carries nothing but the state.
+ * Design doc item 2 can collapse it into the state outright.
  */
 pub struct AdlReqContext<S> {
     pub state: S,
-    pub claims: Option<jwt::AccessClaims>,
 }
 
 /**
@@ -44,8 +49,26 @@ pub trait DynRouteExt {
     fn adl_dyn_req<S, I, O>(
         self,
         path: &str,
-        req: &HttpReq<I, O>,
+        method: HttpMethod,
         handler: adl::http_api::Handler<AdlReqContext<S>, I, O, HandlerError>,
+    ) -> Self
+    where
+        S: Send + Sync + Clone + 'static,
+        I: Send + Sync + DeserializeOwned + 'static,
+        O: Send + Sync + Serialize + 'static;
+
+    fn adl_dyn_secured_req<S, I, O>(
+        self,
+        path: &str,
+        method: HttpMethod,
+        security: &HttpSecurity,
+        handler: adl::http_api::SecuredHandler<
+            AdlReqContext<S>,
+            jwt::AccessClaims,
+            I,
+            O,
+            HandlerError,
+        >,
     ) -> Self
     where
         S: Send + Sync + Clone + 'static,
@@ -57,8 +80,29 @@ impl DynRouteExt for Route {
     fn adl_dyn_req<S, I, O>(
         self,
         path: &str,
-        req: &HttpReq<I, O>,
+        method: HttpMethod,
         handler: adl::http_api::Handler<AdlReqContext<S>, I, O, HandlerError>,
+    ) -> Self
+    where
+        S: Send + Sync + Clone + 'static,
+        I: Send + Sync + DeserializeOwned + 'static,
+        O: Send + Sync + Serialize + 'static,
+    {
+        self.at(path, AdlDynReq { method, handler })
+    }
+
+    fn adl_dyn_secured_req<S, I, O>(
+        self,
+        path: &str,
+        method: HttpMethod,
+        security: &HttpSecurity,
+        handler: adl::http_api::SecuredHandler<
+            AdlReqContext<S>,
+            jwt::AccessClaims,
+            I,
+            O,
+            HandlerError,
+        >,
     ) -> Self
     where
         S: Send + Sync + Clone + 'static,
@@ -67,12 +111,9 @@ impl DynRouteExt for Route {
     {
         self.at(
             path,
-            AdlDynReq {
-                // Only the method and security are needed at call time, and
-                // copying them avoids requiring `I: Clone, O: Clone`, which
-                // HttpReq's derived Clone would otherwise demand.
-                method: req.method.clone(),
-                security: req.security.clone(),
+            AdlDynSecuredReq {
+                method,
+                security: security.clone(),
                 handler,
             },
         )
@@ -81,8 +122,13 @@ impl DynRouteExt for Route {
 
 struct AdlDynReq<S, I, O> {
     method: HttpMethod,
-    security: HttpSecurity,
     handler: adl::http_api::Handler<AdlReqContext<S>, I, O, HandlerError>,
+}
+
+struct AdlDynSecuredReq<S, I, O> {
+    method: HttpMethod,
+    security: HttpSecurity,
+    handler: adl::http_api::SecuredHandler<AdlReqContext<S>, jwt::AccessClaims, I, O, HandlerError>,
 }
 
 impl<S, I, O> Endpoint for AdlDynReq<S, I, O>
@@ -94,22 +140,59 @@ where
     type Output = Response;
     async fn call(&self, mut req: Request) -> poem::Result<Self::Output> {
         let mut body = RequestBody::new(req.take_body());
-        let ctx = get_adl_request_context(&req, &self.security)?;
-        let i: I = match self.method {
-            HttpMethod::Get => decode_query_string(req)?,
-            HttpMethod::Post => Json::from_request(&req, &mut body).await?.0,
-        };
+        let ctx = get_adl_request_context(&req);
+        let i: I = decode_request(&req, &mut body, self.method.clone()).await?;
         let o = (self.handler)(ctx, i).await?;
         Ok(Json(o).into_response())
     }
 }
 
+impl<S, I, O> Endpoint for AdlDynSecuredReq<S, I, O>
+where
+    S: Send + Sync + Clone + 'static,
+    I: Send + Sync + DeserializeOwned + 'static,
+    O: Send + Sync + Serialize + 'static,
+{
+    type Output = Response;
+    async fn call(&self, mut req: Request) -> poem::Result<Self::Output> {
+        let mut body = RequestBody::new(req.take_body());
+        // Before the body is even decoded, and before the handler exists as a
+        // possibility: the handler takes an identity, and this is the only
+        // place one is made.
+        let identity = authenticate(&req, &self.security)?;
+        let ctx = get_adl_request_context(&req);
+        let i: I = decode_request(&req, &mut body, self.method.clone()).await?;
+        let o = (self.handler)(ctx, identity, i).await?;
+        Ok(Json(o).into_response())
+    }
+}
+
+/// Decode the request body, from the query string for a get and the json body
+/// for a post.
+async fn decode_request<I: DeserializeOwned>(
+    req: &Request,
+    body: &mut RequestBody,
+    method: HttpMethod,
+) -> poem::Result<I> {
+    match method {
+        HttpMethod::Get => decode_query_string(req),
+        HttpMethod::Post => Ok(Json::from_request(req, body).await?.0),
+    }
+}
+
 pub trait JwtSecurityCheck {
+    /// Check a non-public endpoint's policy against the request's credential,
+    /// and return the identity it authenticates.
+    ///
+    /// There is no `Option` in the result: every policy this is called for
+    /// requires a credential, so a missing or unusable one is an error rather
+    /// than an anonymous caller. A `public` endpoint does not call this at
+    /// all.
     fn check_security(
         &self,
         security: &HttpSecurity,
         auth_header: Option<&str>,
-    ) -> HandlerResult<Option<jwt::AccessClaims>>;
+    ) -> HandlerResult<jwt::AccessClaims>;
 }
 
 pub type DynJwtSecurityCheck = Arc<Box<dyn JwtSecurityCheck + Send + Sync>>;
@@ -122,7 +205,7 @@ pub type DynJwtSecurityCheck = Arc<Box<dyn JwtSecurityCheck + Send + Sync>>;
 //
 //      input=${encodeURIComponent(serde_json::to_string(i))}
 //
-fn decode_query_string<I: DeserializeOwned>(req: Request) -> poem::Result<I> {
+fn decode_query_string<I: DeserializeOwned>(req: &Request) -> poem::Result<I> {
     let query_str = req.uri().query();
     match query_str {
         None => {
@@ -147,16 +230,26 @@ struct Params {
 
 pub fn get_adl_request_context<S: Send + Sync + Clone + 'static>(
     req: &poem::Request,
+) -> AdlReqContext<S> {
+    let state = req.data::<S>().expect("State should be configured").clone();
+    AdlReqContext { state }
+}
+
+/// Authenticate a request against a non-public endpoint's policy, yielding the
+/// caller's identity.
+///
+/// The only way to obtain an identity, and so the only way to reach a handler
+/// that takes one. An endpoint whose policy is `public` never calls this: a
+/// credential on such a request is ignored entirely, which is what lets a
+/// client holding a stale token still reach login, refresh and logout.
+pub fn authenticate(
+    req: &poem::Request,
     security: &HttpSecurity,
-) -> poem::Result<AdlReqContext<S>> {
+) -> HandlerResult<jwt::AccessClaims> {
     let jwt_checker = req
         .data::<DynJwtSecurityCheck>()
         .expect("JwtChecker should be configured");
-    let state = req.data::<S>().expect("State should be configured").clone();
-    let auth_header = req.header("Authorization");
-    let claims = jwt_checker.check_security(security, auth_header)?;
-    let ctx = AdlReqContext { state, claims };
-    Ok(ctx)
+    jwt_checker.check_security(security, req.header("Authorization"))
 }
 
 #[derive(Clone)]
@@ -173,48 +266,33 @@ impl JwtSecurityCheck for AccessTokenChecker {
         &self,
         security: &HttpSecurity,
         auth_header: Option<&str>,
-    ) -> HandlerResult<Option<jwt::AccessClaims>> {
-        // Get the claims from the auth header, if there is one.
-        //
-        // A token that fails to decode is only fatal for endpoints that
-        // actually require one. On a public endpoint a malformed, expired or
-        // non-Bearer credential is treated as anonymous, so that a client
-        // holding a stale token can still reach login/refresh/logout.
-        let claims = match auth_header {
-            None => None,
-            Some(ah) => match claims_from_bearer_token(&self.jwt_access_secret, ah) {
-                Ok(claims) => Some(claims),
-                Err(e) => match security {
-                    HttpSecurity::Public => None,
-                    HttpSecurity::Token | HttpSecurity::TokenWithRole(_) => return Err(e),
-                },
-            },
-        };
-
-        // Check whether the claims match the endpoints security rules.
+    ) -> HandlerResult<jwt::AccessClaims> {
         // Missing or unusable credentials are a 401; credentials carrying the
-        // wrong role are a 403.
+        // wrong role are a 403. A public endpoint never reaches here, so a
+        // credential that fails to decode is always fatal: the caller cannot
+        // fall back to being anonymous on an endpoint that requires a token.
+        let Some(auth_header) = auth_header else {
+            log::warn!("request without a credential to a {security:?} endpoint");
+            return Err(unauthorized());
+        };
+        let claims = claims_from_bearer_token(&self.jwt_access_secret, auth_header)?;
         match security {
-            HttpSecurity::Public => Ok(claims),
-            HttpSecurity::Token => {
-                if claims.is_some() {
+            HttpSecurity::Public => {
+                // Unreachable by construction: `authenticate` is called only
+                // from a secured mount. Treated as a programming error rather
+                // than silently granted.
+                log::error!("a public endpoint reached the authenticated path");
+                Err(forbidden())
+            }
+            HttpSecurity::Token => Ok(claims),
+            HttpSecurity::TokenWithRole(role) => {
+                if claims.role == *role {
                     Ok(claims)
                 } else {
-                    log::warn!("request without jwt claims to a token endpoint");
-                    Err(unauthorized())
-                }
-            }
-            HttpSecurity::TokenWithRole(role) => match claims.as_ref().map(|c| c.role == *role) {
-                None => {
-                    log::warn!("request without jwt claims to a role restricted endpoint");
-                    Err(unauthorized())
-                }
-                Some(true) => Ok(claims),
-                Some(false) => {
                     log::warn!("request with insufficient role, {} required", role);
                     Err(forbidden())
                 }
-            },
+            }
         }
     }
 }
@@ -334,17 +412,32 @@ impl<E: Endpoint> PoemRoutes<E> {
 
 impl Mount<AdlReqContext<AppState>> for PoemRoutes<Route> {
     type Error = HandlerError;
+    type Identity = jwt::AccessClaims;
 
-    fn mount<I, O>(
+    fn mount_public<I, O>(
         self,
         path: &str,
-        req: &HttpReq<I, O>,
+        method: HttpMethod,
         handler: Handler<AdlReqContext<AppState>, I, O, Self::Error>,
     ) -> Self
     where
         I: serde::de::DeserializeOwned + Send + Sync + 'static,
         O: serde::Serialize + Send + Sync + 'static,
     {
-        PoemRoutes(self.0.adl_dyn_req(path, req, handler))
+        PoemRoutes(self.0.adl_dyn_req(path, method, handler))
+    }
+
+    fn mount_secured<I, O>(
+        self,
+        path: &str,
+        method: HttpMethod,
+        security: &HttpSecurity,
+        handler: SecuredHandler<AdlReqContext<AppState>, Self::Identity, I, O, Self::Error>,
+    ) -> Self
+    where
+        I: serde::de::DeserializeOwned + Send + Sync + 'static,
+        O: serde::Serialize + Send + Sync + 'static,
+    {
+        PoemRoutes(self.0.adl_dyn_secured_req(path, method, security, handler))
     }
 }

@@ -1,0 +1,94 @@
+# Local dev services (postgres runs natively, from the nix dev shell). Start with `process-compose up` (or `process-compose up -D`
+# to run detached). See README section 3 for the equivalent manual steps.
+version: "0.5"
+
+environment:
+  - "DB_CONNECTION_URL=postgresql://postgres:xyzzy@localhost:5432/appdb"
+
+processes:
+  db-init:
+    command: |
+      mkdir -p .local/pgsock
+      [ -d .local/pgdata ] || initdb -D .local/pgdata -U postgres --auth=password --pwfile=<(echo xyzzy)
+
+  # Postgres from the nix dev shell. Data lives in .local/pgdata, so deleting
+  # that directory resets the database.
+  db:
+    command: exec postgres -D .local/pgdata -k "$PWD/.local/pgsock" -p 5432
+    depends_on:
+      db-init:
+        condition: process_completed_successfully
+    shutdown:
+      signal: 2 # SIGINT: postgres fast shutdown
+      timeout_seconds: 30
+    readiness_probe:
+      exec:
+        command: pg_isready -h localhost -p 5432 -U postgres
+      initial_delay_seconds: 1
+      period_seconds: 2
+      failure_threshold: 30
+
+  db-create:
+    command: createdb -h localhost -U postgres appdb || true
+    environment:
+      - "PGPASSWORD=xyzzy"
+    depends_on:
+      db:
+        condition: process_healthy
+
+  server:
+    command: cargo run --bin protoapp-server
+    working_dir: rust/server
+    environment:
+      - "RUST_LOG=info"
+      - |
+        PROTOAPP_SERVER_CONFIG={
+          "http_bind_addr": "0.0.0.0:8081",
+          "db": {
+            "host": "localhost",
+            "port": 5432,
+            "dbname": "appdb",
+            "user": "postgres",
+            "password": "xyzzy"
+          },
+          "jwt_access_secret": "shouldbetrulysecretbutnotrightnow",
+          "jwt_refresh_secret": "nottomentionthisone"
+        }
+    depends_on:
+      db-create:
+        condition: process_completed_successfully
+    availability:
+      restart: on_failure
+      backoff_seconds: 5
+    readiness_probe:
+      exec:
+        command: bash -c 'exec 3<>/dev/tcp/localhost/8081'
+      initial_delay_seconds: 5
+      period_seconds: 3
+      # allow time for the initial cargo build
+      failure_threshold: 200
+
+  # The server creates the db schema on startup, so users can only be created
+  # once it is up. Re-runs (eg for existing users) are tolerated.
+  create-users:
+    command: |
+      cargo run --bin protoapp-tools -- create-user joe@test.com Joe xyzzy1 || true
+      cargo run --bin protoapp-tools -- create-user --is-admin sarah@test.com Sarah abcdef || true
+    working_dir: rust/server
+    depends_on:
+      server:
+        condition: process_healthy
+
+  ui:
+    command: pnpm install && pnpm run dev
+    working_dir: ts/ui
+    depends_on:
+      server:
+        condition: process_healthy
+
+  api-workbench:
+    command: pnpm install && pnpm run dev
+    working_dir: ts/api-workbench
+    depends_on:
+      server:
+        condition: process_healthy

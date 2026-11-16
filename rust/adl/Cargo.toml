@@ -14,3 +14,8 @@ serde_json = { workspace = true }
 sea-query = { workspace = true }
 sqlx = { workspace = true }
 time = { workspace = true }
+
+[dev-dependencies]
+# Only to drive the generated client's futures in the unit tests below; the
+# crate itself is runtime agnostic.
+tokio = { version = "1.27.0", features = ["rt", "macros"] }

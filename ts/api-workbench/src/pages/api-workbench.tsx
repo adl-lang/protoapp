@@ -1,4 +1,4 @@
-import { HttpSecurity, snHttpReq, texprHttpReq } from "@protoapp/adl/common/http";
+import { HttpSecurity, snHttpReq } from "@protoapp/adl/common/http";
 import * as API from "@protoapp/adl/protoapp/apis/ui";
 import { RESOLVER } from "@protoapp/adl/resolver";
 import * as AST from "@protoapp/adl/sys/adlast";
@@ -9,7 +9,14 @@ import { Modal } from "@/components/forms/mui/modal";
 import { VEditor } from "@/components/forms/mui/veditor";
 import { createUiFactory } from "@/components/forms/factory";
 import { AppState, AuthState, useAppState } from "@/hooks/use-app-state";
-import { AdlRequestError, encodeQueryString, endpointPath, ServiceBase } from "@/service/service-base";
+import {
+  AdlRequestError,
+  encodeQueryString,
+  endpointMethod,
+  endpointPath,
+  endpointSecurity,
+  ServiceBase,
+} from "@/service/service-base";
 import * as ADL from "@adllang/adl-runtime";
 import { Json, JsonBinding, createJsonBinding, scopedNamesEqual } from "@adllang/adl-runtime";
 import { Box, Button, Card, CircularProgress, Container, Divider, IconButton, Typography } from "@mui/material";
@@ -54,10 +61,7 @@ export function ApiWorkbench() {
   const jwt_decoded = authState.kind === "auth" ? authState.auth.jwt_decoded : undefined;
 
   const endpoints = useMemo(() => {
-    const allEndpoints = [
-      ...getEndpoints(RESOLVER, API.texprApiRequests()),
-      ...getEndpoints(RESOLVER, API.texprWebRequests()),
-    ];
+    const allEndpoints = [...getEndpoints(RESOLVER, API.texprApi()), ...getEndpoints(RESOLVER, API.texprWebApi())];
 
     // only show endpoints accessible for the current authstate
     return allEndpoints.filter(
@@ -434,7 +438,7 @@ function getEndpoints<API>(
   for (const f of struct.fields) {
     const path = prefix + endpointPath(resolver, f);
     if (f.typeExpr.typeRef.kind === "reference" && scopedNamesEqual(f.typeExpr.typeRef.value, snHttpReq)) {
-      endpoints.push(getHttpEndpoint(resolver, f, path, qualifier + f.name));
+      endpoints.push(getHttpEndpoint(resolver, f, decl.decl.annotations, path, qualifier + f.name));
     } else {
       // A field that is not an HttpReq is a nested api, mounted under this
       // field's path. The rust HttpApi derive reads it the same way.
@@ -447,17 +451,12 @@ function getEndpoints<API>(
 function getHttpEndpoint<I, O>(
   resolver: ADL.DeclResolver,
   field: AST.Field,
+  apiAnnotations: AST.Annotations,
   path: string,
   name: string,
 ): HttpEndpoint<I, O> {
-  if (field.default.kind !== "just") {
-    throw new Error("API endpoint must have a default value");
-  }
   const texprI = ADL.makeATypeExpr<I>(field.typeExpr.parameters[0]);
   const texprO = ADL.makeATypeExpr<O>(field.typeExpr.parameters[1]);
-
-  const jb = createJsonBinding(resolver, texprHttpReq(texprI, texprO));
-  const httpReq = jb.fromJson(field.default.value);
 
   const veditorI = createVEditor(texprI, resolver, UI_FACTORY);
   const veditorO = createVEditor(texprO, resolver, UI_FACTORY);
@@ -468,9 +467,9 @@ function getHttpEndpoint<I, O>(
   return {
     name,
     path,
-    method: httpReq.method,
+    method: endpointMethod(resolver, field, apiAnnotations),
     docString,
-    security: httpReq.security,
+    security: endpointSecurity(resolver, field, apiAnnotations),
     veditorI,
     veditorO,
     jsonBindingI,

@@ -6,15 +6,49 @@
 //! ```ignore
 //! #[derive(HttpApi)]
 //! #[http_api(runtime = "crate::http_api")]
-//! pub struct ApiRequests {
+//! pub struct Api {
 //!     pub healthy: HttpReq<(), ()>,
 //!     pub who_am_i: HttpReq<(), UserWithId>,
 //! }
 //! ```
 //!
-//! From that this derive emits a handler trait with one method per endpoint,
+//! From that this derive emits an endpoint trait with one method per endpoint,
 //! so that adding an endpoint to the ADL fails compilation until it is
-//! implemented, plus a `register` that mounts every endpoint into a host.
+//! implemented, a `register` that mounts every endpoint into a host, and a
+//! client that calls them.
+//!
+//! # Method and security
+//!
+//! Both come from annotations, read here at expansion time. Either may sit on
+//! the api struct instead of the field, where it sets the default for that
+//! struct's own endpoints:
+//!
+//! ```ignore
+//! #[adl_annotation(name="common.http.HttpSecurity", value="{\"tokenWithRole\":\"admin\"}")]
+//! pub struct AdminApi {
+//!     pub create_user: HttpReq<UserDetails, AppUserId>,   // inherits the role
+//! }
+//! ```
+//!
+//! A struct default does not reach a nested api: that is a separate
+//! declaration, and one that may be nested at more than one field, so its
+//! policy belongs to its own declaration rather than to a mount point. The
+//! annotation on a nested field is an error for the same reason.
+//!
+//! The method falls back to post. The security policy does not fall back at
+//! all: an endpoint that resolves to no policy fails to compile, because one
+//! that quietly became public would be open with nothing in the ADL saying
+//! so. Each resolved value is emitted as `METHOD_<FIELD>` and
+//! `security_<field>`, the latter a function because `tokenWithRole` carries
+//! a `String`.
+//!
+//! The policy also decides the handler's signature. A `public` endpoint's
+//! method takes `(ctx, req)`; every other one takes `(ctx, identity, req)`,
+//! where `Identity` is an associated type the host supplies and has already
+//! checked against the policy. There is no `Option` to unwrap and no check to
+//! forget, and the registration mounts the two through `Mount::mount_public`
+//! and `Mount::mount_secured` respectively — the latter being callable only
+//! by producing an identity.
 //!
 //! # Nested APIs
 //!
@@ -22,18 +56,63 @@
 //! nested under this one:
 //!
 //! ```ignore
-//! pub struct ApiRequests {
+//! pub struct Api {
 //!     pub who_am_i: HttpReq<(), UserWithId>,
-//!     pub admin: AdminApiRequests,
+//!     pub admin: AdminApi,
+//!     pub admin_dry_run: AdminApi,
 //! }
 //! ```
 //!
 //! The nested struct needs its own `#[derive(HttpApi)]`, which gives it its
-//! own handler trait; this derive can only require that trait, not generate
-//! it. The requirement lands on the generated `HttpApi` impl rather than as a
-//! supertrait, so the two traits stay independent and their associated `Error`
-//! types need not be equated — but one handler value still has to implement
-//! the whole tree, so no nested endpoint can be left unimplemented.
+//! own endpoint trait; this derive can only require that trait, not generate
+//! it. The requirement lands on the enclosing endpoint trait, which gains an
+//! associated type and an accessor per nested field:
+//!
+//! ```ignore
+//! pub trait ApiEndpoints<Ctx>: Send + Sync + 'static {
+//!     type Error;
+//!
+//!     type Admin: AdminApiEndpoints<Ctx, Error = Self::Error>;
+//!     fn admin(&self) -> Arc<Self::Admin>;
+//!
+//!     type AdminDryRun: AdminApiEndpoints<Ctx, Error = Self::Error>;
+//!     fn admin_dry_run(&self) -> Arc<Self::AdminDryRun>;
+//!
+//!     // and one method per HttpReq field
+//! }
+//! ```
+//!
+//! A mount point is identified by the field, not by the type, so the two
+//! `AdminApi` fields above get an associated type each and can be served by
+//! different handler types — a dry run implementation holding no database
+//! pool, say. Leaving either out is a compile error, so no nested endpoint
+//! can go unimplemented, and none can silently inherit another's handlers.
+//!
+//! # Clients
+//!
+//! Alongside the trait, each API gets an `<Api>Client` generic over an
+//! `Invoke` transport, with one method per endpoint and one accessor per
+//! nested API:
+//!
+//! ```ignore
+//! let client = ApiClient::new(transport);
+//! client.admin().query_users(&jwt, req).await?;
+//! ```
+//!
+//! The transport lives in the client, so a call site passes only what the
+//! endpoint itself takes. A nested accessor hands back a client carrying the
+//! composed prefix, so a caller never has to know where an API is mounted.
+//!
+//! The client does **not** implement the endpoint trait, though it could. The
+//! trait is a completeness check on a hand written implementation; a generated
+//! one has nothing to check, and the `Ctx` the trait carries for the server's
+//! per-request state would be a parameter with no referent at every client
+//! call site.
+//!
+//! The split also follows the security policy, as the registration does. A
+//! public endpoint's client method takes no credential, because the server
+//! would ignore one; every other method requires one, so a call that has
+//! nothing to present does not compile.
 //!
 //! # Paths
 //!
@@ -53,8 +132,8 @@
 //! ```
 //!
 //! Paths compose through nesting: a nested API's endpoints are mounted under
-//! the path of the field it is nested at, so `AdminApiRequests::create_user`
-//! at field `admin` is served from `/admin/create_user`.
+//! the path of the field it is nested at, so `AdminApi::create_user` at field
+//! `admin` is served from `/admin/create_user`.
 //!
 //! Each path is also emitted as a `PATH_<FIELD>` associated constant —
 //! including one per nested field, holding that API's prefix — so that hand
@@ -62,7 +141,7 @@
 //! repeating a literal that nothing would check. **These constants are
 //! relative to where their API is mounted.** For a top level API that is the
 //! whole path; for a nested one, the caller composes, as
-//! `ApiRequests::PATH_ADMIN` followed by `AdminApiRequests::PATH_CREATE_USER`.
+//! `Api::PATH_ADMIN` followed by `AdminApi::PATH_CREATE_USER`.
 
 use proc_macro::TokenStream;
 use proc_macro2::Span;
@@ -81,6 +160,16 @@ struct Endpoint {
     path: String,
     /// Identifier of the `PATH_<FIELD>` constant holding [`Endpoint::path`].
     path_const: Ident,
+    /// The endpoint's http method, from its `@HttpMethod` annotation.
+    method: Method,
+    /// Identifier of the `METHOD_<FIELD>` constant holding [`Endpoint::method`].
+    method_const: Ident,
+    /// The endpoint's security policy, from its `@HttpSecurity` annotation.
+    security: Security,
+    /// Identifier of the `security_<field>` function returning
+    /// [`Endpoint::security`]. A function rather than a constant because
+    /// `tokenWithRole` carries a `String`, which no constant can hold.
+    security_fn: Ident,
     /// Request type: the `I` of `HttpReq<I, O>`.
     req: Type,
     /// Response type: the `O` of `HttpReq<I, O>`.
@@ -89,18 +178,48 @@ struct Endpoint {
     docs: Vec<syn::Attribute>,
 }
 
+/// An endpoint's http method. Post when `@HttpMethod` is absent, which is the
+/// default the ADL documents.
+#[derive(Clone)]
+enum Method {
+    Get,
+    Post,
+}
+
+/// An endpoint's security policy, from its `@HttpSecurity` annotation. There
+/// is no default; see [`http_security`].
+///
+/// A local copy of the ADL union rather than the generated type, because the
+/// generated code lives in the crate that depends on this one.
+#[derive(Clone)]
+enum Security {
+    Public,
+    Token,
+    TokenWithRole(String),
+}
+
 /// An API nested under a field of this one.
 struct Nested {
-    /// Field identifier, used to reach the nested API's value.
+    /// Field identifier. Reaches the nested API's value on the API struct,
+    /// and names the accessor on the endpoint trait that yields the handlers
+    /// for this mount point.
     name: Ident,
+    /// Identifier of the endpoint trait's associated type for this mount
+    /// point: [`Nested::name`] in pascal case. Per mount point rather than
+    /// per type, so two fields of the same API type can be served by
+    /// different handler types.
+    assoc: Ident,
     /// The path segment this API's endpoints are mounted under, relative to
     /// the enclosing API.
     path: String,
     /// Identifier of the `PATH_<FIELD>` constant holding [`Nested::path`].
     path_const: Ident,
-    /// The nested API's generated handler trait, which the enclosing API's
-    /// handlers must also implement.
-    handlers: syn::Path,
+    /// The nested API's generated endpoint trait, which bounds the type this
+    /// mount point is served by.
+    endpoints: syn::Path,
+    /// The nested API's generated client struct, which this API's client
+    /// hands back from its accessor for this mount point.
+    client: syn::Path,
 }
 
 #[proc_macro_derive(HttpApi, attributes(http_api))]
@@ -131,7 +250,8 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         ));
     }
 
-    let trait_name = format_ident!("{}Handlers", api);
+    let trait_name = format_ident!("{}Endpoints", api);
+    let client_name = format_ident!("{}Client", api);
 
     // One trait method per endpoint. `Ctx` and `Error` are left to the
     // implementor so that the generated trait names no framework types.
@@ -141,20 +261,58 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
             req,
             resp,
             docs,
+            security,
             ..
         } = e;
+        // A public endpoint's handler takes no identity; every other one
+        // takes a verified identity rather than an optional credential, so a
+        // handler cannot be written that forgets to check, or reached without
+        // the host having checked.
+        let identity = match security {
+            Security::Public => quote! {},
+            _ => quote! { identity: Self::Identity, },
+        };
         quote! {
             #(#docs)*
             fn #name(
                 &self,
-                ctx: Ctx,
+                ctx: &Ctx,
+                #identity
                 req: #req,
             ) -> impl ::core::future::Future<Output = ::core::result::Result<#resp, Self::Error>> + ::core::marker::Send;
         }
     });
 
+    // One associated type and one accessor per nested API. The accessor is
+    // what lets two fields of the same API type be served by different
+    // handler values: the mount point is identified by the field, not by the
+    // type, so each gets its own associated type even where they coincide.
+    let nested_items = nested.iter().map(|n| {
+        let Nested {
+            name,
+            assoc,
+            endpoints,
+            ..
+        } = n;
+        let assoc_doc = format!("Handler type serving the nested `{name}` API.");
+        let fn_doc = format!(
+            "The handlers for the nested `{name}` API.\n\n\
+             Yielded by value so that the registration can move it into the \
+             mounted routes, which outlive this call; holding the nested \
+             handlers in an `Arc` field and cloning it is the expected \
+             implementation."
+        );
+        quote! {
+            #[doc = #assoc_doc]
+            type #assoc: #endpoints<Ctx, Error = Self::Error, Identity = Self::Identity>;
+
+            #[doc = #fn_doc]
+            fn #name(&self) -> ::std::sync::Arc<Self::#assoc>;
+        }
+    });
+
     let doc = format!(
-        "Handlers for every endpoint of [`{api}`].\n\n\
+        "Every endpoint of [`{api}`], as a trait.\n\n\
          Generated by `#[derive(HttpApi)]`. Adding an endpoint to the ADL adds a \
          method here, so an incomplete implementation is a compile error."
     );
@@ -164,17 +322,39 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
     let mounts = endpoints.iter().map(|e| {
         let name = &e.name;
         let path_const = &e.path_const;
+        let method = method_expr(&e.method, &runtime);
+        let call = match &e.security {
+            Security::Public => quote! {
+                mount.mount_public(
+                    &::std::format!("{}{}", prefix, Self::#path_const),
+                    #method,
+                    ::std::boxed::Box::new(move |ctx, req| {
+                        let handlers = handlers.clone();
+                        ::std::boxed::Box::pin(async move { handlers.#name(&ctx, req).await })
+                    }),
+                )
+            },
+            security => {
+                let security = security_expr(security, &runtime);
+                quote! {
+                    mount.mount_secured(
+                        &::std::format!("{}{}", prefix, Self::#path_const),
+                        #method,
+                        &#security,
+                        ::std::boxed::Box::new(move |ctx, identity, req| {
+                            let handlers = handlers.clone();
+                            ::std::boxed::Box::pin(async move {
+                                handlers.#name(&ctx, identity, req).await
+                            })
+                        }),
+                    )
+                }
+            }
+        };
         quote! {
             let mount = {
                 let handlers = handlers.clone();
-                mount.mount(
-                    &::std::format!("{}{}", prefix, Self::#path_const),
-                    &self.#name,
-                    ::std::boxed::Box::new(move |ctx, req| {
-                        let handlers = handlers.clone();
-                        ::std::boxed::Box::pin(async move { handlers.#name(ctx, req).await })
-                    }),
-                )
+                #call
             };
         }
     });
@@ -182,25 +362,24 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
     // Each nested API registers itself, under this API's prefix extended by
     // the field it is nested at.
     let nested_mounts = nested.iter().map(|n| {
-        let name = &n.name;
-        let path_const = &n.path_const;
+        let Nested {
+            name,
+            path_const,
+            assoc,
+            ..
+        } = n;
         quote! {
-            let mount = #runtime::HttpApi::<Ctx, M, H>::register_at(
+            let mount = #runtime::HttpApi::<
+                Ctx,
+                M,
+                <H as #trait_name<Ctx>>::#assoc,
+            >::register_at(
                 &self.#name,
                 &::std::format!("{}{}", prefix, Self::#path_const),
                 mount,
-                handlers.clone(),
+                <H as #trait_name<Ctx>>::#name(&*handlers),
             );
         }
-    });
-
-    // The nested APIs' handler traits. Bounding `H` by them here, rather than
-    // making them supertraits of this API's trait, keeps each generated trait
-    // independent and avoids having to equate their associated Error types.
-    // One handler value still implements the whole tree.
-    let nested_bounds = nested.iter().map(|n| {
-        let handlers = &n.handlers;
-        quote! { H: #handlers<Ctx, Error = M::Error> }
     });
 
     // The paths as associated constants, so that hand written wiring and tests
@@ -220,6 +399,39 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         }
     });
 
+    // The method as a constant, and the policy as a function, so that hand
+    // written wiring reads the declaration rather than restating it. The
+    // policy cannot be a constant: `tokenWithRole` carries a `String`.
+    let method_consts = endpoints.iter().map(|e| {
+        let Endpoint {
+            method,
+            method_const,
+            name,
+            ..
+        } = e;
+        let method = method_expr(method, &runtime);
+        let doc = format!("HTTP method of the `{name}` endpoint.");
+        quote! {
+            #[doc = #doc]
+            pub const #method_const: #runtime::HttpMethod = #method;
+        }
+    });
+
+    let security_fns = endpoints.iter().map(|e| {
+        let Endpoint {
+            security,
+            security_fn,
+            name,
+            ..
+        } = e;
+        let security = security_expr(security, &runtime);
+        let doc = format!("Security policy of the `{name}` endpoint.");
+        quote! {
+            #[doc = #doc]
+            pub fn #security_fn() -> #runtime::HttpSecurity { #security }
+        }
+    });
+
     let nested_path_consts = nested.iter().map(|n| {
         let Nested {
             path,
@@ -236,18 +448,122 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         }
     });
 
+    // One client method per endpoint, mirroring the endpoint trait's method
+    // but with no `Ctx`: the transport is the client's own, so a call site
+    // passes only what the endpoint itself needs.
+    let client_methods = endpoints.iter().map(|e| {
+        let Endpoint {
+            name,
+            req,
+            resp,
+            docs,
+            security,
+            path_const,
+            method_const,
+            ..
+        } = e;
+        // The public/secured split is the same one the registration makes,
+        // from the same annotation. A public endpoint's method takes no
+        // identity and reaches `invoke_public`, which has nowhere to put one.
+        let (identity_arg, call) = match security {
+            Security::Public => (
+                quote! {},
+                quote! {
+                    #runtime::Invoke::invoke_public(
+                        &*self.transport,
+                        &self.path(#api::#path_const),
+                        #api::#method_const,
+                        req,
+                    )
+                },
+            ),
+            _ => (
+                quote! { identity: &<T as #runtime::Invoke>::Identity, },
+                quote! {
+                    #runtime::Invoke::invoke_secured(
+                        &*self.transport,
+                        &self.path(#api::#path_const),
+                        #api::#method_const,
+                        identity,
+                        req,
+                    )
+                },
+            ),
+        };
+        quote! {
+            #(#docs)*
+            pub async fn #name(
+                &self,
+                #identity_arg
+                req: &#req,
+            ) -> ::core::result::Result<#resp, <T as #runtime::Invoke>::Error> {
+                #call.await
+            }
+        }
+    });
+
+    // One accessor per nested API, yielding a client for it over the same
+    // transport. Giving the nested client the composed prefix is what keeps
+    // mount points out of a caller's hands: it never has to know that
+    // `query_users` is served from `/admin/query_users`, and an API nested at
+    // two fields yields two clients that each address their own.
+    let client_nested = nested.iter().map(|n| {
+        let Nested {
+            name,
+            client,
+            path_const,
+            ..
+        } = n;
+        let doc = format!(
+            "A client for the nested `{name}` API, over this client's transport.\n\n\
+             Built on each call rather than held, which is cheap: it clones an \
+             `Arc` and the composed path prefix."
+        );
+        quote! {
+            #[doc = #doc]
+            pub fn #name(&self) -> #client<T> {
+                #client::at(
+                    ::core::clone::Clone::clone(&self.transport),
+                    self.path(#api::#path_const),
+                )
+            }
+        }
+    });
+
+    let client_doc = format!(
+        "A client for [`{api}`], over any `Invoke` transport.\n\n\
+         Generated by `#[derive(HttpApi)]`, so it cannot disagree with the \
+         server about a path, a method or whether an endpoint takes a \
+         credential. Deliberately *not* an implementation of \
+         [`{trait_name}`]: that trait exists to make a hand written \
+         implementation prove it is complete, and this one is generated."
+    );
+
+    let new_doc = format!(
+        "A client for [`{api}`] at the root of `transport`.\n\n\
+         The transport knows the base url, so this is the whole constructor."
+    );
+
+    let at_doc = format!(
+        "A client for [`{api}`] mounted under `prefix`.\n\n\
+         The counterpart of `HttpApi::register_at`, and what an enclosing \
+         API's accessor calls. A top level client has an \
+         empty prefix, which is what [`{client_name}::new`] gives it."
+    );
+
     let register_doc = format!(
         "Mount every endpoint of [`{api}`] into `mount`.\n\n\
          Generated by `#[derive(HttpApi)]`, so no endpoint can be left unwired. \
-         Takes `&self` because the method and security of each endpoint are \
-         runtime values on the struct, and consumes and returns the host so it \
-         composes with the usual router builders."
+         Consumes and returns the host, so it composes with the usual router \
+         builders."
     );
 
     Ok(quote! {
         impl #api {
             #(#path_consts)*
             #(#nested_path_consts)*
+            #(#method_consts)*
+            #(#security_fns)*
         }
 
         #[doc = #doc]
@@ -255,15 +571,64 @@ fn expand(input: DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
             /// Error returned by every handler; mapped to a response by the host.
             type Error;
 
+            /// The caller's identity, as the host authenticates it. Passed to
+            /// every endpoint whose `@HttpSecurity` is not `public`, already
+            /// checked against that policy.
+            type Identity;
+
             #(#methods)*
+            #(#nested_items)*
+        }
+
+        #[doc = #client_doc]
+        pub struct #client_name<T> {
+            transport: ::std::sync::Arc<T>,
+            prefix: ::std::string::String,
+        }
+
+        // Hand written rather than derived, because a derive would demand
+        // `T: Clone` for a struct that only ever clones an `Arc<T>`.
+        impl<T> ::core::clone::Clone for #client_name<T> {
+            fn clone(&self) -> Self {
+                Self {
+                    transport: ::core::clone::Clone::clone(&self.transport),
+                    prefix: ::core::clone::Clone::clone(&self.prefix),
+                }
+            }
+        }
+
+        impl<T: #runtime::Invoke> #client_name<T> {
+            #[doc = #new_doc]
+            pub fn new(transport: T) -> Self {
+                Self::at(
+                    ::std::sync::Arc::new(transport),
+                    ::std::string::String::new(),
+                )
+            }
+
+            #[doc = #at_doc]
+            pub fn at(
+                transport: ::std::sync::Arc<T>,
+                prefix: ::std::string::String,
+            ) -> Self {
+                Self { transport, prefix }
+            }
+
+            /// An endpoint's full path: this client's prefix, and the path the
+            /// API declares relative to where it is mounted.
+            fn path(&self, path: &str) -> ::std::string::String {
+                ::std::format!("{}{}", self.prefix, path)
+            }
+
+            #(#client_nested)*
+            #(#client_methods)*
         }
 
         impl<Ctx, M, H> #runtime::HttpApi<Ctx, M, H> for #api
         where
             Ctx: ::core::marker::Send + 'static,
             M: #runtime::Mount<Ctx>,
-            H: #trait_name<Ctx, Error = M::Error>,
-            #(#nested_bounds,)*
+            H: #trait_name<Ctx, Error = M::Error, Identity = M::Identity>,
         {
             #[doc = #register_doc]
             fn register_at(&self, prefix: &str, mount: M, handlers: ::std::sync::Arc<H>) -> M {
@@ -305,6 +670,14 @@ fn runtime_path(input: &DeriveInput) -> syn::Result<syn::Path> {
 /// the ADL Rust backend's un-aliased output is relied on here. Every other
 /// field is taken to be another API struct, nested under this one.
 fn collect_fields(input: &DeriveInput) -> syn::Result<(Vec<Endpoint>, Vec<Nested>)> {
+    // Defaults for this struct's own endpoints, which a field annotation
+    // overrides. They do not reach a nested API: that is a separate
+    // declaration, and one that may be nested at more than one field, so its
+    // policy has to belong to its own declaration rather than to wherever it
+    // happens to be mounted.
+    let api_method = http_method(&input.attrs)?;
+    let api_security = http_security(&input.attrs)?;
+
     let data = match &input.data {
         Data::Struct(d) => d,
         _ => {
@@ -340,6 +713,26 @@ fn collect_fields(input: &DeriveInput) -> syn::Result<(Vec<Endpoint>, Vec<Nested
 
         match http_req_args(&field.ty) {
             Some((req, resp)) => endpoints.push(Endpoint {
+                method: http_method(&field.attrs)?
+                    .or_else(|| api_method.clone())
+                    .unwrap_or(Method::Post),
+                method_const: format_ident!("METHOD_{}", unraw(&name).to_uppercase()),
+                security: match http_security(&field.attrs)?.or_else(|| api_security.clone()) {
+                    Some(security) => security,
+                    None => {
+                        return Err(syn::Error::new(
+                            field.span(),
+                            format!(
+                                "endpoint `{name}` resolves to no {HTTP_SECURITY}: annotate \
+                                 the field, or the api struct to set a default for all of \
+                                 its endpoints. There is no language level default, \
+                                 because an endpoint whose policy fell back to public \
+                                 would be open with nothing in the ADL saying so"
+                            ),
+                        ))
+                    }
+                },
+                security_fn: format_ident!("security_{}", unraw(&name)),
                 path,
                 path_const,
                 name,
@@ -352,24 +745,52 @@ fn collect_fields(input: &DeriveInput) -> syn::Result<(Vec<Endpoint>, Vec<Nested
                     .cloned()
                     .collect(),
             }),
-            None => nested.push(Nested {
-                handlers: handlers_trait(&field.ty)?,
-                path,
-                path_const,
-                name,
-            }),
+            None => {
+                for forbidden in [HTTP_METHOD, HTTP_SECURITY] {
+                    if let Some(annotation) = sole_annotation(&field.attrs, forbidden)? {
+                        return Err(syn::Error::new(
+                            annotation.span,
+                            format!(
+                                "{forbidden} on `{name}` would apply to a nested api at \
+                                 one of its mount points. Annotate the nested struct, or \
+                                 its endpoints, so that it means the same wherever it is \
+                                 mounted"
+                            ),
+                        ));
+                    }
+                }
+                let assoc = Ident::new(&pascal_case(&unraw(&name)), name.span());
+                if assoc == "Error" {
+                    return Err(syn::Error::new(
+                        field.span(),
+                        "a nested API cannot be at a field named `error`: its \
+                         associated type would collide with the endpoint trait's \
+                         `Error`",
+                    ));
+                }
+                nested.push(Nested {
+                    endpoints: derived_item(&field.ty, "Endpoints")?,
+                    client: derived_item(&field.ty, "Client")?,
+                    path,
+                    path_const,
+                    assoc,
+                    name,
+                })
+            }
         }
     }
     Ok((endpoints, nested))
 }
 
-/// The handler trait that `#[derive(HttpApi)]` generates for an API type.
+/// One of the items `#[derive(HttpApi)]` generates for an API type, named as
+/// that type's name followed by `suffix`.
 ///
 /// Named by convention rather than looked up: the derive on the nested struct
-/// builds it from that struct's own name, so the enclosing API can name it
-/// without seeing the nested definition. Resolved in the same scope the field
-/// type is written in, which is where the derive put it.
-fn handlers_trait(ty: &Type) -> syn::Result<syn::Path> {
+/// builds its endpoint trait and its client from that struct's own name, so
+/// the enclosing API can name either without seeing the nested definition.
+/// Resolved in the same scope the field type is written in, which is where
+/// the derive put them.
+fn derived_item(ty: &Type, suffix: &str) -> syn::Result<syn::Path> {
     let Type::Path(tp) = ty else {
         return Err(syn::Error::new(
             ty.span(),
@@ -387,12 +808,128 @@ fn handlers_trait(ty: &Type) -> syn::Result<syn::Path> {
             "a nested API cannot be generic: an API must be monomorphic",
         ));
     }
-    last.ident = format_ident!("{}Handlers", last.ident);
+    last.ident = format_ident!("{}{}", last.ident, suffix);
     Ok(path)
 }
 
 /// Scoped name of the ADL annotation that overrides an endpoint's path.
 const HTTP_PATH: &str = "common.http.HttpPath";
+
+/// Scoped name of the ADL annotation giving an endpoint's http method.
+const HTTP_METHOD: &str = "common.http.HttpMethod";
+
+/// Scoped name of the ADL annotation giving an endpoint's security policy.
+const HTTP_SECURITY: &str = "common.http.HttpSecurity";
+
+/// The single annotation named `name` in `attrs`, if there is one.
+///
+/// Takes the attribute list rather than the field, because `@HttpMethod` and
+/// `@HttpSecurity` may also annotate the API struct itself, where they set a
+/// default for its endpoints.
+///
+/// More than one is an error rather than a last-wins, since the duplicates
+/// would have to disagree to be noticeable at all.
+fn sole_annotation(attrs: &[syn::Attribute], name: &str) -> syn::Result<Option<AdlAnnotation>> {
+    let mut found: Option<AdlAnnotation> = None;
+    for annotation in adl_annotations(attrs)? {
+        if annotation.name != name {
+            continue;
+        }
+        if found.is_some() {
+            return Err(syn::Error::new(
+                annotation.span,
+                format!("duplicate {name} annotation"),
+            ));
+        }
+        found = Some(annotation);
+    }
+    Ok(found)
+}
+
+/// The `@HttpMethod` in `attrs`, if there is one.
+///
+/// Returns `None` when absent so that an endpoint can fall back to its API
+/// struct's annotation, and that to post.
+fn http_method(attrs: &[syn::Attribute]) -> syn::Result<Option<Method>> {
+    let Some(annotation) = sole_annotation(attrs, HTTP_METHOD)? else {
+        return Ok(None);
+    };
+    let branch: String = serde_json::from_str(&annotation.value).map_err(|e| {
+        syn::Error::new(
+            annotation.span,
+            format!("{HTTP_METHOD} must be a string, but its value is not: {e}"),
+        )
+    })?;
+    match branch.as_str() {
+        "get" => Ok(Some(Method::Get)),
+        "post" => Ok(Some(Method::Post)),
+        other => Err(syn::Error::new(
+            annotation.span,
+            format!("{HTTP_METHOD} must be \"get\" or \"post\", got {other:?}"),
+        )),
+    }
+}
+
+/// The `@HttpSecurity` in `attrs`, if there is one.
+///
+/// Returns `None` when absent; there is no language level default, and
+/// [`collect_fields`] turns an endpoint that resolves to nothing into an
+/// error. A policy that defaulted to public would leave an endpoint open with
+/// nothing in the ADL saying so, and the ADL is what the clients and the api
+/// workbench read.
+fn http_security(attrs: &[syn::Attribute]) -> syn::Result<Option<Security>> {
+    let Some(annotation) = sole_annotation(attrs, HTTP_SECURITY)? else {
+        return Ok(None);
+    };
+    let value: serde_json::Value = serde_json::from_str(&annotation.value).map_err(|e| {
+        syn::Error::new(
+            annotation.span,
+            format!("{HTTP_SECURITY} value is not valid json: {e}"),
+        )
+    })?;
+    let bad = |detail: &str| {
+        syn::Error::new(
+            annotation.span,
+            format!(
+                "{HTTP_SECURITY} must be \"public\", \"token\" or \
+                 {{\"tokenWithRole\": \"<role>\"}}: {detail}"
+            ),
+        )
+    };
+    match &value {
+        serde_json::Value::String(branch) => match branch.as_str() {
+            "public" => Ok(Some(Security::Public)),
+            "token" => Ok(Some(Security::Token)),
+            other => Err(bad(&format!("unknown branch {other:?}"))),
+        },
+        serde_json::Value::Object(fields) if fields.len() == 1 => {
+            match fields.get("tokenWithRole").and_then(|r| r.as_str()) {
+                Some(role) => Ok(Some(Security::TokenWithRole(role.to_owned()))),
+                None => Err(bad("the only branch taking a value is tokenWithRole")),
+            }
+        }
+        _ => Err(bad("expected a string or a single field object")),
+    }
+}
+
+/// The method as an expression of the generated `HttpMethod` type.
+fn method_expr(method: &Method, runtime: &syn::Path) -> proc_macro2::TokenStream {
+    match method {
+        Method::Get => quote! { #runtime::HttpMethod::Get },
+        Method::Post => quote! { #runtime::HttpMethod::Post },
+    }
+}
+
+/// The policy as an expression of the generated `HttpSecurity` type.
+fn security_expr(security: &Security, runtime: &syn::Path) -> proc_macro2::TokenStream {
+    match security {
+        Security::Public => quote! { #runtime::HttpSecurity::Public },
+        Security::Token => quote! { #runtime::HttpSecurity::Token },
+        Security::TokenWithRole(role) => {
+            quote! { #runtime::HttpSecurity::TokenWithRole(#role.to_owned()) }
+        }
+    }
+}
 
 /// The `@HttpPath` override on a field, if it has one.
 ///
@@ -406,32 +943,22 @@ const HTTP_PATH: &str = "common.http.HttpPath";
 /// mounted somewhere the clients are not looking, which is exactly the class
 /// of bug the generation is meant to rule out.
 fn http_path(field: &syn::Field) -> syn::Result<Option<String>> {
-    let mut found: Option<(String, Span)> = None;
-    for annotation in adl_annotations(&field.attrs)? {
-        if annotation.name != HTTP_PATH {
-            continue;
-        }
-        if found.is_some() {
-            return Err(syn::Error::new(
-                annotation.span,
-                format!("duplicate {HTTP_PATH} annotation"),
-            ));
-        }
-        let path: String = serde_json::from_str(&annotation.value).map_err(|e| {
-            syn::Error::new(
-                annotation.span,
-                format!("{HTTP_PATH} must be a string, but its value is not: {e}"),
-            )
-        })?;
-        if !path.starts_with('/') {
-            return Err(syn::Error::new(
-                annotation.span,
-                format!("{HTTP_PATH} is used verbatim and so must start with `/`, got {path:?}"),
-            ));
-        }
-        found = Some((path, annotation.span));
+    let Some(annotation) = sole_annotation(&field.attrs, HTTP_PATH)? else {
+        return Ok(None);
+    };
+    let path: String = serde_json::from_str(&annotation.value).map_err(|e| {
+        syn::Error::new(
+            annotation.span,
+            format!("{HTTP_PATH} must be a string, but its value is not: {e}"),
+        )
+    })?;
+    if !path.starts_with('/') {
+        return Err(syn::Error::new(
+            annotation.span,
+            format!("{HTTP_PATH} is used verbatim and so must start with `/`, got {path:?}"),
+        ));
     }
-    Ok(found.map(|(path, _)| path))
+    Ok(Some(path))
 }
 
 /// One `#[adl_annotation(...)]` attribute, as adlc emits it.
@@ -519,6 +1046,21 @@ fn adl_field_name(field: &syn::Field, ident: &Ident) -> String {
         }
     }
     unraw(ident)
+}
+
+/// `admin_dry_run` to `AdminDryRun`, for the associated type naming the
+/// handlers of a nested API.
+fn pascal_case(name: &str) -> String {
+    name.split('_')
+        .filter(|word| !word.is_empty())
+        .map(|word| {
+            let mut chars = word.chars();
+            match chars.next() {
+                Some(first) => first.to_uppercase().chain(chars).collect::<String>(),
+                None => String::new(),
+            }
+        })
+        .collect()
 }
 
 /// An identifier's text without the raw-identifier `r#` prefix.

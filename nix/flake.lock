@@ -1,5 +1,23 @@
 {
   "nodes": {
+    "adl": {
+      "inputs": {
+        "nixpkgs": "nixpkgs"
+      },
+      "locked": {
+        "lastModified": 1794782067,
+        "narHash": "sha256-FLGe1KOwnwy9iDJ+hG/mRvW2GYMqmSo9Wg+1YSjNne8=",
+        "owner": "adl-lang",
+        "repo": "adl",
+        "rev": "dbaff4fd8f38d809cf9f5429db461927a8838455",
+        "type": "github"
+      },
+      "original": {
+        "owner": "adl-lang",
+        "repo": "adl",
+        "type": "github"
+      }
+    },
     "flake-utils": {
       "inputs": {
         "systems": "systems"
@@ -20,6 +38,22 @@
     },
     "nixpkgs": {
       "locked": {
+        "lastModified": 1767313136,
+        "narHash": "sha256-16KkgfdYqjaeRGBaYsNrhPRRENs0qzkQVUooNHtoy2w=",
+        "owner": "NixOS",
+        "repo": "nixpkgs",
+        "rev": "ac62194c3917d5f474c1a844b6fd6da2db95077d",
+        "type": "github"
+      },
+      "original": {
+        "owner": "NixOS",
+        "ref": "nixos-25.05",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
+    "nixpkgs_2": {
+      "locked": {
         "lastModified": 1792502884,
         "narHash": "sha256-IoNisKcGbUjdd45qCqywGMCYmZ5EnkxezvLII0FWwNA=",
         "owner": "NixOS",
@@ -36,8 +70,9 @@
     },
     "root": {
       "inputs": {
+        "adl": "adl",
         "flake-utils": "flake-utils",
-        "nixpkgs": "nixpkgs",
+        "nixpkgs": "nixpkgs_2",
         "rust-overlay": "rust-overlay"
       }
     },
