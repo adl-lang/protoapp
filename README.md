@@ -124,6 +124,12 @@ the flake supports. Keep that input in step with the `adlc` version in `.prototo
 
 # 3 Local development
 
+If you use the nix dev shell (see above), `process-compose up` starts postgres, the server,
+the test users, the ui and the api workbench in one go, as described by
+[process-compose.yaml](./process-compose.yaml). The sections below describe the same steps
+done manually. Postgres runs natively from the nix shell rather than under docker; its files live in
+`.local/pgdata`, and deleting that directory resets the database.
+
 When you've changed any ADL, regenerate rust/typescript/sql code with
 
 ```bash

@@ -33,6 +33,9 @@
           buildInputs = rustEnv.buildInputs ++ (with pkgs; [
             postgresql_16
 
+            # Runs the local dev services, see ../process-compose.yaml
+            process-compose
+
             # Shows what the proc macros generate, eg
             #   cargo expand -p adl gen::protoapp::apis::ui
             # for #[derive(adl::HttpApi)]. It drives rustc's unstable
