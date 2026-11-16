@@ -1,11 +1,10 @@
+import { parseCli, runTool } from "./cli.ts";
 import * as adl from "@adllang/adl-runtime";
 import * as adlast from "@adllang/adlc-tools/adlgen/sys/adlast";
 import mustache from "mustache_ts";
-import { snakeCase } from "@mesqueeb/case-anything";
 
 import {
   createJsonBinding,
-  Json,
   JsonObject,
   scopedName,
 } from "@adllang/adl-runtime";
@@ -15,15 +14,57 @@ import {
   expandNewType,
   expandTypeAlias,
   expandTypes,
-  forEachDecl,
   getAnnotation,
   LoadedAdl,
-  parseAdlModules,
 } from "@adllang/adlc-tools/utils/adl";
 
+import {
+  DB_VIEW,
+  DbResources,
+  DbTable,
+  getColumnName,
+  getDbTableName,
+  getViewName,
+  loadDbResources,
+} from "./db-resources.ts";
 import { FileWriter } from "./file-writer.ts";
 
-export interface GenSqlParams extends AdlSourceParams {
+const usage = `Usage: adlc sqlschema [OPTION...] <module>...
+
+Generate sql create table and view scripts from ADL db schema declarations.
+
+  --searchdir DIR        adl search directory (repeatable)
+  --merge-adlext EXT     adl extension to merge, eg adl-pg (repeatable)
+  --create-file FILE     sql file for the table definitions
+  --views-file FILE      sql file for the view definitions
+  --metadata-file FILE   optional metadata file to write
+  --extension NAME       sql extension to create (repeatable)
+  --db-profile PROFILE   postgresql, postgresql2 or mssql2
+  --verbose`;
+
+async function main() {
+  const cli = parseCli(usage, {
+    single: ["create-file", "views-file", "metadata-file", "db-profile"],
+    multi: ["searchdir", "merge-adlext", "extension"],
+  });
+  await genCreateSqlSchema({
+    searchPath: cli.all("searchdir"),
+    mergeAdlExts: cli.all("merge-adlext"),
+    adlModules: cli.modules,
+    createFile: cli.required("create-file"),
+    viewsFile: cli.required("views-file"),
+    metadataFile: cli.optional("metadata-file"),
+    extensions: cli.all("extension"),
+    dbProfile: cli.optional("db-profile") as
+      | "postgresql"
+      | "postgresql2"
+      | "mssql2"
+      | undefined,
+    verbose: cli.verbose,
+  });
+}
+
+interface GenSqlParams extends AdlSourceParams {
   extensions?: string[];
   templates?: Template[];
   viewsFile: string;
@@ -36,34 +77,12 @@ interface GenCreateSqlParams extends GenSqlParams {
   createFile: string;
 }
 
-export interface Template {
+interface Template {
   template: string;
   outfile: string;
 }
 
-export interface DbResources {
-  tables: DbTable[];
-  views: DbView[];
-}
-
-export interface DbTable {
-  scopedName: adlast.ScopedName;
-  scopedDecl: adlast.ScopedDecl;
-  fields: adlast.Field[];
-  ann: Json;
-  name: string;
-  primaryKey: string[];
-  idPrefix: string;
-}
-
-export interface DbView {
-  scopedDecl: adlast.ScopedDecl;
-  fields: adlast.Field[];
-  ann: Json;
-  name: string;
-}
-
-export async function genCreateSqlSchema(
+async function genCreateSqlSchema(
   params: GenCreateSqlParams,
 ): Promise<void> {
   const { loadedAdl, dbResources } = await loadDbResources({
@@ -72,57 +91,6 @@ export async function genCreateSqlSchema(
 
   await generateCreateSqlSchema(params, loadedAdl, dbResources);
   await writeOtherFiles(params, loadedAdl, dbResources);
-}
-
-export async function loadDbResources(
-  params: AdlSourceParams,
-): Promise<{ loadedAdl: LoadedAdl; dbResources: DbResources }> {
-  const loadedAdl = await parseAdlModules(params);
-
-  const dbResources: DbResources = { tables: [], views: [] };
-
-  // Find all of the struct declarations that have a DbTable annotation
-  forEachDecl(loadedAdl.modules, (scopedDecl) => {
-    const ann = getAnnotation(scopedDecl.decl.annotations, DB_TABLE);
-    if (ann != undefined) {
-      const scopedName = {
-        moduleName: scopedDecl.moduleName,
-        name: scopedDecl.decl.name,
-      };
-      const name = getDbTableName(scopedDecl);
-      const fields = getDbFields(loadedAdl, scopedDecl);
-      const primaryKey = getPrimaryKey(fields);
-      const idPrefix = (ann as { id_prefix: string }).id_prefix || "";
-      dbResources.tables.push({
-        scopedName,
-        scopedDecl,
-        fields,
-        ann,
-        name,
-        primaryKey,
-        idPrefix,
-      });
-    }
-  });
-  dbResources.tables.sort((t1, t2) =>
-    t1.name < t2.name ? -1 : t1.name > t2.name ? 1 : 0
-  );
-
-  // Find all of the struct declarations that have a DbView annotation
-  forEachDecl(loadedAdl.modules, (scopedDecl) => {
-    const ann = getAnnotation(scopedDecl.decl.annotations, DB_VIEW);
-    if (ann != undefined) {
-      const name = getDbTableName(scopedDecl);
-      const fields = getDbFields(loadedAdl, scopedDecl);
-      dbResources.views.push({ scopedDecl, fields, ann, name });
-    }
-  });
-
-  dbResources.views.sort((t1, t2) =>
-    t1.name < t2.name ? -1 : t1.name > t2.name ? 1 : 0
-  );
-
-  return { loadedAdl, dbResources };
 }
 
 async function writeOtherFiles(
@@ -276,130 +244,6 @@ async function generateCreateSqlSchema(
   }
 
   await writer.close();
-}
-
-/**
- *  Returns the SQL name for the table
- */
-function getDbTableName(scopedDecl: adlast.ScopedDecl): string {
-  const ann = getAnnotation(scopedDecl.decl.annotations, DB_TABLE);
-  let tableName = assumeField<string>(ann, "table_name");
-  if (tableName) {
-    return tableName;
-  }
-  tableName = snakeCase(scopedDecl.decl.name);
-  if (tableName.endsWith("_table")) {
-    tableName = tableName.substring(0, tableName.length - 6);
-  }
-  return tableName;
-}
-
-/**
- *  Returns the SQL name for the view
- */
-function getViewName(scopedDecl: adlast.ScopedDecl): string {
-  const ann = getAnnotation(scopedDecl.decl.annotations, DB_VIEW);
-  const viewName = assumeField<string>(ann, "view_name");
-  return viewName || snakeCase(scopedDecl.decl.name);
-}
-
-/**
- *  Returns the adl fields that will beome table columns
- */
-function getDbFields(
-  loadedAdl: LoadedAdl,
-  scopedDecl: adlast.ScopedDecl,
-): DbField[] {
-  function _fromDecl(
-    scopedDecl: adlast.ScopedDecl,
-    typeBindings: TypeBinding[],
-  ): adlast.Field[] {
-    if (scopedDecl.decl.type_.kind == "type_") {
-      const typeExpr0 = scopedDecl.decl.type_.value.typeExpr;
-      const typeExpr = substituteTypeBindings(typeExpr0, typeBindings);
-      return _fromTypeExpr(typeExpr);
-    }
-
-    if (scopedDecl.decl.type_.kind == "newtype_") {
-      const typeExpr0 = scopedDecl.decl.type_.value.typeExpr;
-      const typeExpr = substituteTypeBindings(typeExpr0, typeBindings);
-      return _fromTypeExpr(typeExpr);
-    }
-
-    if (scopedDecl.decl.type_.kind == "struct_") {
-      let result: DbField[] = [];
-      for (const f of scopedDecl.decl.type_.value.fields) {
-        result = [...result, ..._fromField(f, typeBindings)];
-      }
-      return result;
-    }
-    throw new Error("only structs and type aliases are supported as db tables");
-  }
-
-  function _fromTypeExpr(typeExpr: adlast.TypeExpr): DbField[] {
-    if (typeExpr.typeRef.kind != "reference") {
-      throw new Error("db type expressions must reference a decl");
-    }
-    const decl = loadedAdl.resolver(typeExpr.typeRef.value);
-    const typeParams = decl.decl.type_.value.typeParams;
-    const typeBindings = createTypeBindings(typeParams, typeExpr.parameters);
-    return _fromDecl(decl, typeBindings);
-  }
-
-  function _fromField(
-    field: adlast.Field,
-    typeBindings: TypeBinding[],
-  ): DbField[] {
-    const typeExpr = substituteTypeBindings(field.typeExpr, typeBindings);
-    const isSpread = getAnnotation(field.annotations, DB_SPREAD) !== undefined;
-
-    if (isSpread) {
-      return _fromTypeExpr(typeExpr);
-    }
-
-    return [
-      {
-        name: field.name,
-        serializedName: field.serializedName,
-        typeExpr,
-        default: field.default,
-        annotations: field.annotations,
-      },
-    ];
-  }
-
-  return _fromDecl(scopedDecl, []);
-}
-
-type DbField = adlast.Field; // For now
-
-/**
- *  Returns the primary key for the table
- */
-function getPrimaryKey(fields: DbField[]): string[] {
-  const primaryKey = fields
-    .filter((f) => getAnnotation(f.annotations, DB_PRIMARY_KEY) !== undefined)
-    .map((f) => getColumnName(f));
-
-  return primaryKey;
-}
-
-function assumeField<T>(obj: Json | undefined, key: string): T | undefined {
-  if (obj == undefined) {
-    return undefined;
-  }
-  return (obj as JsonObject)[key] as T;
-}
-
-/**
- * Returns the SQL name for a column corresponding to a field
- */
-function getColumnName(field: adlast.Field): string {
-  const ann = getAnnotation(field.annotations, DB_COLUMN_NAME);
-  if (typeof ann === "string") {
-    return ann;
-  }
-  return snakeCase(field.name);
 }
 
 const RESERVED_NAMES: { [name: string]: boolean } = {};
@@ -663,7 +507,7 @@ function getDbProfile(
   }
 }
 
-export async function generateMetadata(
+async function generateMetadata(
   outmetadata: string,
   params: GenSqlParams,
   loadedAdl: LoadedAdl,
@@ -718,7 +562,7 @@ export async function generateMetadata(
   await writer.close();
 }
 
-export async function generateViews(
+async function generateViews(
   outviews: string,
   params: GenSqlParams,
   _loadedAdl: LoadedAdl,
@@ -815,59 +659,11 @@ function dbstr(s: string) {
   return "'" + s.replace(/'/g, "''") + "'";
 }
 
-interface TypeBinding {
-  name: string;
-  value: adlast.TypeExpr;
-}
-
-function createTypeBindings(
-  names: string[],
-  values: adlast.TypeExpr[],
-): TypeBinding[] {
-  const result: TypeBinding[] = [];
-  for (let i = 0; i < names.length; i++) {
-    result.push({ name: names[i], value: values[i] });
-  }
-  return result;
-}
-
-function substituteTypeBindings(
-  texpr: adlast.TypeExpr,
-  bindings: TypeBinding[],
-): adlast.TypeExpr {
-  const parameters = texpr.parameters.map((te) =>
-    substituteTypeBindings(te, bindings)
-  );
-
-  if (texpr.typeRef.kind == "typeParam") {
-    const name = texpr.typeRef.value;
-    const binding = bindings.find((b) => b.name === name);
-    if (!binding) {
-      return {
-        typeRef: texpr.typeRef,
-        parameters,
-      };
-    } else {
-      if (parameters.length != 0) {
-        throw new Error("Type param not a concrete type");
-      }
-      return binding.value;
-    }
-  }
-
-  return {
-    typeRef: texpr.typeRef,
-    parameters,
-  };
-}
-
 const DOC = scopedName("sys.annotations", "Doc");
 const MAYBE = scopedName("sys.types", "Maybe");
 
-const DB_TABLE = scopedName("common.db", "DbTable");
-const DB_SPREAD = scopedName("common.db", "DbSpread");
-const DB_PRIMARY_KEY = scopedName("common.db", "DbPrimaryKey");
-const DB_VIEW = scopedName("common.db", "DbView");
-const DB_COLUMN_NAME = scopedName("common.db", "DbColumnName");
 const DB_COLUMN_TYPE = scopedName("common.db", "DbColumnType");
 const DB_KEY = scopedName("common.db", "DbKey");
+
+// Run last, so that the constants above are initialised
+await runTool(main);

@@ -1,0 +1,26 @@
+name: adlc extensions CI
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+    paths:
+      - "adlc-extensions/**"
+      - "nix/**"
+
+jobs:
+  build-and-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install nix
+        uses: DeterminateSystems/nix-installer-action@main
+
+      - name: Build the adlc-* tools
+        run: nix build ./nix#adlc-tools
+
+      - name: Check formatting, lint and types
+        run: |
+          nix develop ./nix -c true
+          nix shell nixpkgs#deno -c sh -c 'cd adlc-extensions && deno fmt --check && deno lint && deno check adlc-*.ts'

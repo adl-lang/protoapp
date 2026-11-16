@@ -6,7 +6,7 @@
 #
 #   cd ts && docker build --file ui/Dockerfile --tag protoapp-ui:latest .
 #
-# or `deno task build-ui-image` from the repository root.
+# or `task build-ui-image` from the repository root.
 #
 # API_ENDPOINT must be set at run time and has no default, so that nothing
 # silently proxies to the wrong place:

@@ -1,7 +1,7 @@
 {
   "deno.enable": true,
-  "deno.enablePaths": ["deno"],
+  "deno.enablePaths": ["adlc-extensions"],
   "deno.path": "./.local/bin/deno",
-  "deno.importMap": "./deno.json",
+  "deno.importMap": "./adlc-extensions/deno.json",
   "typescript.preferences.importModuleSpecifier": "non-relative"
 }

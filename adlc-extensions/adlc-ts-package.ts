@@ -1,9 +1,42 @@
+import { parseCli, runTool } from "./cli.ts";
 import { AdlSourceParams } from "@adllang/adlc-tools/utils/sources";
 import { parseAdlModules } from "@adllang/adlc-tools/utils/adl";
 
 import { FileWriter } from "./file-writer.ts";
 
-export interface GenAdlTsParams extends AdlSourceParams {
+const usage = `Usage: adlc ts-package [OPTION...] <module>...
+
+Generate the package.json for a typescript package containing generated ADL code.
+
+  --searchdir DIR            adl search directory (repeatable)
+  --package-name NAME        npm package name
+  --package-root DIR         directory to write package.json into
+  --build-output-dir /DIR    build output dir, relative to the package root
+  --adl-runtime-version VER  version of the adl runtime to depend on
+  --verbose`;
+
+async function main() {
+  const cli = parseCli(usage, {
+    single: [
+      "package-name",
+      "package-root",
+      "build-output-dir",
+      "adl-runtime-version",
+    ],
+    multi: ["searchdir"],
+  });
+  await genAdlTsPackage({
+    searchPath: cli.all("searchdir"),
+    adlModules: cli.modules,
+    packageName: cli.required("package-name"),
+    packageRoot: cli.required("package-root"),
+    buildOutputDir: cli.required("build-output-dir") as `/${string}`,
+    adlRuntimeVersion: cli.required("adl-runtime-version"),
+    verbose: cli.verbose,
+  });
+}
+
+interface GenAdlTsParams extends AdlSourceParams {
   packageName: string;
   packageRoot: string;
   buildOutputDir: `/${string}`;
@@ -11,7 +44,7 @@ export interface GenAdlTsParams extends AdlSourceParams {
   verbose?: boolean;
 }
 
-export async function genAdlTsPackage(params: GenAdlTsParams): Promise<void> {
+async function genAdlTsPackage(params: GenAdlTsParams): Promise<void> {
   const loadedAdl = await parseAdlModules(params);
   const modules = Object.entries(loadedAdl.modules).map(
     ([_, module]) => module.name,
@@ -57,3 +90,6 @@ export async function genAdlTsPackage(params: GenAdlTsParams): Promise<void> {
   writer.write(`}\n`);
   writer.close();
 }
+
+// Run last, so that the constants above are initialised
+await runTool(main);

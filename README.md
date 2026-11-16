@@ -93,7 +93,7 @@ current user are shown.
 
 Currently linux and macos are supported.
 
-Install docker and rust/cargo for your platform. Then install the appropriate versions of deno, node, pnpm, and
+Install docker and rust/cargo for your platform. Then install the appropriate versions of node, pnpm, and
 adl locally using the [proto](https://moonrepo.dev/proto) tool.
 
 ```
@@ -104,14 +104,14 @@ proto install
 Check installed tool versions with:
 
 ```
-deno --version
 node --version
 adlc show --version 
 ```
 
 If you use [nix](https://nixos.org), the whole toolchain is instead available as a
 dev shell — the rust toolchain (from `rust/rust-toolchain.toml`), the postgres
-client, and the same node, pnpm, deno and adlc versions as `.prototools`:
+client, and the same node, pnpm and adlc versions as `.prototools`,
+plus the `adlc-*` subcommands that `genadl` uses (see below):
 
 ```
 nix develop ./nix
@@ -133,8 +133,14 @@ done manually. Postgres runs natively from the nix shell rather than under docke
 When you've changed any ADL, regenerate rust/typescript/sql code with
 
 ```bash
-deno task genadl
+task genadl   # or ./genadl directly
 ```
+
+`genadl` is a bash script of `adlc` invocations. `adlc ts-package`, `adlc rust-seaquery-schema` and
+`adlc sqlschema` are external `adlc` subcommands (`adlc-ts-package` etc, found on the `PATH`), whose
+source is in [adlc-extensions](./adlc-extensions). The nix dev shell builds them (the only place deno is used, as a build
+tool) and puts them on the `PATH`, so `genadl` needs the nix dev shell. With proto alone, the
+typescript and rust steps work but those three commands are not available.
 
 ## 3.1 Start postgres
 
@@ -224,7 +230,7 @@ git mv ts/adl/src/{protoapp,myproject}
 sed -i -e 's|protoapp|myproject|g'  $(git ls-files)
 sed -i -e 's|Protoapp|MyProject|g'  $(git ls-files)
 sed -i -e 's|PROTOAPP|MYPROJECT|g'  $(git ls-files)
-deno task genadl
+./genadl
 ```
 
 macos sed doesn't support multi file in place updates, so an alternative tool will
