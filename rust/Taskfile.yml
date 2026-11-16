@@ -1,0 +1,65 @@
+version: "3"
+
+# Included from ../Taskfile.yml as `rust:`, eg `task rust:check`. Tasks run in
+# this directory.
+
+env:
+  DB_CONNECTION_URL: postgresql://postgres:xyzzy@localhost:5432/appdb
+
+tasks:
+  dev-db:
+    desc: Start postgres under docker (or use `process-compose up` from the nix shell)
+    dir: ../platform/dev
+    cmds:
+      - docker compose up -d db
+
+  dev-server:
+    desc: Run the server against the local database
+    dir: server
+    env:
+      RUST_LOG: info
+      PROTOAPP_SERVER_CONFIG: |-
+        {
+          "http_bind_addr": "0.0.0.0:8081",
+          "db": {
+            "host": "localhost",
+            "port": 5432,
+            "dbname": "appdb",
+            "user": "postgres",
+            "password": "xyzzy"
+          },
+          "jwt_access_secret": "shouldbetrulysecretbutnotrightnow",
+          "jwt_refresh_secret": "nottomentionthisone"
+        }
+    cmds:
+      - task: check
+      - task: dev-db
+      - cargo run --bin protoapp-server
+
+  build:
+    desc: Build the workspace
+    cmds:
+      - cargo build --workspace
+
+  check:
+    desc: Check formatting and run clippy
+    cmds:
+      - cargo fmt --check
+      - cargo clippy --all-targets --workspace -- -D warnings
+
+  check-build:
+    desc: Check, then build
+    cmds:
+      - task: check
+      - task: build
+
+  ci-test:
+    desc: Run the tests against an already running database
+    cmds:
+      - cargo test -- --test-threads=1
+
+  test:
+    desc: Start the database, then run the tests
+    cmds:
+      - task: dev-db
+      - task: ci-test

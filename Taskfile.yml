@@ -1,5 +1,10 @@
 version: "3"
 
+includes:
+  rust:
+    taskfile: ./rust
+    dir: ./rust
+
 tasks:
   genadl:
     desc: Regenerate rust, typescript and sql code from the ADL sources

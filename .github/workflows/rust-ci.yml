@@ -18,8 +18,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install nix
+        uses: DeterminateSystems/nix-installer-action@main
+
       - name: Check and Build
-        run: cd rust && make check-build
+        run: nix develop -c task rust:check-build
 
   test:
     runs-on: ubuntu-latest
@@ -40,5 +43,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install nix
+        uses: DeterminateSystems/nix-installer-action@main
+
       - name: Run tests
-        run: cd rust && make ci-test
+        run: nix develop -c task rust:ci-test
