@@ -27,7 +27,7 @@
 
         adlc = adl.packages.${system}.adlc;
 
-        # The adlc-* subcommands used by ./genadl
+        # The adlc-* subcommands used by tasks/genadl.sh
         adlcExtensions = import ./nix/adlc-extensions.nix {
           inherit pkgs;
           src = ./adlc-extensions;

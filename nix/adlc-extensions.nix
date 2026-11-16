@@ -1,6 +1,6 @@
 { pkgs, src }:
 
-# The adlc-* subcommands (run as `adlc <name>`, see ../genadl) are typescript
+# The adlc-* subcommands (run as `adlc <name>`, see ../tasks/genadl.sh) are typescript
 # programs in ../adlc-extensions, passed here as `src`. They are compiled to
 # standalone executables, so that deno is a build-time detail of the flake and
 # not something contributors have to install or see.

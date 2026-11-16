@@ -96,7 +96,7 @@ Generated code names the published `adl_rt` crate directly (no `--runtime-module
 
 ### Code generation
 
-`./genadl` (or `task genadl`) runs `adlc typescript`, `adlc rust`, and the external
+`tasks/genadl.sh` (or `task genadl`) runs `adlc typescript`, `adlc rust`, and the external
 subcommands `adlc ts-package`, `adlc rust-seaquery-schema` and `adlc sqlschema` from
 `adlc-extensions/`. The db column definitions in `rust/adl/src/db/schema.rs` come from
 `adlc rust-seaquery-schema`.

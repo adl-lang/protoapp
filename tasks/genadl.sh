@@ -2,7 +2,7 @@
 # Regenerate all code derived from the ADL sources in ./adl
 set -euo pipefail
 
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."
 
 #----------------------------------------------------------------------
 # Generate typescript for the adl package
