@@ -1,7 +1,0 @@
-{
-  "deno.enable": true,
-  "deno.enablePaths": ["deno"],
-  "deno.path": "./.local/bin/deno",
-  "deno.importMap": "./deno.json",
-  "typescript.preferences.importModuleSpecifier": "non-relative"
-}

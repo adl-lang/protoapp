@@ -1,3 +1,4 @@
+import { parseCli, runTool } from "./cli.ts";
 import { isEnum } from "@adllang/adl-runtime";
 import { AdlSourceParams } from "@adllang/adlc-tools/utils/sources";
 import {
@@ -11,10 +12,29 @@ import {
 import * as adlast from "@adllang/adlc-tools/adlgen/sys/adlast";
 import { pascalCase, snakeCase } from "@mesqueeb/case-anything";
 
-import { loadDbResources } from "./gen-sqlschema.ts";
+import { loadDbResources } from "./db-resources.ts";
 import { FileWriter } from "./file-writer.ts";
 
-export interface GenRustSeaQuerySchemaParams extends AdlSourceParams {
+const usage = `Usage: adlc rust-seaquery-schema [OPTION...] <module>...
+
+Generate rust sea-query table definitions from ADL db schema declarations.
+
+  --searchdir DIR     adl search directory (repeatable)
+  --output-file FILE  rust file to write`;
+
+async function main() {
+  const cli = parseCli(usage, {
+    single: ["output-file"],
+    multi: ["searchdir"],
+  });
+  await genRustSeaQuerySchema({
+    searchPath: cli.all("searchdir"),
+    adlModules: cli.modules,
+    outputFile: cli.required("output-file"),
+  });
+}
+
+interface GenRustSeaQuerySchemaParams extends AdlSourceParams {
   outputFile: string;
 }
 
@@ -22,7 +42,7 @@ export interface GenRustSeaQuerySchemaParams extends AdlSourceParams {
  * Generate a db schema for the rust sea query
  * library
  */
-export async function genRustSeaQuerySchema(
+async function genRustSeaQuerySchema(
   params: GenRustSeaQuerySchemaParams,
 ): Promise<void> {
   const { loadedAdl, dbResources } = await loadDbResources({
@@ -233,3 +253,6 @@ const titleCase = pascalCase;
 
 const SN_RUST_CUSTOM_TYPE = scopedName("adlc.config.rust", "RustCustomType");
 const SN_DB_PRIMARY_KEY = scopedName("common.db", "DbPrimaryKey");
+
+// Run last, so that the constants above are initialised
+await runTool(main);

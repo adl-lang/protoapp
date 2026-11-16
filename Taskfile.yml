@@ -1,0 +1,24 @@
+version: "3"
+
+includes:
+  rust:
+    taskfile: ./rust
+    dir: ./rust
+
+tasks:
+  genadl:
+    desc: Regenerate rust, typescript and sql code from the ADL sources
+    cmds:
+      - ./genadl
+
+  build-server-image:
+    desc: Build the server docker image
+    dir: rust
+    cmds:
+      - docker build --file server/Dockerfile --tag protoapp-server:latest .
+
+  build-ui-image:
+    desc: Build the ui docker image
+    dir: ts
+    cmds:
+      - docker build --file ui/Dockerfile --tag protoapp-ui:latest .

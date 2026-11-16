@@ -20,21 +20,30 @@
           inherit system;
           overlays = [ (import rust-overlay) ];
         };
-        rustEnv = import ./rust.nix {
+        rustEnv = import ./nix/rust.nix {
           inherit pkgs;
-          toolchainFile = ../rust/rust-toolchain.toml;
+          toolchainFile = ./rust/rust-toolchain.toml;
         };
 
-        # Keep the adl input in step with the `adlc` entry in ../.prototools,
-        # so that the nix and proto paths generate code with the same compiler.
         adlc = adl.packages.${system}.adlc;
+
+        # The adlc-* subcommands used by ./genadl
+        adlcExtensions = import ./nix/adlc-extensions.nix {
+          inherit pkgs;
+          src = ./adlc-extensions;
+        };
       in {
+        packages.adlc-extensions = adlcExtensions;
+
         devShells.default = pkgs.mkShell (rustEnv // {
           buildInputs = rustEnv.buildInputs ++ (with pkgs; [
             postgresql_16
 
-            # Runs the local dev services, see ../process-compose.yaml
+            # Runs the local dev services, see ./process-compose.yaml
             process-compose
+
+            # Runs the project tasks in ./Taskfile.yml, see `task --list`
+            go-task
 
             # Shows what the proc macros generate, eg
             #   cargo expand -p adl gen::protoapp::apis::ui
@@ -43,14 +52,12 @@
             # stable toolchain above is enough and no nightly is needed.
             cargo-expand
 
-            # Also listed in ../.prototools, for contributors who use proto
-            # rather than nix. The versions there are the ones these attrs
-            # resolve to, so bumping the nixpkgs input means updating that
-            # file too (and vice versa).
+            # The node and pnpm versions here are also pinned in
+            # ./ts/ui/Dockerfile, so keep them in step.
             nodejs_24
             pnpm_10
-            deno
             adlc
+            adlcExtensions
           ]);
         });
       });

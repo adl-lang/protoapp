@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Regenerate all code derived from the ADL sources in ./adl
+set -euo pipefail
+
+cd "$(dirname "$0")"
+
+#----------------------------------------------------------------------
+# Generate typescript for the adl package
+
+adlc typescript \
+  --searchdir adl \
+  --outputdir ts/adl/src \
+  --ts-style tsc \
+  --include-resolver \
+  --manifest ts/adl/src/.adl-manifest \
+  --generate-transitive \
+  --excluded-ast-annotations "" \
+  protoapp.apis.ui sys.adlast common.ui
+
+adlc ts-package \
+  --searchdir adl \
+  --package-name @protoapp/adl \
+  --package-root ts/adl \
+  --build-output-dir /dist \
+  --adl-runtime-version 0.1.2 \
+  protoapp.apis.ui sys.adlast common.ui
+
+#----------------------------------------------------------------------
+# Generate rust for the server
+#
+# No --runtime-module: generated code then references the published adl_rt
+# crate directly, rather than a module of this crate that we would have
+# to populate with a copy of the runtime source.
+
+adlc rust \
+  --searchdir adl \
+  --outputdir rust/adl/src \
+  --module gen \
+  --manifest rust/adl/src/.adl-manifest \
+  --generate-transitive \
+  protoapp.apis.ui protoapp.db protoapp.config.server
+
+adlc rust-seaquery-schema --searchdir adl \
+  --output-file rust/adl/src/db/schema.rs \
+  protoapp.db
+
+#----------------------------------------------------------------------
+# Generate a db schema
+
+adlc sqlschema --searchdir adl \
+  --merge-adlext adl-pg \
+  --create-file sql/adl-gen/adl-tables.latest.sql \
+  --views-file sql/adl-gen/adl-views.latest.sql \
+  protoapp.db
+
+# Make the first migrations these two files. Once there is a live
+# database, these copy operations should be deleted, and migrations
+# written by hand
+cp sql/adl-gen/adl-tables.latest.sql rust/server/migrations/00000000000020_adl-tables.latest.sql
+cp sql/adl-gen/adl-views.latest.sql rust/server/migrations/00000000000030_adl-views.latest.sql
+
+(cd ts && pnpm install)

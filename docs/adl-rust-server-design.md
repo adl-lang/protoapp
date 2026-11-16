@@ -260,11 +260,11 @@ It replaces the copy of the runtime source that `--include-rt` used to drop into
 two, and nothing to regenerate when the runtime changes.
 
 Two hand written files name the runtime too, and so refer to the crate as well:
-`adl/src/db/conversions.rs`, and `deno/gen-rs-seaquery-schema.ts`, which writes the
+`adl/src/db/conversions.rs`, and `adlc-extensions/gen-rs-seaquery-schema.ts` (built as `adlc rust-seaquery-schema`), which writes the
 import line of the schema it generates.
 
-`RustEmitAnnotation` arrived in adlc 1.4.1, which `.prototools` and
-the `adl` input in `nix/flake.nix` pin. On 1.4.0 or earlier, `deno task genadl` fails outright with
+`RustEmitAnnotation` arrived in adlc 1.4.1, which the `adl` input in
+`flake.nix` pins. On 1.4.0 or earlier, `./genadl` fails outright with
 `undefined type RustEmitAnnotation`; the TypeScript half is generated first and is
 unaffected, since annotations reach the TS AST without the compiler knowing anything
 about them, and only the Rust pass stops.

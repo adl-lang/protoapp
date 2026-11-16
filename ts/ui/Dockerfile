@@ -6,7 +6,7 @@
 #
 #   cd ts && docker build --file ui/Dockerfile --tag protoapp-ui:latest .
 #
-# or `deno task build-ui-image` from the repository root.
+# or `task build-ui-image` from the repository root.
 #
 # API_ENDPOINT must be set at run time and has no default, so that nothing
 # silently proxies to the wrong place:
@@ -19,7 +19,7 @@ WORKDIR /build
 
 # pnpm is pinned here rather than read from a packageManager field, as this
 # workspace has no root package.json. Keep the version in step with
-# ../../.prototools and ../../nix/flake.nix.
+# ../../flake.nix.
 RUN corepack enable && corepack prepare pnpm@10.34.5 --activate
 
 # .npmrc carries the jsr registry that @adllang/adl-runtime resolves through.
