@@ -124,10 +124,10 @@ done manually. Postgres runs natively from the nix shell rather than under docke
 When you've changed any ADL, regenerate rust/typescript/sql code with
 
 ```bash
-task genadl   # or ./genadl directly
+task genadl   # or tasks/genadl.sh directly
 ```
 
-`genadl` is a bash script of `adlc` invocations. `adlc ts-package`, `adlc rust-seaquery-schema` and
+`tasks/genadl.sh` is a bash script of `adlc` invocations. `adlc ts-package`, `adlc rust-seaquery-schema` and
 `adlc sqlschema` are external `adlc` subcommands (`adlc-ts-package` etc, found on the `PATH`), whose
 source is in [adlc-extensions](./adlc-extensions). The nix dev shell builds them (the only place deno is used, as a build
 tool) and puts them on the `PATH`, so `genadl` should be run from the nix dev shell.
@@ -220,7 +220,7 @@ git mv ts/adl/src/{protoapp,myproject}
 sed -i -e 's|protoapp|myproject|g'  $(git ls-files)
 sed -i -e 's|Protoapp|MyProject|g'  $(git ls-files)
 sed -i -e 's|PROTOAPP|MYPROJECT|g'  $(git ls-files)
-./genadl
+tasks/genadl.sh
 ```
 
 macos sed doesn't support multi file in place updates, so an alternative tool will

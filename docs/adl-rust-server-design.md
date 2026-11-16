@@ -1,427 +1,147 @@
-# ADL Rust server runtime: design notes
+# ADL Rust server: current state and plan
 
-Context for Claude Code. This summarises a design discussion about improving the Rust
-server side of [adl-lang/protoapp](https://github.com/adl-lang/protoapp). The person driving
-this owns the adl-lang org and wrote most of ADL and protoapp.
+Notes on the Rust server side of protoapp: how it works today, and what is planned next.
+Files referred to: `adl/common/http.adl`, `rust/adl/src/http_api.rs`, the derive in
+`rust/adl/derive/src/lib.rs`, `rust/server/src/server/{poem_adl_interop,routing,handlers}.rs`,
+and the generated `rust/adl/src/gen/protoapp/apis/ui.rs`.
 
 ## Goal
 
 Rust HTTP RPC services implemented from ADL API definitions, where:
 
-- Generated or macro-produced code uses **straightforward, explicit types**. Syntactic
+- Generated or macro-produced code uses straightforward, explicit types. Syntactic
   friendliness for hand-written code is not a priority.
-- The wire format is **JSON**, using ADL's serde-based serialization.
-- Developers can **mix ADL-defined endpoints with custom hand-written endpoints**, and can
-  choose a higher-level framework (axum, poem, etc.) to host them.
+- The wire format is JSON, using ADL's serde-based serialization.
+- ADL-defined endpoints can be mixed with hand-written ones, under a host framework of
+  choice (axum, poem, etc.).
 
-## What protoapp does today (verified by reading the source)
+## Current state
 
-This describes the poem interop as it stands, with the items marked **DONE** below
-already applied. The relevant files are `adl/common/http.adl`,
-`rust/server/src/server/{poem_adl_interop,routing,handlers}.rs`, the host-agnostic
-`rust/adl/src/http_api.rs`, the derive in `rust/adl/derive/src/lib.rs`, and the generated
-`rust/adl/src/gen/protoapp/apis/ui.rs`.
+### Endpoint model
 
-- **Endpoint type** (`common/http.adl`): `struct HttpReq<I,O>` with:
-  - `method: HttpMethod`, a union of `get` and `post`, defaulting to `post`
-  - `security: HttpSecurity`, a union of `public`, `token`, and `tokenWithRole: String`
-  - `reqType: TypeToken<I>` and `respType: TypeToken<O>`, both defaulting to null
+An API is an ADL struct whose fields are `common.http.HttpReq<I,O>` values. `HttpReq` has
+`method` (`get` or `post`, default `post`), `security` (`public`, `token` or
+`tokenWithRole: String`), and `reqType`/`respType` type tokens. Method and security are
+given as field defaults.
 
-  An API is an ADL struct whose fields are `HttpReq<I,O>` values, with method and
-  security given as field defaults. The path is not among them: each backend derives it
-  from the field name, or from an `@HttpPath` annotation on the field, as described under
-  "Path from the field name" below. The TypeScript client and the API workbench also
-  consume `security`.
-- **Server framework:** poem, with sqlx and postgres.
-- **`poem_adl_interop.rs`:**
-  - `DynRouteExt::adl_dyn_req(path, req: &HttpReq<I,O>, handler)` mounts the endpoint at
-    `path` as a poem `Endpoint` (`AdlDynReq`).
-  - Input decoding: POST reads a JSON body. GET reads the query param
-    `input=<urlencoded JSON>`; with no query string it deserializes from JSON `null`, which
-    is used for Void inputs.
-  - The output is always encoded as `Json(o)`.
-  - `AdlReqContext<S> { state: S, claims: Option<jwt::AccessClaims> }`.
-  - State and `DynJwtSecurityCheck` are fetched with `req.data::<T>().expect(...)`, so a
-    missing setup call is a runtime panic.
-  - The security check (`AccessTokenChecker::check_security`) runs in one place for all
-    endpoints.
-  - `HandlerError` is `Anyhow(anyhow::Error)` or `Poem(poem::Error)`. `From<HandlerError>
-    for poem::Error` maps `Anyhow(_)` to a bare 500 and discards the error.
+An endpoint's path is `"/"` followed by its ADL field name, derived identically by the Rust
+and TypeScript backends. A `@HttpPath "<path>"` annotation on the field replaces it
+verbatim (it must start with `/`); the health check uses `@HttpPath "/"`. Renaming an ADL
+field is therefore a wire-breaking change.
 
-## Identified improvements (rough priority)
+A field that is not an `HttpReq` is another API struct nested under it, and its endpoints
+are served beneath the field's path, e.g. `/admin/create_user`. The same API type may be
+nested at more than one field.
 
-1. **Compile-time handler completeness. DONE.** `#[derive(HttpApi)]` generates a per-API
-   endpoint trait and the registration that mounts every endpoint, so adding an endpoint in
-   ADL fails compilation until it is implemented. `routing.rs` previously registered each
-   endpoint by hand; it now makes one `adl_api_at` call per API. See the macro section
-   below.
-2. **Typed state and JWT checker.** Hold `Arc<S>` and `Arc<dyn JwtSecurityCheck>` in the
-   router instead of `req.data().expect()`. Half done in passing: `AdlReqContext` now
-   holds nothing but the state, since the caller's identity became a separate handler
-   argument, so the remaining step is to collapse the wrapper and stop reaching through
-   poem's extension map.
-3. **Fix the security-check order. DONE** (commit `15e0fc0`). Any `Authorization` header
-   was decoded with `?` before the endpoint policy was consulted, so an expired or
-   malformed token gave a 401 even on `public` endpoints such as login or refresh, making
-   the `HttpSecurity::Public` arm dead code whenever a header was present. A bad token is
-   now only fatal where a token is required; on a public endpoint it is anonymous. A
-   credential on a public request is now ignored outright, since such a handler takes no
-   identity at all — see the security section below.
+### `#[derive(HttpApi)]`
 
-   Two notes on the defect, since they bear on how urgently the rest of this list matters.
-   It was fail-closed — a bad token never yielded claims, so there was no bypass, only
-   over-rejection. And it was latent in-repo: `ServiceBase` routes the four public
-   endpoints through `mkReqFn`, which sends no `Authorization` header
-   (`ts/ui/src/service/service-base.ts`, `ts/ui/src/service/index.ts`). It would bite a
-   client attaching its token uniformly — mobile, `curl`, a proxy — or a refactor that
-   unified the two TS factories.
+`adlc rust` generates the API struct. `RustExtraDeriveTraits ["adl::HttpApi"]` in
+`ui.adl-rs` adds the derive, which lives in `rust/adl/derive` (`syn` and `quote`). It
+matches field types syntactically on `HttpReq<I, O>`, and emits:
 
-   Done at the same time, beyond the original item: the two rejection statuses were both
-   403, and are now split — absent or unusable credentials give 401, valid credentials
-   with the wrong role give 403. This preserves `ts/ui`'s logout-on-401 path, which today
-   relies on the very `?` that was removed. The jwt decode-failure log also moved from
-   `error!` to `debug!`, as an anonymous request carrying a stale token is now routine.
+- An endpoint trait `<Api>Endpoints` with one method per endpoint. Adding an endpoint in
+  ADL fails to compile until the handler implements it.
+- `impl HttpApi<Ctx, M, H>` whose `register_at(prefix, ..)` mounts every endpoint into a
+  host-agnostic `Mount` trait (`http_api.rs`); `register` is `register_at("")`. `routing.rs`
+  mounts `Api` with one `adl_api_at` call and `handlers.rs` implements the generated traits.
+- `PATH_<FIELD>` constants, relative to where the API is mounted. Each nested field adds a
+  prefix constant, so hand-written wiring composes them (`Api::PATH_ADMIN` +
+  `AdminApi::PATH_CREATE_USER`).
+- For each nested field, an associated type bounded by the nested API's endpoint trait and
+  an accessor for it. The mount point is identified by the field, not the type, so two
+  fields of one API type may be served by different handler types. Each nested API needs
+  its own `RustExtraDeriveTraits ["adl::HttpApi"]` line.
+- An `<Api>Client`, generic over an `Invoke` transport (the client-side counterpart of
+  `Mount`). Paths compose through nested accessors, and the public/secured split follows
+  the security annotation.
 
-   Covered by `server_security_policy` in `rust/server/src/server/tests/mod.rs`, which
-   pins eight of the nine policy/credential combinations.
-4. **Log internal errors** before converting `HandlerError::Anyhow` to a 500.
-5. **Remove framework types from handler signatures.** Replace `HandlerError::Poem` with
-   an owned enum: `Unauthorized`, `Forbidden`, `BadRequest(String)`,
-   `Internal(anyhow::Error)`.
-6. **Make the runtime a `tower::Service`** so it can be mounted in axum, poem or bare
-   hyper (see below). This enables testing with `ServiceExt::oneshot`, with no socket.
-7. Smaller items:
-   - Set an explicit request body size limit.
-   - Move from `fn` pointer handlers to trait methods. **DONE** with item 1.
-   - Derive the path from the field name, with an `@HttpPath` override. **DONE** (see
-     below).
+Macros only see tokens, so method and security are runtime values read from the struct's
+defaults, while paths and security policy (which decides handler signatures) are read at
+expansion time from annotations.
 
-Items 2, 4 and 5 remain, and can be done while staying on poem. Item 6 is the larger
-change.
+### Security
 
-## Target architecture
+The security policy of each endpoint decides its handler's signature. A `public` endpoint's
+handler takes `(ctx, req)`. Every other handler takes `(ctx, identity, req)`, where
+`Identity` is an associated type supplied by the host and produced only by the policy
+check. `Mount` has `mount_public` and `mount_secured` for the two shapes, so neither a
+handler nor a host can skip the check.
 
-### Layers
+`check_security` runs once, in one place. A bad or absent token is fatal only where a
+credential is required, and is ignored on a public endpoint. Absent or unusable
+credentials give 401, and valid credentials with the wrong role give 403. A `token`
+endpoint accepts any role; restrict one with `tokenWithRole`.
 
-- **hyper 1.x** handles HTTP/1 and HTTP/2. It has its own `hyper::service::Service`
-  trait, with `call(&self)` and no `poll_ready`, so it doesn't depend on tower.
-- **tower** is a protocol-agnostic `Service` plus `Layer` abstraction. **tower-http**
-  provides the HTTP middleware (tracing, compression, CORS, limits).
-- The shared vocabulary is the `http` and `http-body` 1.x crates.
-- `hyper_util::service::TowerToHyperService` adapts a tower service for hyper. It clones
-  the service per request, so services should be cheap to clone (`Arc` inside).
-- axum is a router built on tower and served by hyper. poem has its own `Endpoint` and
-  `Middleware` traits, plus a `tower-compat` feature (`TowerCompatExt::compat()` and
-  `TowerLayerCompatExt`). actix-web is not tower-based and would need a custom shim.
+### Annotations in generated Rust
 
-### Runtime crate design rules
+`adlc.config.rust.RustEmitAnnotation`, applied to an annotation's declaration, makes adlc
+emit each use as `#[adl_annotation(name="..", value="<adl json>")]`. adlc adds the
+`adl_rt::AdlAnnotations` derive to the item so the attribute is legal; helper attributes
+are visible to every derive on the item, which is how `HttpApi` reads `@HttpPath` and
+`@HttpSecurity`. This needs adlc 1.4.1, which the `adl` input in `flake.nix` pins.
+Generated code names the published `adl_rt` crate directly (no `--runtime-module`).
 
-- The public interface is `tower::Service<http::Request<B>>`, **generic over the request
-  body `B`**. Don't expose `hyper::body::Incoming`.
-  - `S`: the app state and handler-implementing type, held as `Arc<S>`. Bounds:
-    `Send + Sync + 'static`.
-  - `B`: the host's body type (hyper `Incoming`, axum `Body`, poem `BoxBody`, or a test
-    body). Bounds: `http_body::Body + Send + 'static`, `B::Data: Send`,
-    `B::Error: Into<BoxError>`.
-  - The service must be `Clone`, use `Error = Infallible` and `Response =
-    http::Response<Full<Bytes>>`. It should also be `Sync`, because poem's compat
-    adapter requires it.
-  - `poll_ready` is always ready. Put backpressure in tower layers such as
-    `ConcurrencyLimitLayer`.
-- The serve loop is an **optional helper** built on hyper-util's
-  `server::conn::auto::Builder`. It is not required.
-- Handlers receive a request context exposing headers and extensions (for example
-  `http::request::Parts`), so tower or host middleware can share auth data with ADL
-  handlers.
-- Routing works by type erasure. `Router::post`/`req` takes the typed endpoint and the
-  handler, and stores `Arc<dyn Fn(Arc<S>, Ctx, Bytes) -> BoxFut>` in a `HashMap` keyed by
-  path, together with `security` and `method`. It asserts on duplicate routes.
-- Error split:
-  - Transport and runtime failures (bad JSON, auth, not found, too large, internal) are
-    HTTP status codes.
-  - Domain errors are ADL types inside `O`, returned with a 200 status.
+### Host and wire behaviour
 
-### Macro: `#[derive(HttpApi)]` on the generated API struct. DONE
+- Host: poem, with sqlx and postgres. `poem_adl_interop.rs` mounts endpoints as poem
+  endpoints.
+- POST reads a JSON body. GET reads the query parameter `input=<urlencoded JSON>`, or
+  deserializes from JSON `null` when there is no query string (Void inputs). Output is
+  always `Json(o)`.
+- App state and the JWT checker are fetched with `req.data::<T>().expect(..)`, so a missing
+  setup call is a runtime panic.
+- `HandlerError` is `Anyhow(anyhow::Error)` or `Poem(poem::Error)`; `Anyhow` becomes a bare
+  500 and the error is discarded.
+- Domain errors are ADL types inside `O`, returned with a 200.
 
-The ADL compiler stays a pure type generator. It emits the API struct with serde derives,
-plus whatever `RustExtraDeriveTraits` asks for — here `adl::HttpApi`. The derive proc
-macro (`syn` and `quote`) lives in `rust/adl/derive` and does the following:
+### Code generation
 
-- Matches field types **syntactically** on the literal `HttpReq<I, O>`. Aliases are not
-  recognised, so this form has to be documented. Any other field is read as a nested API
-  (see below).
-- Emits a `<Api>Handlers` trait with one method per endpoint field:
-  `fn name(&self, ctx: Ctx, req: I) -> impl Future<Output = Result<O, Self::Error>> + Send`.
-- Emits `impl HttpApi<Ctx, M, H> for <Api>`, whose `register_at` mounts every endpoint.
-  It takes `&self` because `method` and `security` are runtime ADL data on each `HttpReq`
-  value.
-- Uses span-preserving errors that point at fields.
-- Macros only see tokens. Field default values (method, security) are not visible at
-  expansion time, so they come from the struct value at runtime. The path has to be known
-  at expansion time, so it comes from the field name or an emitted attribute.
+`tasks/genadl.sh` (or `task genadl`) runs `adlc typescript`, `adlc rust`, and the external
+subcommands `adlc ts-package`, `adlc rust-seaquery-schema` and `adlc sqlschema` from
+`adlc-extensions/`. The db column definitions in `rust/adl/src/db/schema.rs` come from
+`adlc rust-seaquery-schema`.
 
-Two things changed from the sketch this section started as. The entry point is a trait
-impl rather than an inherent `register` function, so a host can write one mounting helper
-for every API. And it mounts into the host-agnostic `Mount` trait in
-`rust/adl/src/http_api.rs` rather than a `Router` of our own, which is what lets poem host
-the generated code today without item 6 being done first: `routing.rs` mounts
-`Api` with one `adl_api_at` call, and `handlers.rs` implements the generated
-traits.
+## Plan
 
-### Path from the field name. DONE
+### 1. Smaller server changes (on poem)
 
-`path` has been removed from `common.http.HttpReq`. An endpoint's path is now `"/"`
-followed by its **ADL field name**, derived independently but identically by each
-backend:
+- **Typed state and JWT checker.** Hold `Arc<S>` and `Arc<dyn JwtSecurityCheck>` in the
+  router rather than `req.data().expect()`, and collapse the `AdlReqContext` wrapper.
+- **Log internal errors** before converting `HandlerError::Anyhow` to a 500.
+- **Owned handler error type.** Replace `HandlerError::Poem` with an enum: `Unauthorized`,
+  `Forbidden`, `BadRequest(String)`, `Internal(anyhow::Error)`.
+- **Set a request body size limit.**
 
-- `#[derive(HttpApi)]` reads `#[serde(rename = "...")]` where the Rust backend had to
-  rename the field, and the identifier otherwise — never the identifier alone, which is
-  snake-cased and keyword-escaped. It emits each path as a `PATH_<FIELD>` associated
-  constant and passes it to `Mount::mount`, which gained a `path` parameter.
-- The TypeScript backend uses the ADL field name verbatim as the property name, so
-  `ServiceBase` and the workbench both derive from it directly (`endpointPath`).
-  `mkReqFn`/`mkAuthReqFn` take an `Endpoint` — a path paired with an `HttpReq` — from
-  `endpoints(resolver, texpr, value)`, rather than an `HttpReq` value, because a value
-  detached from its declaration cannot know its own path.
+### 2. A `tower::Service` runtime
 
-`http_api::tests::paths_come_from_adl_field_names` pins the rule on the Rust side; the
-six server tests exercise it over real HTTP.
+Make the runtime a `tower::Service` so it can be mounted in axum, poem or bare hyper, and
+tested with `ServiceExt::oneshot` with no socket. First step: an interop module with the
+`tower::Service` boundary, including GET query-string decoding matching current behaviour,
+with one API ported to it and the poem path kept for comparison.
 
-Consequences, accepted deliberately:
+Design rules:
 
-- **Paths moved.** `/whoami` is now `/who_am_i` and `/users/create` is `/create_user`.
-  This was acceptable because protoapp has no deployed external clients. The health check
-  briefly moved to `/healthy` and is back at `/`, now by annotation.
-- **Renaming an ADL field is now a wire-breaking change.** On the Rust side a rename at
-  least breaks the build wherever a `PATH_` constant is named; TypeScript just follows the
-  new name silently.
+- The public interface is `tower::Service<http::Request<B>>`, generic over the request body
+  `B` (`http_body::Body + Send + 'static`, `B::Data: Send`, `B::Error: Into<BoxError>`).
+  Do not expose `hyper::body::Incoming`.
+- The state `S` is held as `Arc<S>` (`Send + Sync + 'static`). The service is `Clone` and
+  `Sync` (poem's compat adapter needs it), with `Error = Infallible` and
+  `Response = http::Response<Full<Bytes>>`.
+- `poll_ready` is always ready. Backpressure belongs in tower layers.
+- Handlers receive a request context exposing headers and extensions (e.g.
+  `http::request::Parts`), so host middleware can share auth data with ADL handlers.
+- Routing is by type erasure: `Arc<dyn Fn(Arc<S>, Ctx, Bytes) -> BoxFut>` in a `HashMap`
+  keyed by path, with `security` and `method`; duplicate routes assert.
+- The serve loop is an optional helper built on hyper-util's `server::conn::auto::Builder`.
+- Transport failures (bad JSON, auth, not found, too large, internal) are HTTP status
+  codes; domain errors stay in `O`.
 
-### The @HttpPath override. DONE
+Layers: hyper 1.x serves HTTP/1 and HTTP/2; tower provides `Service` and `Layer`, tower-http
+the middleware; the shared types are `http` and `http-body` 1.x. Adapt a tower service to
+hyper with `hyper_util::service::TowerToHyperService` (it clones the service per request).
+axum is built on tower; poem has a `tower-compat` feature; actix-web would need a shim.
 
-`common.http.HttpPath` is a `String` annotation on an `HttpReq` field that replaces the
-derived path outright:
-
-```adl
-  /// AWS default compatible health check
-  @HttpPath "/"
-  HttpReq<Void,Void> healthy = { "method": "get", "security": "public" };
-```
-
-The value is used verbatim, so it carries its own leading slash, and both backends reject
-one that does not. It is the only way to reach a path an ADL field name cannot spell — the
-root path, a kebab-cased one, or one with more than one segment — and the way to pin a
-path that something outside the application dictates. The health check is both: AWS health
-checks default to the empty path, so that is where it sits again.
-
-TypeScript needed nothing from adlc: field annotations already reach the TS AST, so
-`endpointPath` reads it with `ADL.getAnnotation` off the resolved declaration.
-
-Rust needed a new adlc feature, because the Rust backend emits no AST and read field
-annotations only for `RustStorageModel`. `adlc.config.rust.RustEmitAnnotation` is a meta
-annotation, applied to an annotation's *declaration*, that carries every use of it
-through into the generated code:
-
-```adl
-// adl/common/http.adl-rs
-annotation HttpPath RustEmitAnnotation null;
-```
-
-```rust
-#[derive(Clone,Deserialize,Eq,Hash,PartialEq,Serialize,adl::HttpApi,adl_rt::AdlAnnotations)]
-pub struct Api {
-  #[serde(default="Api::def_healthy")]
-  #[adl_annotation(name="common.http.HttpPath", value="\"/\"")]
-  pub healthy: HttpReq<(), ()>,
-  // ...
-}
-```
-
-The value is the annotation's ADL json encoding, passed through uninterpreted, so the
-mechanism serves an annotation of any type rather than this one. This works because
-`Annotations t = Map ScopedName (t, JSON.Value)` and `resolveAnnotations` stores
-`RT_Named (sn, decl)`, so a use site can reach its own annotation's declaration and test
-it for the meta annotation.
-
-Rust only accepts an attribute that a derive on the same item has registered as a helper,
-so adlc adds `adl_rt::AdlAnnotations` to the derive list wherever it emits one. That
-derive expands to nothing; it exists to make the attribute legal and inert. Helper
-attributes are visible to every macro on the item, not only the one that declared them,
-which is how `#[derive(HttpApi)]` gets to read it.
-
-An attribute rather than the inherent `field_annotations()` function first sketched here:
-the `PATH_` constants have to be known when the derive expands, and a function body is
-not.
-
-`adl_rt` 0.1 is an ordinary crates.io dependency of the `adl` crate, and generated code
-names it directly. That is adlc 1.4.1's default: `genadl` passes no `--runtime-module`,
-so paths come out as `adl_rt::custom::sys::types::...` rather than `crate::<module>::...`.
-It replaces the copy of the runtime source that `--include-rt` used to drop into
-`adl/src/rt/`, so there is one copy of `Map`, `Set` and the rest in the build rather than
-two, and nothing to regenerate when the runtime changes.
-
-Two hand written files name the runtime too, and so refer to the crate as well:
-`adl/src/db/conversions.rs`, and `adlc-extensions/gen-rs-seaquery-schema.ts` (built as `adlc rust-seaquery-schema`), which writes the
-import line of the schema it generates.
-
-`RustEmitAnnotation` arrived in adlc 1.4.1, which the `adl` input in
-`flake.nix` pins. On 1.4.0 or earlier, `./genadl` fails outright with
-`undefined type RustEmitAnnotation`; the TypeScript half is generated first and is
-unaffected, since annotations reach the TS AST without the compiler knowing anything
-about them, and only the Rust pass stops.
-
-### Nested APIs. DONE
-
-An API struct field that is not an `HttpReq` is another API struct, nested under it.
-`Api` nests `AdminApi` at its `admin` field, and the three admin
-endpoints are served from `/admin/create_user` and so on — the field's path, composed
-with each endpoint's own. The same API type may be nested at more than one field, each
-mount point served by its own handlers; protoapp does not do this, but the derive
-supports it, and getting it wrong is how the first implementation failed.
-
-What each side does with that:
-
-- `#[derive(HttpApi)]` gives the nested struct its own endpoint trait, and the enclosing
-  API's endpoint trait gains, per nested field, an associated type bounded by that trait
-  and an accessor yielding it:
-
-  ```rust
-  type Admin: AdminApiEndpoints<Ctx, Error = Self::Error>;
-  fn admin(&self) -> Arc<Self::Admin>;
-  ```
-
-  The mount point is identified by the **field**, not by the type. Two fields of the
-  same API type therefore get an associated type each, and can be served by different
-  handler types — a dry run API alongside the real one, say, implemented by a type that
-  holds no database pool and so cannot write. Leaving any of them out is a compile
-  error, so no nested endpoint goes unimplemented and none silently inherits another's
-  handlers.
-
-  This replaced a flat `H: AdminApiEndpoints<Ctx, Error = M::Error>` bound on the
-  generated impl, under which one `Handlers` value implemented the whole tree and a
-  single `Arc<H>` was passed down. That was simpler to implement — no associated-type
-  equality for `Error` to propagate — but it keyed nesting on the type, so two fields of
-  the same API type produced the *same* bound twice and were both satisfied by one impl.
-  The duplicate mount point then silently served the first one's handlers, which for a
-  dry run API is precisely the wrong failure. The `Error = Self::Error` bound sits in
-  the trait declaration, so the equality chain propagates without any hand written
-  where clause.
-- `HttpApi` grew `register_at(prefix, ..)`, with `register` as `register_at("")`. `Mount`
-  is unchanged, so no host implementation had to be touched.
-- `PATH_` constants became **relative to where their API is mounted**, and each nested
-  field contributes a prefix constant of its own. So `Api::PATH_ADMIN` is
-  `"/admin"` and `AdminApi::PATH_CREATE_USER` is `"/create_user"`. This is the
-  real cost of prefixing: hand written wiring must compose them, where before a constant
-  was the whole path. `tests/helpers.rs` has an `admin_path` helper for exactly this.
-- `endpoints()` in TypeScript recurses, so `Endpoints<A>` nests too and the client reads
-  `api.admin.create_user`. The workbench recurses separately and qualifies its endpoint
-  names, as `admin.create_user`, though it labels them by path: now that an endpoint's
-  name no longer determines its path, the path is the more useful of the two on screen.
-
-Each nested API needs its own `RustExtraDeriveTraits ["adl::HttpApi"]` line in
-`ui.adl-rs`: the derive on the enclosing struct can require a handler trait but cannot
-generate one for a type it only sees by name. Forgetting it surfaces as an unsatisfied
-`AdminApiEndpoints` bound on the parent's associated type.
-
-`http_api::tests::nested_api_paths_are_relative_to_their_mount_point` pins the
-composition rule, and the server tests exercise `/admin/*` over real HTTP.
-
-### Security enforced by the registration. DONE
-
-The ADL has always declared each endpoint's policy, and `check_security` has always run
-before the handler. What was missing is that the *type* said nothing about it: the
-handler received `claims: Option<AccessClaims>` and decided for itself. Two consequences.
-`new_message` and `who_am_i` called a local `user_from_claims`, which re-checked a
-guarantee the framework had already made, and additionally required
-`role == ROLE_USER || role == ROLE_ADMIN` — a condition the ADL does not express, so the
-effective policy was split between two files and only one of them is what the clients and
-the workbench read.
-
-Now the policy decides the handler's signature, which the derive can do because
-`@HttpSecurity` is an annotation and so available at expansion time. This is the whole
-reason the method and security moved out of `HttpReq`.
-
-- A `public` endpoint's handler takes `(ctx, req)`. Every other one takes
-  `(ctx, identity, req)`, where `Identity` is an associated type of both the generated
-  handler trait and `Mount`, equated by the generated impl the same way `Error` is. There
-  is no `Option`: a handler of that shape cannot be reached without one.
-- `Mount::mount` split into `mount_public` and `mount_secured`. `mount_public` has no way
-  to supply an identity; `mount_secured` can only call its handler by producing a
-  `Self::Identity`, and the only thing that produces one is the policy check. So neither
-  the handler nor the host can skip it — the host would have to fabricate an identity, and
-  it has nothing to fabricate one from.
-- `JwtSecurityCheck::check_security` returns `HandlerResult<AccessClaims>` rather than
-  `HandlerResult<Option<AccessClaims>>`, because every policy it is now called for
-  requires a credential. A public endpoint does not call it, so the `HttpSecurity::Public`
-  arm is unreachable and logs an error rather than granting access.
-- `AdlReqContext` lost its `claims` field, and `user_from_claims` is gone. A handler that
-  does not care who called takes `_identity`, which is visibly "not interested" rather
-  than "forgot to check".
-
-One deliberate widening: a `token` endpoint now accepts any role, where `user_from_claims`
-restricted it to `user` or `admin`. With only those two roles defined that is the same
-set, but the policy is now entirely in the ADL — to restrict an endpoint to a role, say
-so with `tokenWithRole` and every backend sees it.
-
-`server_security_policy` pins nine policy/credential combinations, and all nine assert on
-the response status alone. Every one of them should still hold: absent and unusable
-credentials are still 401 on a secured endpoint, the wrong role is still 403, and a
-public endpoint still answers 200 with no credential, a stale one or a valid one. All
-nine do still hold: the suite was run against this change and passes. Only one comment in
-that test needed changing, where it said a valid token on a public endpoint reaches the
-handler as claims.
-
-### A generated client. DONE
-
-The derive also emits an `<Api>Client` per API struct, generic over an `Invoke` transport,
-which is the client side counterpart of `Mount`. `Invoke` names no http library and holds
-no base url — a transport already knows where it points — so construction is just
-`ApiClient::new(transport)`.
-
-```rust
-let client = ApiClient::new(transport);
-client.admin().query_users(&jwt, &req).await?;
-```
-
-The client is deliberately **not** an implementation of `ApiEndpoints`, which was the
-first thing tried. The trait's job is to make a *hand written* implementation prove it is
-complete; a generated one has nothing to prove, so sharing the trait buys only the ability
-to write code generic over client-and-server, which nothing here does. It charges for that
-at every call site: the trait carries a `Ctx` for the server's per-request state, and once
-the transport lives in the client there is nothing for a client to pass but `&()`. If that
-generic code ever appears, the derive can add a forwarding `impl ApiEndpoints<()>` beside
-the inherent methods, which the call sites would not notice.
-
-What the client does share with the registration is every fact it reads out of the ADL,
-and this is the whole point of generating it:
-
-- Paths compose through the nested accessor, so a caller never names a mount point. An API
-  nested at two fields yields two clients addressing their own prefixes, matching the
-  per-mount-point associated types on the server side.
-- The `public`/secured split follows `@HttpSecurity`, as the mounting does. A public
-  endpoint's method takes no credential, because the server would ignore one; every other
-  method requires one, so a call with nothing to present does not compile.
-- `Invoke::Identity` is `?Sized`, so a transport whose credential is a string names it
-  `str` and call sites pass `&jwt` without cloning per call. Note that this is the
-  *opposite* direction from `Mount::Identity`, which is what the server has
-  authenticated — the same slot in a signature, pointing the other way.
-- `invoke_secured` is not passed the `HttpSecurity`. `token` and `tokenWithRole` are
-  presented identically, and the role is the server's to check, so the policy would
-  allocate a `String` per call to say nothing the public/secured split has not said. The
-  server mounts once at startup and can afford it.
-
-The server test suite now issues its requests through the client, including the 403 for a
-valid credential carrying the wrong role. Four requests in `server_security_policy` stay
-on a raw reqwest helper, and which four is the interesting part: they are the ones that
-send a credential to a `public` endpoint, or none to an endpoint that requires one. Those
-exist to check what the server does with a *non-conforming* client, so by construction a
-conforming one cannot express them.
-
-The suite was run against the port and passes, so the generated client reaches the same
-paths with the same methods and credentials as the hand written requests it replaced.
-That is the one thing worth checking here: the client and the registration read the same
-annotations, but nothing would have caught them reading them differently.
-
-### Mixing example (axum host)
+Mixing ADL and custom endpoints under axum would look like:
 
 ```rust
 let mut adl = adl_runtime::Router::new(state.clone(), jwt_checker);
@@ -433,30 +153,84 @@ let app = axum::Router::new()
     .layer(TraceLayer::new_for_http());
 ```
 
-## Unverified points to test
+### 3. Db schema and annotations through macros (optional)
+
+The db column definitions come from a typescript tool, while `HttpApi` is a derive. These
+alternatives would make adl to rust consistent.
+
+The obstacle for a db derive: a derive sees only the item it is attached to. The table type
+is `pub struct AppUserTable(pub WithId<AppUser>)`, whose columns are `AppUser`'s fields plus
+the `id` added through `@DbSpread`, and the derive can see neither type's fields.
+
+**Option A: two cooperating derives, no new input.**
+
+- A derive on the table newtype reads the `DbTable` annotation (via `RustEmitAnnotation`),
+  parses `WithId<AppUser>` syntactically for the inner type, and emits
+  `impl HasTable for AppUser { const TABLE: &str = ".."; .. }` and the `id()` column.
+- A derive on the inner struct sees the named fields and emits an inherent
+  `impl AppUser { pub fn email() -> ColumnSpec<StringNE> { .. } }`. Field types are copied
+  as tokens.
+- Limits: the `WithId<X>` shape is hardcoded and spreads nested more than one level are
+  not handled.
+- Call sites change from `schema::AppUser::email()` to `AppUser::email()`, in
+  `rust/server/src/server/db/mod.rs`.
+- To verify: that adlc's Rust backend emits `adl_annotation` on a newtype (`Internal.hs`
+  does it for structs and their fields), otherwise a small adlc change is needed.
+
+**Option B: macros read an `adlc ast` file.** `genadl` also runs
+`adlc ast --combined-output rust/adl/src/gen/.adl-ast.json`, and the derives read it at
+expansion time.
+
+- The derive looks up `protoapp.db.AppUserTable` in the AST and resolves spreads itself,
+  so it needs no `WithId<X>` convention. This ports `getDbFields` (about 60 lines).
+- Column types come from Rust inference rather than a port of the type mapping:
+
+  ```rust
+  fn col<R, T>(table: &'static str, name: &'static str, _proj: fn(&R) -> &T) -> ColumnSpec<T>
+  // emitted: col("app_user", "email", |r: &AppUserTable| &r.0.value.email)
+  ```
+
+  The primary key is typed `DbKey<AppUserTable>` explicitly.
+- The expansion includes `const _: &[u8] = include_bytes!("..")` so cargo reruns the macro
+  when the file changes. The derive crate cannot depend on `adl` (which depends on it), so
+  it parses the AST as `serde_json::Value` or with small structs, cached in a `OnceLock`.
+- Finding a declaration needs its ADL module name. Searching by decl name is enough at
+  this size; the general fix is an adlc attribute such as
+  `#[adl_decl(module="protoapp.db", name="AppUserTable")]` on every generated decl.
+- The AST file is a large committed generated artifact, written by the same `genadl` run
+  as the Rust. Macro output is inspected with `cargo expand`. A `build.rs` writing
+  `schema.rs` into `OUT_DIR` is a less magical variant.
+
+**Applying option B to `HttpApi`.** The derive would read method, security and path
+annotations from the AST, so `RustEmitAnnotation`, `adl_rt::AdlAnnotations` and the
+`adl_annotation` attributes would no longer be needed here. It would also see nested API
+declarations and struct-level defaults, so the per-nested-API derive lines could go and
+the rule that a struct default does not reach a nested API could be reconsidered. Field
+types would still come from the struct's tokens. The cost is reworking the annotation and
+nesting reads in the derive. `server_security_policy` and the `/admin/*` server tests are
+the regression check.
+
+**Order if pursued.** Build the shared AST loader in `rust/adl/derive` and prove it on a db
+derive for `AppUserTable` and `Message`. Then port `HttpApi`'s annotation lookups to it,
+keeping the attribute reading until the tests pass. Then remove the `RustEmitAnnotation`
+lines from the `.adl-rs` files, and the per-nested-API derive lines if no longer needed.
+
+Neither option removes the typescript tooling entirely, since `adlc sqlschema` still
+resolves spreads in typescript.
+
+## Rough edges
+
+- A field that is neither an `HttpReq` nor an API struct is read as a nested API, and
+  fails as an unsatisfied `HttpApi` or handler-trait bound that does not name the mistake.
+- Method names may collide between an API and the APIs nested in it if one type implements
+  several of the endpoint traits in a tree. A collision surfaces as an ambiguity error.
+- `ts/ui` and `ts/api-workbench` each carry a near-copy of `service-base.ts`.
+- Neither `adl_rt` nor `adl_rt_derive` declares an MSRV.
+
+## Unverified
 
 - Whether a service with `Error = Infallible` satisfies poem's `TowerCompatExt` bound
   (`Err: Into<poem::Error>`).
-- Whether request extensions set by poem middleware survive poem's tower-compat
-  conversion.
-- Versions as of Oct 2026: hyper 1.11.x, axum 0.8.9 (0.9 in progress on main, with
-  breaking changes), poem 3.1.x, tower 0.x. Recheck before pinning.
-
-## Remaining work
-
-Items 2, 4 and 5 are open and can all be done on poem. Item 6 is the larger change: an
-interop module with the `tower::Service` boundary in place, including GET query-string
-decoding that matches current behaviour, with one API ported to it and the existing poem
-path kept working for comparison.
-
-Rough edges in what is built, none of them urgent:
-
-- A field that is neither an `HttpReq` nor an API struct is still read as a nested API. It
-  fails as an unsatisfied `HttpApi` or handler-trait bound, which does not name the real
-  mistake.
-- Method names may collide between an API and the APIs nested in it, if one type is used
-  to implement several of the endpoint traits in a tree. Nesting no longer forces that —
-  each mount point has its own associated type — but nothing in the ADL expresses the
-  constraint either, and a collision surfaces as an ambiguity error at the impl.
-- `ts/ui` and `ts/api-workbench` each carry a near-copy of `service-base.ts`.
-- Neither `adl_rt` nor `adl_rt_derive` declares an MSRV.
+- Whether request extensions set by poem middleware survive poem's tower-compat conversion.
+- Crate versions (as of Oct 2026: hyper 1.11.x, axum 0.8.9 with 0.9 in progress, poem
+  3.1.x, tower 0.x). Recheck before pinning.

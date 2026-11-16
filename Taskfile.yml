@@ -6,10 +6,16 @@ includes:
     dir: ./rust
 
 tasks:
+  dev:
+    desc: Bring up the whole local dev system (postgres, server, ui) under process-compose
+    interactive: true
+    cmds:
+      - process-compose up {{.CLI_ARGS}}
+
   genadl:
     desc: Regenerate rust, typescript and sql code from the ADL sources
     cmds:
-      - ./genadl
+      - tasks/genadl.sh
 
   build-server-image:
     desc: Build the server docker image
