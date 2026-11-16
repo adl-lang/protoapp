@@ -93,25 +93,9 @@ current user are shown.
 
 Currently linux and macos are supported.
 
-Install docker and rust/cargo for your platform. Then install the appropriate versions of node, pnpm, and
-adl locally using the [proto](https://moonrepo.dev/proto) tool.
-
-```
-cd <repo root>
-proto install
-```
-
-Check installed tool versions with:
-
-```
-node --version
-adlc show --version 
-```
-
-If you use [nix](https://nixos.org), the whole toolchain is instead available as a
-dev shell — the rust toolchain (from `rust/rust-toolchain.toml`), the postgres
-client, and the same node, pnpm and adlc versions as `.prototools`,
-plus the `adlc-*` subcommands that `genadl` uses (see below):
+Install [nix](https://nixos.org) (with flakes enabled) and docker. The whole toolchain is then
+available as a dev shell: the rust toolchain (from `rust/rust-toolchain.toml`), the postgres
+client, node, pnpm and adlc, plus the `adlc-*` subcommands that `genadl` uses (see below):
 
 ```
 nix develop ./nix
@@ -120,7 +104,14 @@ nix develop ./nix
 or, with [direnv](https://direnv.net), by putting `use flake ./nix` in a local `.envrc`.
 adlc comes from the [adl flake](https://github.com/adl-lang/adl) (the `adl` input in
 `nix/flake.nix`), which builds it from source, so it is available on every platform
-the flake supports. Keep that input in step with the `adlc` version in `.prototools`.
+the flake supports.
+
+Check installed tool versions with:
+
+```
+node --version
+adlc show --version
+```
 
 # 3 Local development
 
@@ -139,8 +130,7 @@ task genadl   # or ./genadl directly
 `genadl` is a bash script of `adlc` invocations. `adlc ts-package`, `adlc rust-seaquery-schema` and
 `adlc sqlschema` are external `adlc` subcommands (`adlc-ts-package` etc, found on the `PATH`), whose
 source is in [adlc-extensions](./adlc-extensions). The nix dev shell builds them (the only place deno is used, as a build
-tool) and puts them on the `PATH`, so `genadl` needs the nix dev shell. With proto alone, the
-typescript and rust steps work but those three commands are not available.
+tool) and puts them on the `PATH`, so `genadl` should be run from the nix dev shell.
 
 ## 3.1 Start postgres
 

@@ -25,8 +25,6 @@
           toolchainFile = ../rust/rust-toolchain.toml;
         };
 
-        # Keep the adl input in step with the `adlc` entry in ../.prototools,
-        # so that the nix and proto paths generate code with the same compiler.
         adlc = adl.packages.${system}.adlc;
 
         # The adlc-* subcommands (run as `adlc <name>`, see ../genadl) are
@@ -102,10 +100,8 @@
             # stable toolchain above is enough and no nightly is needed.
             cargo-expand
 
-            # Also listed in ../.prototools, for contributors who use proto
-            # rather than nix. The versions there are the ones these attrs
-            # resolve to, so bumping the nixpkgs input means updating that
-            # file too (and vice versa).
+            # The node and pnpm versions here are also pinned in
+            # ../ts/ui/Dockerfile, so keep them in step.
             nodejs_24
             pnpm_10
             adlc

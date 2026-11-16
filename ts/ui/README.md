@@ -13,7 +13,7 @@ Notably, Protoapp UI does not choose solutions for:
 - Data fetching and caching
 - Client-side routing
 
-The `src/service` implementation of data fetching is lightweight and can be easily replaced with a fetching library of your choice. It is recommended to generate an API service from the `Api` struct in the protoapp.apis.ui module by writing a custom code generator in the Deno directory.
+The `src/service` implementation of data fetching is lightweight and can be easily replaced with a fetching library of your choice. It is recommended to generate an API service from the `Api` struct in the protoapp.apis.ui module by writing a custom code generator in the adlc-extensions directory.
 
 ## Development
 

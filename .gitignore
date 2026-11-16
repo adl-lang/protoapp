@@ -1,6 +1,4 @@
 .local/
-.vscode/.zshcompdump
-.vscode/.zshcompdump.zwc
 .direnv/
 .claude/
 .envrc
