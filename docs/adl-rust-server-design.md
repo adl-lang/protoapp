@@ -264,7 +264,7 @@ Two hand written files name the runtime too, and so refer to the crate as well:
 import line of the schema it generates.
 
 `RustEmitAnnotation` arrived in adlc 1.4.1, which the `adl` input in
-`nix/flake.nix` pins. On 1.4.0 or earlier, `./genadl` fails outright with
+`flake.nix` pins. On 1.4.0 or earlier, `./genadl` fails outright with
 `undefined type RustEmitAnnotation`; the TypeScript half is generated first and is
 unaffected, since annotations reach the TS AST without the compiler knowing anything
 about them, and only the Rust pass stops.

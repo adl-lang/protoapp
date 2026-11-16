@@ -19,7 +19,7 @@ WORKDIR /build
 
 # pnpm is pinned here rather than read from a packageManager field, as this
 # workspace has no root package.json. Keep the version in step with
-# ../../nix/flake.nix.
+# ../../flake.nix.
 RUN corepack enable && corepack prepare pnpm@10.34.5 --activate
 
 # .npmrc carries the jsr registry that @adllang/adl-runtime resolves through.

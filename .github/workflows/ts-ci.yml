@@ -18,8 +18,8 @@ jobs:
 
       - name: Install deps
         working-directory: ./ts
-        run: nix develop ../nix -c pnpm install
+        run: nix develop .. -c pnpm install
 
       - name: Check
         working-directory: ./ts
-        run: nix develop ../nix -c pnpm run -r check
+        run: nix develop .. -c pnpm run -r check

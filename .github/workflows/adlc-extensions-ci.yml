@@ -18,9 +18,9 @@ jobs:
         uses: DeterminateSystems/nix-installer-action@main
 
       - name: Build the adlc-* tools
-        run: nix build ./nix#adlc-tools
+        run: nix build .#adlc-extensions
 
       - name: Check formatting, lint and types
         run: |
-          nix develop ./nix -c true
+          nix develop -c true
           nix shell nixpkgs#deno -c sh -c 'cd adlc-extensions && deno fmt --check && deno lint && deno check adlc-*.ts'

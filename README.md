@@ -98,12 +98,12 @@ available as a dev shell: the rust toolchain (from `rust/rust-toolchain.toml`), 
 client, node, pnpm and adlc, plus the `adlc-*` subcommands that `genadl` uses (see below):
 
 ```
-nix develop ./nix
+nix develop
 ```
 
-or, with [direnv](https://direnv.net), by putting `use flake ./nix` in a local `.envrc`.
+or, with [direnv](https://direnv.net), by putting `use flake` in a local `.envrc`.
 adlc comes from the [adl flake](https://github.com/adl-lang/adl) (the `adl` input in
-`nix/flake.nix`), which builds it from source, so it is available on every platform
+`flake.nix`), which builds it from source, so it is available on every platform
 the flake supports.
 
 Check installed tool versions with:
